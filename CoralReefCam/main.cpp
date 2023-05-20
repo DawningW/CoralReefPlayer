@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    streamPuller.start("rtsp://172.6.2.10/main", Transport::TCP, [](AVFrame* frame) {
+    streamPuller.start("rtsp://172.6.2.20/main", Transport::UDP, [](AVFrame* frame) {
         queue.enqueue(frame);
         SDL_Event event = {};
         event.type = SDL_REFRESH_EVENT;
@@ -54,7 +54,8 @@ int main(int argc, char* argv[])
             AVFrame* frame;
             while (queue.try_dequeue(frame))
             {
-                SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
+                SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
+                    frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
                 SDL_RenderClear(renderer);
                 SDL_RenderCopy(renderer, texture, NULL, NULL);
                 SDL_RenderPresent(renderer);

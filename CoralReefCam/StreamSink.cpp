@@ -5,7 +5,7 @@
 
 static uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
 
-FILE* pH264;
+//FILE* pH264;
 
 StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, callback_t callback) {
     return new StreamSink(env, subsession, callback);

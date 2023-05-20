@@ -53,6 +53,26 @@ static bool is_keyframe_h264(AVPacket* pkt) {
     return false;
 }
 
+static int find_sps_pps(AVPacket* pkt) {
+    unsigned char* buffer = pkt->data;
+    int size = pkt->size;
+    if (pkt->data[0] == 0 && pkt->data[1] == 0 && pkt->data[2] == 0 && pkt->data[3] == 1) {
+        while (size > 3) {
+            if (buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 0 && buffer[3] == 1) {
+                int nal_type = buffer[4] & 0x1F;
+                if (nal_type == 5) {
+                    return pkt->size - size;
+                }
+                buffer += 4;
+                size -= 4;
+            }
+            buffer++;
+            size--;
+        }
+    }
+    return 0;
+}
+
 StreamPuller* StreamPuller::instance;
 
 StreamPuller::StreamPuller()
@@ -68,17 +88,12 @@ StreamPuller::StreamPuller()
     pCodecCtx = avcodec_alloc_context3(pCodec);
     pCodecCtx->flags = AV_CODEC_FLAG_LOW_DELAY;
     pCodecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS;
+    pCodecCtx->extradata = (uint8_t*) av_malloc(AV_INPUT_BUFFER_PADDING_SIZE);
+    pCodecCtx->extradata_size = 0;
     //av_opt_set(pCodecCtx->priv_data, "preset", "ultrafast", 0);
     //av_opt_set(pCodecCtx->priv_data, "tune", "zerolatency", 0);
 
-    AVDictionary* opts = NULL;
-    av_dict_set(&opts, "preset", "ultrafast", 0);
-    av_dict_set(&opts, "tune", "zerolatency", 0);
-    if (avcodec_open2(pCodecCtx, pCodec, &opts) < 0)
-    {
-        throw std::runtime_error("Open codec failed.");
-    }
-    av_dict_free(&opts);
+    // 由于需要sps和pps, 解码器初始化已移至void initCodec()函数
 
     pFrame = av_frame_alloc();
 }
@@ -87,6 +102,7 @@ StreamPuller::~StreamPuller()
 {
     av_frame_free(&pFrame);
     avcodec_close(pCodecCtx);
+    av_free(pCodecCtx->extradata);
 
     instance = nullptr;
 }
@@ -109,6 +125,18 @@ void StreamPuller::stop()
     pThread.join();
 }
 
+void StreamPuller::initCodec()
+{
+    AVDictionary* opts = NULL;
+    av_dict_set(&opts, "preset", "ultrafast", 0);
+    av_dict_set(&opts, "tune", "zerolatency", 0);
+    if (avcodec_open2(pCodecCtx, pCodec, &opts) < 0)
+    {
+        throw std::runtime_error("Open codec failed.");
+    }
+    av_dict_free(&opts);
+}
+
 void StreamPuller::run()
 {
     scheduler = BasicTaskScheduler::createNew();
@@ -126,7 +154,8 @@ void StreamPuller::run()
     delete scheduler;
 }
 
-void StreamPuller::shutdownStream(RTSPClient* rtspClient) {
+void StreamPuller::shutdownStream(RTSPClient* rtspClient)
+{
     UsageEnvironment& env = rtspClient->envir();
 
     if (session != NULL)
@@ -160,7 +189,8 @@ void StreamPuller::shutdownStream(RTSPClient* rtspClient) {
     rtspClient = NULL;
 }
 
-void StreamPuller::continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode, char* resultString) {
+void StreamPuller::continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode, char* resultString)
+{
     UsageEnvironment& env = rtspClient->envir();
 
     if (resultCode != 0)
@@ -191,7 +221,8 @@ end:
     shutdownStream(rtspClient);
 }
 
-void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, char* resultString) {
+void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, char* resultString)
+{
     UsageEnvironment& env = rtspClient->envir();
     const char *codecName, *sprops;
 
@@ -221,12 +252,11 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             SPropRecord& pps = spropRecords[1];
 
             int size = 8 + sps.sPropLength + pps.sPropLength;
-            uint8_t* buffer = new uint8_t[size];
+            uint8_t* buffer = pCodecCtx->extradata;
             memcpy(buffer, startCode4, 4);
             memcpy(buffer + 4, sps.sPropBytes, sps.sPropLength);
             memcpy(buffer + 4 + sps.sPropLength, startCode4, 4);
             memcpy(buffer + 4 + sps.sPropLength + 4, pps.sPropBytes, pps.sPropLength);
-            pCodecCtx->extradata = buffer;
             pCodecCtx->extradata_size = size;
 
             delete[] spropRecords;
@@ -236,19 +266,29 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
 
     subsession->sink = StreamSink::createNew(env, *subsession, [this, &env](StreamSink* sink, AVPacket* packet)
     {
-        bool isKeyframe = is_keyframe_h264(packet);
+        //bool isKeyframe = is_keyframe_h264(packet);
+        int sps_pps_len = find_sps_pps(packet);
         if (!sink->fHasFirstKeyframe)
         {
-            if (!isKeyframe)
+            if (pCodecCtx->extradata_size <= 0)
             {
-                env << "Waiting for the first keyframe.\n";
-                return;
+                if (sps_pps_len <= 0)
+                {
+                    env << "Waiting for the first keyframe.\n";
+                    return;
+                }
+                memcpy(pCodecCtx->extradata, packet->data, sps_pps_len);
+                pCodecCtx->extradata_size = sps_pps_len;
             }
+            initCodec();
             sink->fHasFirstKeyframe = True;
         }
 
-        if (isKeyframe)
+        if (sps_pps_len > 0)
         {
+            packet->data += sps_pps_len;
+            packet->size -= sps_pps_len;
+
             //avcodec_flush_buffers(pCodecCtx);
             //env << "Flush deocder buffer.\n";
         }
@@ -303,7 +343,8 @@ end:
     setupNextSubsession(rtspClient);
 }
 
-void StreamPuller::continueAfterPLAY0(RTSPClient* rtspClient, int resultCode, char* resultString) {
+void StreamPuller::continueAfterPLAY0(RTSPClient* rtspClient, int resultCode, char* resultString)
+{
     UsageEnvironment& env = rtspClient->envir();
 
     if (resultCode != 0)
@@ -315,7 +356,8 @@ void StreamPuller::continueAfterPLAY0(RTSPClient* rtspClient, int resultCode, ch
     env << "Started playing session...\n";
 }
 
-void StreamPuller::setupNextSubsession(RTSPClient* rtspClient) {
+void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
+{
     UsageEnvironment& env = rtspClient->envir();
 
     subsession = iter->next();
@@ -337,7 +379,8 @@ void StreamPuller::setupNextSubsession(RTSPClient* rtspClient) {
     rtspClient->sendPlayCommand(*session, continueAfterPLAY);
 }
 
-void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession) {
+void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession)
+{
     Medium::close(subsession->sink);
     subsession->sink = NULL;
 
@@ -352,7 +395,8 @@ void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession) {
     shutdownStream(rtspClient);
 }
 
-void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const* reason) {
+void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const* reason)
+{
     UsageEnvironment& env = rtspClient->envir();
 
     env << "Received RTCP \"BYE\"";

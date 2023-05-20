@@ -49,6 +49,7 @@ public:
     }
 
 private:
+    void initCodec();
     void run();
     void shutdownStream(RTSPClient* rtspClient);
     void continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode, char* resultString);
