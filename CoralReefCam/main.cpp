@@ -12,6 +12,7 @@ StreamPuller streamPuller;
 
 #undef main
 extern "C"
+
 int main(int argc, char* argv[])
 {
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER))
@@ -38,7 +39,11 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    streamPuller.start("rtsp://172.6.2.20/main", Transport::UDP, [](AVFrame* frame) {
+    const char* url = "rtsp://172.6.2.20/main";
+    if (argc > 1) {
+        url = argv[1];
+    }
+    streamPuller.start(url, Transport::UDP, [](AVFrame* frame) {
         queue.enqueue(frame);
         SDL_Event event = {};
         event.type = SDL_REFRESH_EVENT;
