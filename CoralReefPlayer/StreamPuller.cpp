@@ -320,6 +320,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             	mWidth, mHeight, mPixFormat, SWS_FAST_BILINEAR, NULL, NULL, NULL);
             sws_scale(swsCxt, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pOutFrame.data, pOutFrame.linesize);
             sws_freeContext(swsCxt);
+            pOutFrame.pts = pFrame->pts;
 
             pCallback(0, &pOutFrame);
         }

@@ -51,6 +51,7 @@ void StreamSink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedByte
     AVPacket packet{};
     packet.data = fReceiveBuffer;
     packet.size = frameSize;
+    packet.pts = presentationTime.tv_sec * 1000 + presentationTime.tv_usec / 1000;
     fCallback(this, &packet);
 
     if (!continuePlaying()) {

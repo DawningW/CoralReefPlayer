@@ -11,13 +11,22 @@
 
 crp_handle player;
 bool has_frame;
+uint64_t pts;
 
 void loop()
 {
     static bool show_demo_window = true;
+    ImGuiIO& io = ImGui::GetIO();
 
     ImGui::NewFrame();
+
     ImGui::ShowDemoWindow(&show_demo_window);
+
+    ImGui::Begin("Frame Info");
+    ImGui::Text("FPS: %.1f", io.Framerate);
+    ImGui::Text("PTS: %ld", pts);
+    ImGui::End();
+
     ImGui::Render();
 }
 
@@ -56,10 +65,12 @@ int main(int argc, char* argv[])
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    //io.Fonts->AddFontDefault();
+    io.Fonts->AddFontFromFileTTF("./unifont-14.0.01.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer_Init(renderer);
-
+    
     const char* url = "rtsp://172.6.2.20/main";
     if (argc > 1) {
         url = argv[1];
@@ -85,6 +96,7 @@ int main(int argc, char* argv[])
             SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
                 frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
             //SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
+            pts = frame->pts;
             has_frame = true;
         }
         else if (event.type == SDL_QUIT)
