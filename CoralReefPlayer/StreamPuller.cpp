@@ -105,7 +105,8 @@ StreamPuller::~StreamPuller()
 
 bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, callback_t callback)
 {
-    pUrl = url;
+    pUrl = std::make_unique<char[]>(strlen(url) + 1);
+    strcpy(pUrl.get(), url);
     mTransport = transport;
     mWidth = width;
     mHeight = height;
@@ -144,7 +145,7 @@ void StreamPuller::run()
     scheduler = BasicTaskScheduler::createNew();
     environment = BasicUsageEnvironment::createNew(*scheduler);
 
-    rtspClient = RTSPClient::createNew(*environment, pUrl, 1, "CoralReefCam");
+    rtspClient = RTSPClient::createNew(*environment, pUrl.get(), 1, "CoralReefCam");
     rtspClient->sendDescribeCommand(continueAfterDESCRIBE);
 
     environment->taskScheduler().doEventLoop(&mExit);

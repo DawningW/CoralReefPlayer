@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <thread>
 #include <functional>
 extern "C"
@@ -68,7 +69,7 @@ private:
     MediaSubsessionIterator* iter;
     MediaSink* sink;
 
-    const char* pUrl;
+    std::unique_ptr<char[]> pUrl;
     Transport mTransport;
     int mWidth;
     int mHeight;
