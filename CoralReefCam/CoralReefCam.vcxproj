@@ -105,15 +105,15 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NO_OPENSSL;NO_GETIFADDRS;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\live555\BasicUsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\groupsock\include;D:\rouring\CoralReefCamCpp\live555\liveMedia\include;D:\rouring\CoralReefCamCpp\live555\UsageEnvironment\include;D:\rouring\CoralReefCamCpp\ffmpeg\include;D:\rouring\CoralReefCamCpp\SDL2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\CoralReefPlayer;D:\rouring\CoralReefCamCpp\SDL2\include;D:\rouring\CoralReefCamCpp\imgui;D:\rouring\CoralReefCamCpp\imgui\backends;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\rouring\CoralReefCamCpp\x64\Debug;D:\rouring\CoralReefCamCpp\ffmpeg\lib;D:\rouring\CoralReefCamCpp\SDL2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>ws2_32.lib;live555.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;SDL2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\rouring\CoralReefCamCpp\x64\Debug;D:\rouring\CoralReefCamCpp\SDL2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>CoralReefPlayer.lib;SDL2.lib;imgui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -133,15 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="StreamSink.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="StreamPuller.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="atomicops.h" />
-    <ClInclude Include="StreamSink.h" />
-    <ClInclude Include="readerwriterqueue.h" />
-    <ClInclude Include="StreamPuller.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

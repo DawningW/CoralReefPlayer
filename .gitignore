@@ -1,3 +1,5 @@
-.vs
-build
-x64
+**/.vs
+**/build
+**/x86
+**/x64
+**/imgui.ini

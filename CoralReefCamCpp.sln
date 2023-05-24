@@ -5,10 +5,18 @@ VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoralReefCam", "CoralReefCam\CoralReefCam.vcxproj", "{3D69DC4C-0000-4F8E-B0EE-FE7D02643D13}"
 	ProjectSection(ProjectDependencies) = postProject
-		{BFAE9DE1-E5BC-4643-990A-692C92931A60} = {BFAE9DE1-E5BC-4643-990A-692C92931A60}
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784} = {2C3EA3A5-8963-4176-AE04-C5BB85608784}
+		{DDD80219-1895-44E0-B503-F8DF750A15BF} = {DDD80219-1895-44E0-B503-F8DF750A15BF}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "live555", "live555\live555.vcxproj", "{BFAE9DE1-E5BC-4643-990A-692C92931A60}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoralReefPlayer", "CoralReefPlayer\CoralReefPlayer.vcxproj", "{DDD80219-1895-44E0-B503-F8DF750A15BF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BFAE9DE1-E5BC-4643-990A-692C92931A60} = {BFAE9DE1-E5BC-4643-990A-692C92931A60}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "imgui", "imgui\imgui.vcxproj", "{2C3EA3A5-8963-4176-AE04-C5BB85608784}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,6 +42,22 @@ Global
 		{BFAE9DE1-E5BC-4643-990A-692C92931A60}.Release|x64.Build.0 = Release|x64
 		{BFAE9DE1-E5BC-4643-990A-692C92931A60}.Release|x86.ActiveCfg = Release|Win32
 		{BFAE9DE1-E5BC-4643-990A-692C92931A60}.Release|x86.Build.0 = Release|Win32
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Debug|x64.ActiveCfg = Debug|x64
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Debug|x64.Build.0 = Debug|x64
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Debug|x86.ActiveCfg = Debug|Win32
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Debug|x86.Build.0 = Debug|Win32
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Release|x64.ActiveCfg = Release|x64
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Release|x64.Build.0 = Release|x64
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Release|x86.ActiveCfg = Release|Win32
+		{DDD80219-1895-44E0-B503-F8DF750A15BF}.Release|x86.Build.0 = Release|Win32
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Debug|x64.ActiveCfg = Debug|x64
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Debug|x64.Build.0 = Debug|x64
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Debug|x86.ActiveCfg = Debug|Win32
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Debug|x86.Build.0 = Debug|Win32
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Release|x64.ActiveCfg = Release|x64
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Release|x64.Build.0 = Release|x64
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Release|x86.ActiveCfg = Release|Win32
+		{2C3EA3A5-8963-4176-AE04-C5BB85608784}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

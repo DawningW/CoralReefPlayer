@@ -18,25 +18,5 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="StreamPuller.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="StreamSink.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="StreamPuller.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="atomicops.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="readerwriterqueue.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="StreamSink.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>
