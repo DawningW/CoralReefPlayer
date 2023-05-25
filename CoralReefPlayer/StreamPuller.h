@@ -47,6 +47,7 @@ public:
 private:
     void initCodec();
     void run();
+    void runCallback();
     void shutdownStream(RTSPClient* rtspClient);
     void continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode, char* resultString);
     void continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, char* resultString);
@@ -78,6 +79,8 @@ private:
 
     char mExit;
     std::thread pThread;
+    std::thread pCallbackThread;
+    std::atomic_flag pSignal;
 
     thread_local static StreamPuller* instance;
 };

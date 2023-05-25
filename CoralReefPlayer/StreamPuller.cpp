@@ -1,5 +1,6 @@
 #include "StreamPuller.h"
 #include <stdexcept>
+#include <atomic>
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 extern "C"
 {
@@ -115,6 +116,7 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
 
     mExit = 0;
     pThread = std::thread(&StreamPuller::run, this);
+    pCallbackThread = std::thread(&StreamPuller::runCallback, this);
 
     return true;
 }
@@ -122,7 +124,10 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
 void StreamPuller::stop()
 {
     mExit = 1;
+    pSignal.test_and_set();
+    pSignal.notify_all();
     pThread.join();
+    pCallbackThread.join();
 }
 
 void StreamPuller::initCodec()
@@ -155,6 +160,17 @@ void StreamPuller::run()
         shutdownStream(rtspClient);
     }
     delete scheduler;
+}
+
+void StreamPuller::runCallback()
+{
+    while (!mExit)
+    {
+        pSignal.wait(false);
+        if (!mExit)
+            pCallback(0, &pOutFrame);
+        pSignal.clear();
+    }
 }
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
@@ -323,7 +339,8 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             sws_freeContext(swsCxt);
             pOutFrame.pts = pFrame->pts;
 
-            pCallback(0, &pOutFrame);
+            pSignal.test_and_set();
+            pSignal.notify_all();
         }
     });
     if (subsession->sink == NULL)

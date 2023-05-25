@@ -13,6 +13,44 @@ crp_handle player;
 bool has_frame;
 uint64_t pts;
 
+enum OverlayLocation
+{
+    Center = -1,
+    TopLeft = 0,
+    TopRight = 1,
+    BottomLeft = 2,
+    BottomRight = 3
+};
+
+// ImGuiWindowFlags_NoMove
+bool BeginOverlay(const char* name, OverlayLocation location, bool* p_open = nullptr, ImGuiWindowFlags flags = 0)
+{
+    const float MARGIN = 8.0f;
+    const float ALPHA = 0.35f;
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+    if (location == -1)
+    {
+        ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Once, ImVec2(0.5f, 0.5f));
+    }
+    else
+    {
+        ImVec2 work_pos = viewport->WorkPos;
+        ImVec2 work_size = viewport->WorkSize;
+        ImVec2 window_pos, window_pos_pivot;
+        window_pos.x = (location & 1) ? (work_pos.x + work_size.x - MARGIN) : (work_pos.x + MARGIN);
+        window_pos.y = (location & 2) ? (work_pos.y + work_size.y - MARGIN) : (work_pos.y + MARGIN);
+        window_pos_pivot.x = (location & 1) ? 1.0f : 0.0f;
+        window_pos_pivot.y = (location & 2) ? 1.0f : 0.0f;
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Once, window_pos_pivot);
+    }
+    ImGui::SetNextWindowBgAlpha(ALPHA);
+
+    ImGuiWindowFlags window_flags = flags | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+    return ImGui::Begin(name, p_open, window_flags);
+}
+
 void loop()
 {
     static bool show_demo_window = true;
@@ -22,9 +60,13 @@ void loop()
 
     ImGui::ShowDemoWindow(&show_demo_window);
 
-    ImGui::Begin("Frame Info");
-    ImGui::Text("FPS: %.1f", io.Framerate);
-    ImGui::Text("PTS: %ld", pts);
+    if (BeginOverlay("Top-Left Overlay", TopLeft))
+    {
+        ImGui::Text("Frame Info");
+        ImGui::Separator();
+        ImGui::Text("FPS: %.1f", io.Framerate);
+        ImGui::Text("PTS: %ld", pts);
+    }
     ImGui::End();
 
     ImGui::Render();

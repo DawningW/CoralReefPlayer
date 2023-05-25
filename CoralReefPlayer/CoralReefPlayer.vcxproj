@@ -114,6 +114,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\live555\BasicUsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\groupsock\include;D:\rouring\CoralReefCamCpp\live555\liveMedia\include;D:\rouring\CoralReefCamCpp\live555\UsageEnvironment\include;D:\rouring\CoralReefCamCpp\ffmpeg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,8 +133,10 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NO_OPENSSL;NO_GETIFADDRS;NDEBUG;CORALREEFPLAYER_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile></PrecompiledHeaderFile>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\live555\BasicUsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\groupsock\include;D:\rouring\CoralReefCamCpp\live555\liveMedia\include;D:\rouring\CoralReefCamCpp\live555\UsageEnvironment\include;D:\rouring\CoralReefCamCpp\ffmpeg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
