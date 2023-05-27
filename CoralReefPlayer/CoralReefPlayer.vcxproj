@@ -113,14 +113,14 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\live555\BasicUsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\groupsock\include;D:\rouring\CoralReefCamCpp\live555\liveMedia\include;D:\rouring\CoralReefCamCpp\live555\UsageEnvironment\include;D:\rouring\CoralReefCamCpp\ffmpeg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\live555\BasicUsageEnvironment\include;..\live555\groupsock\include;..\live555\liveMedia\include;..\live555\UsageEnvironment\include;..\ffmpeg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>D:\rouring\CoralReefCamCpp\x64\Debug;D:\rouring\CoralReefCamCpp\ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\x64\Debug;..\ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ws2_32.lib;live555.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -135,7 +135,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\live555\BasicUsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\groupsock\include;D:\rouring\CoralReefCamCpp\live555\liveMedia\include;D:\rouring\CoralReefCamCpp\live555\UsageEnvironment\include;D:\rouring\CoralReefCamCpp\ffmpeg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\live555\BasicUsageEnvironment\include;..\live555\groupsock\include;..\live555\liveMedia\include;..\live555\UsageEnvironment\include;..\ffmpeg\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -144,7 +144,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalLibraryDirectories>D:\rouring\CoralReefCamCpp\x64\Release;D:\rouring\CoralReefCamCpp\ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\x64\Release;..\ffmpeg\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>ws2_32.lib;live555.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

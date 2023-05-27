@@ -519,7 +519,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\live555\BasicUsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\groupsock\include;D:\rouring\CoralReefCamCpp\live555\liveMedia\include;D:\rouring\CoralReefCamCpp\live555\UsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\WindowsAudioInputDevice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\live555\BasicUsageEnvironment\include;..\live555\groupsock\include;..\live555\liveMedia\include;..\live555\UsageEnvironment\include;..\live555\WindowsAudioInputDevice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
@@ -539,7 +539,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>D:\rouring\CoralReefCamCpp\live555\BasicUsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\groupsock\include;D:\rouring\CoralReefCamCpp\live555\liveMedia\include;D:\rouring\CoralReefCamCpp\live555\UsageEnvironment\include;D:\rouring\CoralReefCamCpp\live555\WindowsAudioInputDevice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\live555\BasicUsageEnvironment\include;..\live555\groupsock\include;..\live555\liveMedia\include;..\live555\UsageEnvironment\include;..\live555\WindowsAudioInputDevice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

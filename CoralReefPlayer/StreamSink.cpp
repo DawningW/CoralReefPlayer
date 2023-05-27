@@ -14,7 +14,8 @@ StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subses
 StreamSink::StreamSink(UsageEnvironment& env, MediaSubsession& subsession, callback_t callback)
     : MediaSink(env), fHasFirstKeyframe(False), fSubsession(subsession), fCallback(callback) {
     fReceiveBuffer = new u_int8_t[SINK_RECEIVE_BUFFER_SIZE];
-    //pH264 = fopen("file.h264", "w");
+    memcpy(fReceiveBuffer, startCode4, sizeof(startCode4));
+    //pH264 = fopen("stream.h264", "w");
 }
 
 StreamSink::~StreamSink() {
@@ -42,14 +43,19 @@ void StreamSink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedByte
     }
     envir() << "\tNormal play time: " << fSubsession.getNormalPlayTime(presentationTime) << "\n";
 #endif
+
+    uint8_t* buffer = fReceiveBuffer + 4;
+    if (!(buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 0 && buffer[3] == 1) &&
+        !(buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 1)) {
+        buffer -= 4;
+        frameSize += 4;
+    }
     //printf("%#02x %#02x %#02x %#02x %#02x %#02x %#02x %#02x\n",
-    //    fReceiveBuffer[0], fReceiveBuffer[1], fReceiveBuffer[2], fReceiveBuffer[3], fReceiveBuffer[4], fReceiveBuffer[5], fReceiveBuffer[6], fReceiveBuffer[7]);
-    
-    //fwrite(startCode4, 4, 1, pH264);
-    //fwrite(fReceiveBuffer, frameSize, 1, pH264);
+    //    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]);
+    //fwrite(buffer, frameSize, 1, pH264);
 
     AVPacket packet{};
-    packet.data = fReceiveBuffer;
+    packet.data = buffer;
     packet.size = frameSize;
     packet.pts = presentationTime.tv_sec * 1000 + presentationTime.tv_usec / 1000;
     fCallback(this, &packet);
@@ -63,6 +69,6 @@ Boolean StreamSink::continuePlaying() {
     if (fSource == NULL)
         return False;
 
-    fSource->getNextFrame(fReceiveBuffer, SINK_RECEIVE_BUFFER_SIZE, afterGettingFrame, this, onSourceClosure, this);
+    fSource->getNextFrame(fReceiveBuffer + 4, SINK_RECEIVE_BUFFER_SIZE - 4, afterGettingFrame, this, onSourceClosure, this);
     return True;
 }
