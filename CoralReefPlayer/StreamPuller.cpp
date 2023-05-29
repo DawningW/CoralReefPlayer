@@ -12,13 +12,13 @@ static uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
 
 static AVPixelFormat to_av_format(Format format) {
     switch (format) {
-        case Format::YUV420P: return AV_PIX_FMT_YUV420P;
-        case Format::RGB24: return AV_PIX_FMT_RGB24;
-        case Format::BGR24: return AV_PIX_FMT_BGR24;
-        case Format::ARGB32: return AV_PIX_FMT_ARGB;
-        case Format::RGBA32: return AV_PIX_FMT_RGBA;
-        case Format::ABGR32: return AV_PIX_FMT_ABGR;
-        case Format::BGRA32: return AV_PIX_FMT_BGRA;
+        case CRP_YUV420P: return AV_PIX_FMT_YUV420P;
+        case CRP_RGB24: return AV_PIX_FMT_RGB24;
+        case CRP_BGR24: return AV_PIX_FMT_BGR24;
+        case CRP_ARGB32: return AV_PIX_FMT_ARGB;
+        case CRP_RGBA32: return AV_PIX_FMT_RGBA;
+        case CRP_ABGR32: return AV_PIX_FMT_ABGR;
+        case CRP_BGRA32: return AV_PIX_FMT_BGRA;
     }
     return AV_PIX_FMT_NONE;
 }
@@ -74,60 +74,60 @@ thread_local StreamPuller* StreamPuller::instance;
 
 StreamPuller::StreamPuller()
 {
-    pCodec = avcodec_find_decoder(AV_CODEC_ID_H264);
-    if (pCodec == NULL)
+    codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+    if (codec == NULL)
     {
         throw std::runtime_error("Codec not found.");
     }
 
-    pCodecCtx = avcodec_alloc_context3(pCodec);
-    pCodecCtx->flags = AV_CODEC_FLAG_LOW_DELAY;
-    pCodecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS;
-    pCodecCtx->extradata = (uint8_t*) av_malloc(AV_INPUT_BUFFER_PADDING_SIZE);
-    pCodecCtx->extradata_size = 0;
-    //av_opt_set(pCodecCtx->priv_data, "preset", "ultrafast", 0);
-    //av_opt_set(pCodecCtx->priv_data, "tune", "zerolatency", 0);
+    codecCtx = avcodec_alloc_context3(codec);
+    codecCtx->flags = AV_CODEC_FLAG_LOW_DELAY;
+    codecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS;
+    codecCtx->extradata = (uint8_t*) av_malloc(AV_INPUT_BUFFER_PADDING_SIZE);
+    codecCtx->extradata_size = 0;
+    //av_opt_set(codecCtx->priv_data, "preset", "ultrafast", 0);
+    //av_opt_set(codecCtx->priv_data, "tune", "zerolatency", 0);
 
     // 由于需要sps和pps, 解码器初始化已移至void initCodec()函数
 
-    pFrame = av_frame_alloc();
+    frame = av_frame_alloc();
 }
 
 StreamPuller::~StreamPuller()
 {
-    if (pOutFrame.data[0] != nullptr)
+    if (outFrame.data[0] != nullptr)
     {
-        av_freep(&pOutFrame.data[0]);
+        av_freep(&outFrame.data[0]);
     }
-    av_frame_free(&pFrame);
-    avcodec_close(pCodecCtx);
-    av_free(pCodecCtx->extradata);
+    av_frame_free(&frame);
+    avcodec_close(codecCtx);
+    av_free(codecCtx->extradata);
 }
 
-bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, callback_t callback)
+bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, Callback callback)
 {
-    pUrl = std::make_unique<char[]>(strlen(url) + 1);
-    strcpy(pUrl.get(), url);
-    mTransport = transport;
-    mWidth = width;
-    mHeight = height;
-    mPixFormat = to_av_format(format);
-    pCallback = callback;
+    this->url = std::make_unique<char[]>(strlen(url) + 1);
+    strcpy(this->url.get(), url);
+    this->transport = transport;
+    outFrame.width = width;
+    outFrame.height = height;
+    outFrame.format = format;
+    this->callback = callback;
 
-    mExit = 0;
-    pThread = std::thread(&StreamPuller::run, this);
-    pCallbackThread = std::thread(&StreamPuller::runCallback, this);
+    exit = 0;
+    thread = std::thread(&StreamPuller::run, this);
+    callbackThread = std::thread(&StreamPuller::runCallback, this);
 
     return true;
 }
 
 void StreamPuller::stop()
 {
-    mExit = 1;
-    pSignal.test_and_set();
-    pSignal.notify_all();
-    pThread.join();
-    pCallbackThread.join();
+    exit = 1;
+    signal.test_and_set();
+    signal.notify_all();
+    thread.join();
+    callbackThread.join();
 }
 
 void StreamPuller::initCodec()
@@ -135,12 +135,17 @@ void StreamPuller::initCodec()
     AVDictionary* opts = NULL;
     av_dict_set(&opts, "preset", "ultrafast", 0);
     av_dict_set(&opts, "tune", "zerolatency", 0);
-    if (avcodec_open2(pCodecCtx, pCodec, &opts) < 0)
+    if (avcodec_open2(codecCtx, codec, &opts) < 0)
     {
         throw std::runtime_error("Open codec failed.");
     }
     av_dict_free(&opts);
-    av_image_alloc(pOutFrame.data, pOutFrame.linesize, mWidth, mHeight, mPixFormat, 1);
+}
+
+void StreamPuller::initBuffer()
+{
+    av_image_alloc(outFrame.data, outFrame.linesize, outFrame.width, outFrame.height,
+        to_av_format(outFrame.format), 1);
 }
 
 void StreamPuller::run()
@@ -150,10 +155,10 @@ void StreamPuller::run()
     scheduler = BasicTaskScheduler::createNew();
     environment = BasicUsageEnvironment::createNew(*scheduler);
 
-    rtspClient = RTSPClient::createNew(*environment, pUrl.get(), 1, "CoralReefCam");
+    rtspClient = RTSPClient::createNew(*environment, url.get(), 1, "CoralReefPlayer");
     rtspClient->sendDescribeCommand(continueAfterDESCRIBE);
 
-    environment->taskScheduler().doEventLoop(&mExit);
+    environment->taskScheduler().doEventLoop(&exit);
 
     if (rtspClient != NULL)
     {
@@ -164,12 +169,14 @@ void StreamPuller::run()
 
 void StreamPuller::runCallback()
 {
-    while (!mExit)
+    while (!exit)
     {
-        pSignal.wait(false);
-        if (!mExit)
-            pCallback(0, &pOutFrame);
-        pSignal.clear();
+        signal.wait(false);
+        if (!exit)
+        {
+            callback(CRP_EV_NEW_FRAME, &outFrame);
+        }
+        signal.clear();
     }
 }
 
@@ -271,12 +278,12 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             SPropRecord& pps = spropRecords[1];
 
             int size = 8 + sps.sPropLength + pps.sPropLength;
-            uint8_t* buffer = pCodecCtx->extradata;
+            uint8_t* buffer = codecCtx->extradata;
             memcpy(buffer, startCode4, 4);
             memcpy(buffer + 4, sps.sPropBytes, sps.sPropLength);
             memcpy(buffer + 4 + sps.sPropLength, startCode4, 4);
             memcpy(buffer + 4 + sps.sPropLength + 4, pps.sPropBytes, pps.sPropLength);
-            pCodecCtx->extradata_size = size;
+            codecCtx->extradata_size = size;
 
             delete[] spropRecords;
             env << "Get SPropRecords.\n";
@@ -285,21 +292,22 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
 
     subsession->sink = StreamSink::createNew(env, *subsession, [this, &env](StreamSink* sink, AVPacket* packet)
     {
-        //bool isKeyframe = is_keyframe_h264(packet);
         int sps_pps_len = find_sps_pps(packet);
         if (!sink->fHasFirstKeyframe)
         {
-            if (pCodecCtx->extradata_size <= 0)
+            if (codecCtx->extradata_size <= 0)
             {
                 if (sps_pps_len <= 0)
                 {
                     env << "Waiting for the first keyframe.\n";
                     return;
                 }
-                memcpy(pCodecCtx->extradata, packet->data, sps_pps_len);
-                pCodecCtx->extradata_size = sps_pps_len;
+                memcpy(codecCtx->extradata, packet->data, sps_pps_len);
+                codecCtx->extradata_size = sps_pps_len;
             }
             initCodec();
+            if (outFrame.width != CRP_WIDTH_AUTO && outFrame.height != CRP_HEIGHT_AUTO)
+                initBuffer();
             sink->fHasFirstKeyframe = True;
         }
 
@@ -308,39 +316,46 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             packet->data += sps_pps_len;
             packet->size -= sps_pps_len;
 
-            //avcodec_flush_buffers(pCodecCtx);
+            //avcodec_flush_buffers(codecCtx);
             //env << "Flush deocder buffer.\n";
         }
 
-        if (avcodec_send_packet(pCodecCtx, packet) < 0)
+        if (avcodec_send_packet(codecCtx, packet) < 0)
         {
             env << "Decode Error.\n";
             return;
         }
 
-        while (avcodec_receive_frame(pCodecCtx, pFrame) >= 0)
+        if (outFrame.width == CRP_WIDTH_AUTO && outFrame.height == CRP_HEIGHT_AUTO)
+        {
+            outFrame.width = codecCtx->width;
+            outFrame.height = codecCtx->height;
+            initBuffer();
+        }
+
+        while (avcodec_receive_frame(codecCtx, frame) >= 0)
         {
             //AVFrame* frameYUV = av_frame_alloc();
-            //frameYUV->format = pFrame->format;
-            //frameYUV->width = pFrame->width;
-            //frameYUV->height = pFrame->height;
-            //frameYUV->channels = pFrame->channels;
-            //frameYUV->channel_layout = pFrame->channel_layout;
-            //frameYUV->nb_samples = pFrame->nb_samples;
+            //frameYUV->format = frame->format;
+            //frameYUV->width = frame->width;
+            //frameYUV->height = frame->height;
+            //frameYUV->channels = frame->channels;
+            //frameYUV->channel_layout = frame->channel_layout;
+            //frameYUV->nb_samples = frame->nb_samples;
             //av_frame_get_buffer(frameYUV, 32);
-            //av_frame_copy(frameYUV, pFrame);
-            //av_frame_copy_props(frameYUV, pFrame);
+            //av_frame_copy(frameYUV, frame);
+            //av_frame_copy_props(frameYUV, frame);
             //av_frame_free(frameYUV);
 
-            AVPixelFormat pixFmt = pCodecCtx->pix_fmt == AV_PIX_FMT_YUVJ420P ? AV_PIX_FMT_YUV420P : pCodecCtx->pix_fmt;
-            struct SwsContext* swsCxt = sws_getContext(pCodecCtx->width, pCodecCtx->height, pixFmt,
-            	mWidth, mHeight, mPixFormat, SWS_FAST_BILINEAR, NULL, NULL, NULL);
-            sws_scale(swsCxt, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pOutFrame.data, pOutFrame.linesize);
+            AVPixelFormat pixFmt = codecCtx->pix_fmt == AV_PIX_FMT_YUVJ420P ? AV_PIX_FMT_YUV420P : codecCtx->pix_fmt;
+            struct SwsContext* swsCxt = sws_getContext(codecCtx->width, codecCtx->height, pixFmt,
+            	outFrame.width, outFrame.height, to_av_format(outFrame.format), SWS_FAST_BILINEAR, NULL, NULL, NULL);
+            sws_scale(swsCxt, frame->data, frame->linesize, 0, codecCtx->height, outFrame.data, outFrame.linesize);
             sws_freeContext(swsCxt);
-            pOutFrame.pts = pFrame->pts;
+            outFrame.pts = frame->pts;
 
-            pSignal.test_and_set();
-            pSignal.notify_all();
+            signal.test_and_set();
+            signal.notify_all();
         }
     });
     if (subsession->sink == NULL)
@@ -389,7 +404,7 @@ void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
         else
         {
             env << "Initiated the subsession (" << subsession->clientPortNum() << ")\n";
-            rtspClient->sendSetupCommand(*subsession, continueAfterSETUP, False, mTransport == Transport::TCP);
+            rtspClient->sendSetupCommand(*subsession, continueAfterSETUP, False, transport == CRP_TCP);
         }
         return;
     }
@@ -420,7 +435,7 @@ void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const*
     env << "Received RTCP \"BYE\"";
     if (reason != NULL)
     {
-        env << " (reason:\"" << reason << "\")";
+        env << " (reason: \"" << reason << "\")";
     }
     env << " on subsession\n";
 

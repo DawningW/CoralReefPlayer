@@ -11,12 +11,12 @@ extern "C"
 
 class StreamSink : public MediaSink {
 public:
-	using callback_t = std::function<void(StreamSink*, AVPacket*)>;
+	using Callback = std::function<void(StreamSink*, AVPacket*)>;
 
-	static StreamSink* createNew(UsageEnvironment& env, MediaSubsession& subsession, callback_t callback);
+	static StreamSink* createNew(UsageEnvironment& env, MediaSubsession& subsession, Callback callback);
 
 private:
-	StreamSink(UsageEnvironment& env, MediaSubsession& subsession, callback_t callback);
+	StreamSink(UsageEnvironment& env, MediaSubsession& subsession, Callback callback);
 	virtual ~StreamSink();
 	virtual Boolean continuePlaying();
 	void afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes,
@@ -31,5 +31,5 @@ public:
 private:
 	u_int8_t* fReceiveBuffer;
 	MediaSubsession& fSubsession;
-	callback_t fCallback;
+	Callback fCallback;
 };

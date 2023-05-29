@@ -1,13 +1,17 @@
+#include <iostream>
 #include <stdio.h>
 #include "SDL.h"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer.h"
+#include "opencv2/core.hpp"
+#include "opencv2/imgproc.hpp"
 #include "coralreefplayer.h"
 
 #define WIDTH 1280
 #define HEIGHT 720
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
+#define ENABLE_OPENCV 0
 
 crp_handle player;
 bool has_frame;
@@ -22,7 +26,6 @@ enum OverlayLocation
     BottomRight = 3
 };
 
-// ImGuiWindowFlags_NoMove
 bool BeginOverlay(const char* name, OverlayLocation location, bool* p_open = nullptr, ImGuiWindowFlags flags = 0)
 {
     const float MARGIN = 8.0f;
@@ -60,6 +63,7 @@ void loop()
 
     ImGui::ShowDemoWindow(&show_demo_window);
 
+    // ImGuiWindowFlags_NoMove
     if (BeginOverlay("Top-Left Overlay", TopLeft))
     {
         ImGui::Text("Frame Info");
@@ -71,6 +75,14 @@ void loop()
 
     ImGui::Render();
 }
+
+#if ENABLE_OPENCV
+void process(cv::Mat &mat)
+{
+    cv::rectangle(mat, cv::Rect(100, 200, 100, 100), cv::Scalar(0, 0, 255), 2);
+    cv::putText(mat, "Hello OpenCV!", cv::Point(100, 400), cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(0, 0, 255), 2);
+}
+#endif
 
 #undef main
 extern "C"
@@ -95,7 +107,8 @@ int main(int argc, char* argv[])
         printf("Could not create renderer: %s\n", SDL_GetError());
         return -1;
     }
-    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_IYUV, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+    Uint32 format = ENABLE_OPENCV ? SDL_PIXELFORMAT_BGR24 : SDL_PIXELFORMAT_IYUV;
+    SDL_Texture* texture = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
     if (!texture)
     {
         printf("Could not create texture: %s\n", SDL_GetError());
@@ -114,12 +127,15 @@ int main(int argc, char* argv[])
     ImGui_ImplSDLRenderer_Init(renderer);
     
     const char* url = "rtsp://172.6.2.20/main";
-    if (argc > 1) {
+    if (argc > 1)
+    {
         url = argv[1];
     }
     player = crp_create();
-    crp_play(player, url, Transport::UDP, WIDTH, HEIGHT, Format::YUV420P, [](int eventCode, void *data) {
-        if (eventCode == 0) {
+    crp_play(player, url, CRP_UDP, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, [](int ev, void *data)
+    {
+        if (ev == CRP_EV_NEW_FRAME)
+        {
             SDL_Event event = {};
             event.type = SDL_REFRESH_EVENT;
             event.user.data1 = data;
@@ -135,9 +151,15 @@ int main(int argc, char* argv[])
         if (event.type == SDL_REFRESH_EVENT)
         {
             Frame* frame = (Frame*) event.user.data1;
+#if ENABLE_OPENCV
+            cv::Mat mat(cv::Size(frame->width, frame->height), CV_8UC3);
+            mat.data = (uchar*) frame->data[0];
+            process(mat);
+            SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
+#else
             SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
                 frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
-            //SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
+#endif
             pts = frame->pts;
             has_frame = true;
         }

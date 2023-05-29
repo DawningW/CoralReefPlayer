@@ -7,11 +7,11 @@ static uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
 
 //FILE* pH264;
 
-StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, callback_t callback) {
+StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, Callback callback) {
     return new StreamSink(env, subsession, callback);
 }
 
-StreamSink::StreamSink(UsageEnvironment& env, MediaSubsession& subsession, callback_t callback)
+StreamSink::StreamSink(UsageEnvironment& env, MediaSubsession& subsession, Callback callback)
     : MediaSink(env), fHasFirstKeyframe(False), fSubsession(subsession), fCallback(callback) {
     fReceiveBuffer = new u_int8_t[SINK_RECEIVE_BUFFER_SIZE];
     memcpy(fReceiveBuffer, startCode4, sizeof(startCode4));

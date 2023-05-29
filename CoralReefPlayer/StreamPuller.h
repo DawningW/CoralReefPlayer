@@ -18,11 +18,11 @@ extern "C"
 class StreamPuller
 {
 public:
-    using callback_t = std::function<void(int, void*)>;
+    using Callback = std::function<void(int, void*)>;
 
     StreamPuller();
     ~StreamPuller();
-    bool start(const char* url, Transport transport, int width, int height, Format format, callback_t callback);
+    bool start(const char* url, Transport transport, int width, int height, Format format, Callback callback);
     void stop();
     static void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) {
         instance->continueAfterDESCRIBE0(rtspClient, resultCode, resultString);
@@ -46,6 +46,7 @@ public:
 
 private:
     void initCodec();
+    void initBuffer();
     void run();
     void runCallback();
     void shutdownStream(RTSPClient* rtspClient);
@@ -57,10 +58,9 @@ private:
     void subsessionByeHandler(MediaSubsession* subsession, char const* reason);
 
 private:
-    AVCodec* pCodec;
-    AVCodecContext* pCodecCtx;
-    AVFrame* pFrame;
-    Frame pOutFrame;
+    AVCodec* codec;
+    AVCodecContext* codecCtx;
+    AVFrame* frame;
 
     TaskScheduler* scheduler;
     UsageEnvironment* environment;
@@ -70,17 +70,15 @@ private:
     MediaSubsessionIterator* iter;
     MediaSink* sink;
 
-    std::unique_ptr<char[]> pUrl;
-    Transport mTransport;
-    int mWidth;
-    int mHeight;
-    AVPixelFormat mPixFormat;
-    callback_t pCallback;
+    std::unique_ptr<char[]> url;
+    Transport transport;
+    Frame outFrame;
+    Callback callback;
 
-    char mExit;
-    std::thread pThread;
-    std::thread pCallbackThread;
-    std::atomic_flag pSignal;
+    volatile char exit;
+    std::thread thread;
+    std::thread callbackThread;
+    std::atomic_flag signal;
 
     thread_local static StreamPuller* instance;
 };
