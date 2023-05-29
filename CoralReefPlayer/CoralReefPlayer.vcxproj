@@ -152,6 +152,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="coralreefplayer.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="StreamPuller.h" />
     <ClInclude Include="StreamSink.h" />
   </ItemGroup>
@@ -162,6 +163,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CoralReefPlayer.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
