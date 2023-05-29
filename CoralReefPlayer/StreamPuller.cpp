@@ -23,7 +23,7 @@ static AVPixelFormat to_av_format(Format format) {
     return AV_PIX_FMT_NONE;
 }
 
-static int find_sps_pps(AVPacket* pkt) {
+static int find_sps_pps_before_I_frame(AVPacket* pkt) {
     //printf("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
     //    pkt->data[0], pkt->data[1], pkt->data[2], pkt->data[3], pkt->data[4],
     //    pkt->data[5], pkt->data[6], pkt->data[7], pkt->data[8], pkt->data[9]);
@@ -72,7 +72,7 @@ static int find_sps_pps(AVPacket* pkt) {
 
 thread_local StreamPuller* StreamPuller::instance;
 
-StreamPuller::StreamPuller()
+StreamPuller::StreamPuller() : exit(1)
 {
     codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     if (codec == NULL)
@@ -85,8 +85,6 @@ StreamPuller::StreamPuller()
     codecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS;
     codecCtx->extradata = (uint8_t*) av_malloc(AV_INPUT_BUFFER_PADDING_SIZE);
     codecCtx->extradata_size = 0;
-    //av_opt_set(codecCtx->priv_data, "preset", "ultrafast", 0);
-    //av_opt_set(codecCtx->priv_data, "tune", "zerolatency", 0);
 
     // 由于需要sps和pps, 解码器初始化已移至void initCodec()函数
 
@@ -106,6 +104,8 @@ StreamPuller::~StreamPuller()
 
 bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, Callback callback)
 {
+    if (!exit) return false;
+
     this->url = std::make_unique<char[]>(strlen(url) + 1);
     strcpy(this->url.get(), url);
     this->transport = transport;
@@ -135,6 +135,7 @@ void StreamPuller::initCodec()
     AVDictionary* opts = NULL;
     av_dict_set(&opts, "preset", "ultrafast", 0);
     av_dict_set(&opts, "tune", "zerolatency", 0);
+    //av_dict_set(&opts, "strict", "1", 0);
     if (avcodec_open2(codecCtx, codec, &opts) < 0)
     {
         throw std::runtime_error("Open codec failed.");
@@ -293,7 +294,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
     subsession->sink = StreamSink::createNew(env, *subsession, [this, &env](StreamSink* sink, AVPacket* packet)
     {
         // FIXME 有些监控单独发SPS和PPS, 并不在I帧前面
-        int sps_pps_len = find_sps_pps(packet);
+        int sps_pps_len = find_sps_pps_before_I_frame(packet);
         if (!sink->fHasFirstKeyframe)
         {
             if (codecCtx->extradata_size <= 0)
@@ -321,6 +322,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             //env << "Flush deocder buffer.\n";
         }
 
+        codecCtx->has_b_frames = 0; // 丢帧使reordering buffer增大导致延迟变高
         if (avcodec_send_packet(codecCtx, packet) < 0)
         {
             env << "Decode Error.\n";
