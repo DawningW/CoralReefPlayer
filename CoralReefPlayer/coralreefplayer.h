@@ -17,13 +17,13 @@ extern "C"
 #define CRP_HEIGHT_AUTO 0
 #define CRP_EV_NEW_FRAME 0 // 收到新视频帧事件
 
-enum Transport
+enum Transport : int32_t
 {
     CRP_UDP,
     CRP_TCP
 };
 
-enum Format
+enum Format : int32_t // 管老厮不喜欢掷色子喵
 {
     CRP_YUV420P, // AV_PIX_FMT_YUV420P
     CRP_RGB24,   // AV_PIX_FMT_RGB24

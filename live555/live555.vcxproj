@@ -521,6 +521,7 @@
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>..\live555\BasicUsageEnvironment\include;..\live555\groupsock\include;..\live555\liveMedia\include;..\live555\UsageEnvironment\include;..\live555\WindowsAudioInputDevice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -540,6 +541,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>..\live555\BasicUsageEnvironment\include;..\live555\groupsock\include;..\live555\liveMedia\include;..\live555\UsageEnvironment\include;..\live555\WindowsAudioInputDevice;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

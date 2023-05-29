@@ -292,6 +292,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
 
     subsession->sink = StreamSink::createNew(env, *subsession, [this, &env](StreamSink* sink, AVPacket* packet)
     {
+        // FIXME 有些监控单独发SPS和PPS, 并不在I帧前面
         int sps_pps_len = find_sps_pps(packet);
         if (!sink->fHasFirstKeyframe)
         {
@@ -326,15 +327,15 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             return;
         }
 
-        if (outFrame.width == CRP_WIDTH_AUTO && outFrame.height == CRP_HEIGHT_AUTO)
-        {
-            outFrame.width = codecCtx->width;
-            outFrame.height = codecCtx->height;
-            initBuffer();
-        }
-
         while (avcodec_receive_frame(codecCtx, frame) >= 0)
         {
+            if (outFrame.width == CRP_WIDTH_AUTO && outFrame.height == CRP_HEIGHT_AUTO)
+            {
+                outFrame.width = codecCtx->width;
+                outFrame.height = codecCtx->height;
+                initBuffer();
+            }
+
             //AVFrame* frameYUV = av_frame_alloc();
             //frameYUV->format = frame->format;
             //frameYUV->width = frame->width;

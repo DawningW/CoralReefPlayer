@@ -4,14 +4,16 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer.h"
+#define ENABLE_OPENCV 0
+#if ENABLE_OPENCV
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
+#endif
 #include "coralreefplayer.h"
 
 #define WIDTH 1280
 #define HEIGHT 720
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
-#define ENABLE_OPENCV 0
 
 crp_handle player;
 bool has_frame;
