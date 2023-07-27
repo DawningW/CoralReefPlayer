@@ -4,7 +4,6 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer.h"
-#define ENABLE_OPENCV 0
 #if ENABLE_OPENCV
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
@@ -123,7 +122,7 @@ int main(int argc, char* argv[])
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     //io.Fonts->AddFontDefault();
-    io.Fonts->AddFontFromFileTTF("./unifont-14.0.01.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
+    io.Fonts->AddFontFromFileTTF("./unifont-15.0.06.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer_Init(renderer);

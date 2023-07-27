@@ -7,10 +7,14 @@ extern "C"
 
 #include <stdint.h>
 
+#ifdef WIN32
 #ifdef CORALREEFPLAYER_EXPORTS
 #define CRP_DLL_EXPORT __declspec(dllexport)
 #else
 #define CRP_DLL_EXPORT __declspec(dllimport)
+#endif
+#else // UNIX
+#define CRP_DLL_EXPORT
 #endif
 
 #define CRP_WIDTH_AUTO 0

@@ -36,12 +36,12 @@ FILE* OpenOutputFile(UsageEnvironment& env, char const* fileName) {
   if (strcmp(fileName, "stdout") == 0) {
     fid = stdout;
 #if (defined(__WIN32__) || defined(_WIN32)) && !defined(_WIN32_WCE)
-    _setmode(_fileno(stdout), _O_BINARY);       // convert to binary mode
+    _setmode(fileno(stdout), _O_BINARY);       // convert to binary mode
 #endif
   } else if (strcmp(fileName, "stderr") == 0) {
     fid = stderr;
 #if (defined(__WIN32__) || defined(_WIN32)) && !defined(_WIN32_WCE)
-    _setmode(_fileno(stderr), _O_BINARY);       // convert to binary mode
+    _setmode(fileno(stderr), _O_BINARY);       // convert to binary mode
 #endif
   } else {
     fid = fopen(fileName, "wb");

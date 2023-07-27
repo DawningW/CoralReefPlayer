@@ -4,7 +4,7 @@
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 extern "C"
 {
-#include "libavutil\opt.h"
+#include "libavutil/opt.h"
 }
 #include "StreamSink.h"
 

@@ -28,7 +28,7 @@ FILE* OpenInputFile(UsageEnvironment& env, char const* fileName) {
   if (strcmp(fileName, "stdin") == 0) {
     fid = stdin;
 #if (defined(__WIN32__) || defined(_WIN32)) && !defined(_WIN32_WCE)
-    _setmode(_fileno(stdin), _O_BINARY); // convert to binary mode
+    _setmode(fileno(stdin), _O_BINARY); // convert to binary mode
 #endif
   } else {
     fid = fopen(fileName, "rb");
@@ -76,7 +76,7 @@ int64_t SeekFile64(FILE *fid, int64_t offset, int whence) {
   clearerr(fid);
   fflush(fid);
 #if (defined(__WIN32__) || defined(_WIN32)) && !defined(_WIN32_WCE)
-  return _lseeki64(_fileno(fid), offset, whence) == (int64_t)-1 ? -1 : 0;
+  return _lseeki64(fileno(fid), offset, whence) == (int64_t)-1 ? -1 : 0;
 #else
 #if defined(_WIN32_WCE)
   return fseek(fid, (long)(offset), whence);
@@ -92,7 +92,7 @@ int64_t TellFile64(FILE *fid) {
   clearerr(fid);
   fflush(fid);
 #if (defined(__WIN32__) || defined(_WIN32)) && !defined(_WIN32_WCE)
-  return _telli64(_fileno(fid));
+  return _telli64(fileno(fid));
 #else
 #if defined(_WIN32_WCE)
   return ftell(fid);
