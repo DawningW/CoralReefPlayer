@@ -1,7 +1,7 @@
 project(CoralReefCam)
 
 find_package(SDL2 2.28.0 REQUIRED)
-find_package(OpenCV 4.5.0)
+find_package(OpenCV 4.4.0)
 
 add_subdirectory(../imgui imgui)
 
