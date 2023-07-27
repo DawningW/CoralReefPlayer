@@ -60,7 +60,7 @@ MP3FileSource::MP3FileSource(UsageEnvironment& env, FILE* fid)
 }
 
 MP3FileSource::~MP3FileSource() {
-  if (fFid != NULL) envir().taskScheduler().turnOffBackgroundReadHandling(_fileno(fFid));
+  if (fFid != NULL) envir().taskScheduler().turnOffBackgroundReadHandling(fileno(fFid));
 
   delete fStreamState; // closes the input file
 }
@@ -125,7 +125,7 @@ void MP3FileSource::doGetNextFrame() {
 
   if (!fHaveStartedReading) {
     // Await readable data from the file:
-    envir().taskScheduler().turnOnBackgroundReadHandling(_fileno(fFid),
+    envir().taskScheduler().turnOnBackgroundReadHandling(fileno(fFid),
 		 (TaskScheduler::BackgroundHandlerProc*)&fileReadableHandler, this);
     fHaveStartedReading = True;
     return;

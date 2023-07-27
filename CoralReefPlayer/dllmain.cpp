@@ -1,8 +1,11 @@
-﻿#ifndef WIN32_LEAN_AND_MEAN
+﻿#ifdef WIN32
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
 
 #include <Windows.h>
+#endif
+
 #include "coralreefplayer.h"
 #include "StreamPuller.h"
 
@@ -25,6 +28,7 @@ void crp_play(crp_handle handle, const char* url, Transport transport,
     player->start(url, transport, width, height, format, callback);
 }
 
+#ifdef WIN32
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     switch (ul_reason_for_call)
@@ -37,3 +41,4 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     }
     return TRUE;
 }
+#endif

@@ -1,17 +1,10 @@
+# IDE
 **/.vs
-/x86
-/x64
-/CoralReefCam/x86
-/CoralReefCam/x64
-/CoralReefCam/CoralReefCam.aps
-/CoralReefCam/imgui.ini
-/CoralReefCam/stream.h264
-/CoralReefPlayer/x86
-/CoralReefPlayer/x64
-/CoralReefPlayer/CoralReefPlayer.aps
-/live555/x86
-/live555/x64
-/imgui/x86
-/imgui/x64
+**/.vscode
+# Build cache
+/build
+/install
+CMakeSettings.json
+# Other
 /opencv/**
 !opencv/.gitkeep
