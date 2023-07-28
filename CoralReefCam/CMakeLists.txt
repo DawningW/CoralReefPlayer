@@ -13,7 +13,7 @@ endif(NOT OpenCV_FOUND)
 
 add_executable(${PROJECT_NAME}
     main.cpp
-    $<$<BOOL:${WIN32}>:CoralReefCam.rc>
+    $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefCam.rc>
 )
 
 target_include_directories(${PROJECT_NAME}

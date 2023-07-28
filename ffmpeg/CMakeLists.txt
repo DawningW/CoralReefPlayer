@@ -1,45 +1,45 @@
 project(ffmpeg)
 
-if(WIN32)
+if(WIN32 OR CYGWIN)
     add_library(avdevice SHARED IMPORTED GLOBAL)
     set_target_properties(avdevice PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/avdevice-58.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/avdevice.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}avdevice${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
     add_library(avfilter SHARED IMPORTED GLOBAL)
     set_target_properties(avfilter PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/avfilter-7.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/avfilter.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}avfilter${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
     add_library(avformat SHARED IMPORTED GLOBAL)
     set_target_properties(avformat PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/avformat-58.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/avformat.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}avformat${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
     add_library(avcodec SHARED IMPORTED GLOBAL)
     set_target_properties(avcodec PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/avcodec-58.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/avcodec.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}avcodec${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
     add_library(avutil SHARED IMPORTED GLOBAL)
     set_target_properties(avutil PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/avutil-56.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/avutil.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}avutil${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
     add_library(postproc SHARED IMPORTED GLOBAL)
     set_target_properties(postproc PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/postproc-55.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/postproc.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}postproc${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
     add_library(swresample SHARED IMPORTED GLOBAL)
     set_target_properties(swresample PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/swresample-3.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/swresample.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}swresample${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
     add_library(swscale SHARED IMPORTED GLOBAL)
     set_target_properties(swscale PROPERTIES
         IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/bin/swscale-5.dll
-        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/swscale.lib
+        IMPORTED_IMPLIB ${CMAKE_CURRENT_SOURCE_DIR}/lib/${CMAKE_IMPORT_LIBRARY_PREFIX}swscale${CMAKE_IMPORT_LIBRARY_SUFFIX}
     )
 
     set_target_properties(avdevice avfilter avformat avcodec avutil postproc swresample swscale PROPERTIES
@@ -80,4 +80,4 @@ else()
     set_target_properties(avdevice avfilter avformat avcodec avutil postproc swresample swscale PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES ${LIBAV_INCLUDE_DIR}
     )
-endif(WIN32)
+endif(WIN32 OR CYGWIN)

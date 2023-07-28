@@ -2,6 +2,7 @@
 **/.vs
 **/.vscode
 # Build cache
+/out
 /build
 /install
 CMakeSettings.json

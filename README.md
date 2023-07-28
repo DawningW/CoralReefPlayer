@@ -38,7 +38,7 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作
 ### Linux
 
 前置条件:
-- CMake 3.16.0 或更高版本
+- CMake 3.16.0 或更高版本，推荐 3.21.0+
 - gcc 11 或更高版本
 - 使用包管理器或源码编译安装下列库或它们的更高版本：
     - FFmpeg 4.4+

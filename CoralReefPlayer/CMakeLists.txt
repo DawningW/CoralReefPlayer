@@ -6,7 +6,7 @@ add_library(${PROJECT_NAME} SHARED
     dllmain.cpp
     StreamPuller.cpp
     StreamSink.cpp
-    $<$<BOOL:${WIN32}>:CoralReefPlayer.rc>
+    $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefPlayer.rc>
 )
 
 target_include_directories(${PROJECT_NAME}
