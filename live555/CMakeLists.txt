@@ -1,5 +1,8 @@
 project(live555)
 
+# Add NO_STD_LIB macro if can't use c++20
+set(CMAKE_CXX_STANDARD 20)
+
 add_library(${PROJECT_NAME} STATIC
     BasicUsageEnvironment/BasicHashTable.cpp
     BasicUsageEnvironment/BasicTaskScheduler.cpp

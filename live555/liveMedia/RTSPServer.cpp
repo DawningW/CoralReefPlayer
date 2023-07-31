@@ -493,6 +493,7 @@ void RTSPServer::RTSPClientConnection::handleCmd_notSupported() {
 }
 
 void RTSPServer::RTSPClientConnection::handleCmd_redirect(char const* urlSuffix) {
+  char* urlPrefix = fOurRTSPServer.rtspURLPrefix(fClientInputSocket);
   snprintf((char*)fResponseBuffer, sizeof fResponseBuffer,
 	   "RTSP/1.0 301 Moved Permanently\r\n"
 	   "CSeq: %s\r\n"
@@ -500,7 +501,8 @@ void RTSPServer::RTSPClientConnection::handleCmd_redirect(char const* urlSuffix)
 	   "Location: %s%s\r\n\r\n",
 	   fCurrentCSeq,
 	   dateHeader(),
-	   fOurRTSPServer.rtspURLPrefix(fClientInputSocket), urlSuffix);
+	   urlPrefix, urlSuffix);
+  delete[] urlPrefix;
 }
 
 void RTSPServer::RTSPClientConnection::handleCmd_notFound() {

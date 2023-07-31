@@ -742,7 +742,8 @@ Boolean getSourcePort(UsageEnvironment& env, int socket, int domain, Port& port)
       MAKE_SOCKADDR_IN(name, INADDR_ANY, 0);
       bind(socket, (struct sockaddr*)&name, sizeof name);
     } else { // IPv6
-      MAKE_SOCKADDR_IN6(name,IN6ADDR_ANY_INIT, 0);
+      in6_addr const in6addr_any_init = IN6ADDR_ANY_INIT;
+      MAKE_SOCKADDR_IN6(name, in6addr_any_init, 0);
       bind(socket, (struct sockaddr*)&name, sizeof name);
     }
 

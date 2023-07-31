@@ -53,6 +53,8 @@ public:
   void seekToTime(double& seekNPT);
   void pause();
 
+  void stopAnyDeliveryForTrack(unsigned trackNumber);
+
   // StreamParser 'client continue' function:
   static void continueParsing(void* clientData, unsigned char* ptr, unsigned size, struct timeval presentationTime);
   void continueParsing();

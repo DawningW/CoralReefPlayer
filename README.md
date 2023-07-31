@@ -13,7 +13,7 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作
 随源码自带或推荐使用的第三方库版本如下所示，括号内为最低版本要求：
 - CoralReefCam
     - CoralReefPlayer
-        - live555 2023.03.30
+        - live555 2023.07.24
         - FFmpeg 4.4 (4.4+)
     - SDL2 2.28.1 (2.26.0+)
     - imgui 1.89.5

@@ -90,6 +90,13 @@ void MatroskaFileParser::pause() {
   // to ensure that we presentation times continue from 'wall clock' time after we resume
 }
 
+void MatroskaFileParser::stopAnyDeliveryForTrack(unsigned trackNumber) {
+  if (trackNumber == fBlockTrackNumber) {
+    fCurFrameTo = NULL;
+    fCurFrameNumBytesToGet = fCurFrameNumBytesToSkip = 0;
+  }
+}
+
 void MatroskaFileParser
 ::continueParsing(void* clientData, unsigned char* /*ptr*/, unsigned /*size*/, struct timeval /*presentationTime*/) {
   ((MatroskaFileParser*)clientData)->continueParsing();

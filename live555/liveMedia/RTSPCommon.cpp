@@ -355,7 +355,17 @@ char const* dateHeader() {
   static char buf[200];
 #if !defined(_WIN32_WCE)
   time_t tt = time(NULL);
-  strftime(buf, sizeof buf, "Date: %a, %b %d %Y %H:%M:%S GMT\r\n", gmtime(&tt));
+  tm time_tm;
+#ifdef _WIN32
+  if (gmtime_s(&time_tm, &tt) != 0) {
+      time_tm = tm{};
+  }
+#else
+  if (gmtime_r(&tt, &time_tm) == nullptr) {
+    time_tm = tm();
+  }
+#endif
+  strftime(buf, sizeof buf, "Date: %a, %b %d %Y %H:%M:%S GMT\r\n", &time_tm);
 #else
   // WinCE apparently doesn't have "time()", "strftime()", or "gmtime()",
   // so generate the "Date:" header a different, WinCE-specific way.

@@ -915,6 +915,8 @@ MatroskaDemuxedTrack* MatroskaDemux::lookupDemuxedTrack(unsigned trackNumber) {
 }
 
 void MatroskaDemux::removeTrack(unsigned trackNumber) {
+  if (fOurParser != NULL) fOurParser->stopAnyDeliveryForTrack(trackNumber);
+
   fDemuxedTracksTable->Remove((char const*)trackNumber);
   if (fDemuxedTracksTable->numEntries() == 0) {
     // We no longer have any demuxed tracks, so delete ourselves now:

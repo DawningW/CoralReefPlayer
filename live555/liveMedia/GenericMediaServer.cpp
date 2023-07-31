@@ -189,7 +189,6 @@ int GenericMediaServer::setUpOurSocket(UsageEnvironment& env, Port& ourPort, int
 #endif
     
     ourSocket = setupStreamSocket(env, ourPort, domain, True, True);
-        // later fix to support IPv6
     if (ourSocket < 0) break;
     
     // Make sure we have a big send buffer:
