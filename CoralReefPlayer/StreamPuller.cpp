@@ -72,7 +72,7 @@ static int find_sps_pps_before_I_frame(AVPacket* pkt) {
 
 thread_local StreamPuller* StreamPuller::instance;
 
-StreamPuller::StreamPuller() : exit(1)
+StreamPuller::StreamPuller() : outFrame{}, exit(1)
 {
     codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     if (codec == NULL)
@@ -158,6 +158,7 @@ void StreamPuller::run()
 
     rtspClient = RTSPClient::createNew(*environment, url.get(), 1, "CoralReefPlayer");
     rtspClient->sendDescribeCommand(continueAfterDESCRIBE);
+    session = NULL;
 
     environment->taskScheduler().doEventLoop(&exit);
 
