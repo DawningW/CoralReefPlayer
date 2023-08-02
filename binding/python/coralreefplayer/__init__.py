@@ -1,8 +1,17 @@
+import sys
+import os
 import ctypes
 import numpy as np
 from numpy._typing import NDArray
 
-dll = ctypes.CDLL('./CoralReefPlayer')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PATH_VAR = 'PATH' if os.name == 'nt' else 'LD_LIBRARY_PATH'
+if os.name == 'nt' and sys.version_info[:2] >= (3, 8):
+    os.add_dll_directory(BASE_DIR)
+os.environ[PATH_VAR] = BASE_DIR + os.pathsep + os.environ[PATH_VAR]
+
+# ctypes.util.find_library('CoralReefPlayer')
+dll = ctypes.CDLL('CoralReefPlayer')
 
 CRP_WIDTH_AUTO = 0
 CRP_HEIGHT_AUTO = 0

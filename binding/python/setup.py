@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='CoralReefPlayer',
@@ -7,8 +7,11 @@ setup(
     author='Wu Chen',
     author_email='wc@mail.dawncraft.cc',
     url='http://nas.oureda.cn:8418/wc/CoralReefCamCpp',
-    packages=find_packages(),
+    packages=['coralreefplayer'],
+    package_dir={'coralreefplayer': 'coralreefplayer'},
+    package_data={'coralreefplayer': ['*.dll', '*.so', '*.dylib']},
+    include_package_data=True,
     install_requires=[
-        'numpy>=1.18.0'
+        'numpy'
     ]
 )
