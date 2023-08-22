@@ -31,7 +31,7 @@ PRIVATE
     CoralReefPlayer
     SDL2::SDL2
     imgui
-    $<$<BOOL:${ENABLE_OPENCV}>:opencv_world>
+    $<$<BOOL:${ENABLE_OPENCV}>:${OpenCV_LIBS}>
 )
 
 add_dependencies(${PROJECT_NAME}
@@ -41,7 +41,7 @@ add_dependencies(${PROJECT_NAME}
 )
 if(ENABLE_OPENCV)
     add_dependencies(${PROJECT_NAME}
-        opencv_world
+        ${OpenCV_LIBS}
     )
 endif(ENABLE_OPENCV)
 
@@ -59,7 +59,7 @@ if(WIN32)
         RUNTIME DESTINATION bin
     )
     if(ENABLE_OPENCV)
-        install(IMPORTED_RUNTIME_ARTIFACTS opencv_world
+        install(IMPORTED_RUNTIME_ARTIFACTS ${OpenCV_LIBS}
             LIBRARY DESTINATION lib
             RUNTIME DESTINATION bin
         )

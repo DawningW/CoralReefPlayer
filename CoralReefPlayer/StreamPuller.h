@@ -58,7 +58,7 @@ private:
     void subsessionByeHandler(MediaSubsession* subsession, char const* reason);
 
 private:
-    AVCodec* codec;
+    const AVCodec* codec;
     AVCodecContext* codecCtx;
     AVFrame* frame;
 
