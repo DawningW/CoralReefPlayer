@@ -3,7 +3,7 @@
 
 #define SINK_RECEIVE_BUFFER_SIZE 1000000
 
-static uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
+static const uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
 
 //FILE* pH264;
 

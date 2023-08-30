@@ -22,6 +22,7 @@ public:
 
     StreamPuller();
     ~StreamPuller();
+    void authenticate(const char* username, const char* password, bool useMD5 = false);
     bool start(const char* url, Transport transport, int width, int height, Format format, Callback callback);
     void stop();
     static void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString) {
@@ -62,6 +63,7 @@ private:
     AVCodecContext* codecCtx;
     AVFrame* frame;
 
+    Authenticator* authenticator;
     TaskScheduler* scheduler;
     UsageEnvironment* environment;
     RTSPClient* rtspClient;

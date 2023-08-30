@@ -6,6 +6,7 @@ extern "C"
 #endif
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef WIN32
 #ifdef CORALREEFPLAYER_EXPORTS
@@ -53,6 +54,7 @@ typedef void (*crp_callback)(int /* event */, void* /* data */);
 
 CRP_DLL_EXPORT crp_handle crp_create();
 CRP_DLL_EXPORT void crp_destroy(crp_handle handle);
+CRP_DLL_EXPORT void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
 CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, Transport transport,
     int width, int height, Format format, crp_callback callback);
 

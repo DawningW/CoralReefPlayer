@@ -72,7 +72,7 @@ static int find_sps_pps_before_I_frame(AVPacket* pkt) {
 
 thread_local StreamPuller* StreamPuller::instance;
 
-StreamPuller::StreamPuller() : outFrame{}, exit(1)
+StreamPuller::StreamPuller() : authenticator(nullptr), outFrame{}, exit(1)
 {
     codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     if (codec == NULL)
@@ -100,6 +100,13 @@ StreamPuller::~StreamPuller()
     av_frame_free(&frame);
     avcodec_close(codecCtx);
     av_free(codecCtx->extradata);
+}
+
+void StreamPuller::authenticate(const char* username, const char* password, bool useMD5)
+{
+    if (authenticator != nullptr)
+        delete authenticator;
+    authenticator = new Authenticator(username, password, useMD5);
 }
 
 bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, Callback callback)
@@ -157,7 +164,7 @@ void StreamPuller::run()
     environment = BasicUsageEnvironment::createNew(*scheduler);
 
     rtspClient = RTSPClient::createNew(*environment, url.get(), 1, "CoralReefPlayer");
-    rtspClient->sendDescribeCommand(continueAfterDESCRIBE);
+    rtspClient->sendDescribeCommand(continueAfterDESCRIBE, authenticator);
     session = NULL;
 
     environment->taskScheduler().doEventLoop(&exit);
