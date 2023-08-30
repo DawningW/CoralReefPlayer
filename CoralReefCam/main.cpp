@@ -4,6 +4,7 @@
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer.h"
+#include "implot.h"
 #if ENABLE_OPENCV
 #include "opencv2/core.hpp"
 #include "opencv2/imgproc.hpp"
@@ -74,6 +75,17 @@ void loop()
     }
     ImGui::End();
 
+    if (ImGui::Begin("Plots"))
+    {
+        if (ImPlot::BeginPlot(u8"ÕÛÏßÍ¼Ê¾Àý"))
+        {
+            static double values[] = { 1., 3., 5., 3., 1. };
+            ImPlot::PlotLine("Values", values, 5);
+        }
+        ImPlot::EndPlot();
+    }
+    ImGui::End();
+
     ImGui::Render();
 }
 
@@ -118,6 +130,7 @@ int main(int argc, char* argv[])
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
@@ -183,6 +196,7 @@ int main(int argc, char* argv[])
     crp_destroy(player);
     ImGui_ImplSDLRenderer_Shutdown();
     ImGui_ImplSDL2_Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
     SDL_Quit();
     

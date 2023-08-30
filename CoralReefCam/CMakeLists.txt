@@ -4,6 +4,7 @@ find_package(SDL2 2.28.0 REQUIRED)
 find_package(OpenCV 4.4.0)
 
 add_subdirectory(../imgui imgui)
+add_subdirectory(../implot implot)
 
 set(ENABLE_OPENCV ON CACHE BOOL "")
 if(NOT OpenCV_FOUND)
@@ -18,7 +19,7 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
 PRIVATE
-    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}
 )
 
 target_compile_definitions(${PROJECT_NAME}
@@ -31,6 +32,7 @@ PRIVATE
     CoralReefPlayer
     SDL2::SDL2
     imgui
+    implot
     $<$<BOOL:${ENABLE_OPENCV}>:${OpenCV_LIBS}>
 )
 
@@ -38,6 +40,7 @@ add_dependencies(${PROJECT_NAME}
     CoralReefPlayer
     SDL2::SDL2
     imgui
+    implot
 )
 if(ENABLE_OPENCV)
     add_dependencies(${PROJECT_NAME}

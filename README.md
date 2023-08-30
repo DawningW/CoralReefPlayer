@@ -17,6 +17,7 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作
         - FFmpeg 4.4 (4.4+)
     - SDL2 2.28.1 (2.26.0+)
     - imgui 1.89.5
+    - implot 0.16
     - （可选）OpenCV 4.7.0 (4.4.0+)
         
 ## 编译指南
