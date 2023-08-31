@@ -75,14 +75,14 @@ void loop()
     }
     ImGui::End();
 
-    if (ImGui::Begin("Plots"))
+    if (ImGui::Begin("Charts Window"))
     {
-        if (ImPlot::BeginPlot(u8"ÕÛÏßÍ¼Ê¾Àý"))
+        if (ImPlot::BeginPlot("Example Plot"))
         {
             static double values[] = { 1., 3., 5., 3., 1. };
             ImPlot::PlotLine("Values", values, 5);
+            ImPlot::EndPlot();
         }
-        ImPlot::EndPlot();
     }
     ImGui::End();
 
