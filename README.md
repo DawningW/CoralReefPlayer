@@ -73,6 +73,12 @@ CoralReefPlayer API 文档：
 crp_handle crp_create();
 
 /**
+ * @brief 销毁播放器，会自动停止播放
+ * @param handle 播放器句柄
+ */
+void crp_destroy(crp_handle handle);
+
+/**
  * @brief 设置 RTSP 认证
  * @param handle 播放器句柄
  * @param username 用户名
@@ -80,12 +86,6 @@ crp_handle crp_create();
  * @param is_md5 密码是否为 MD5
  */
 void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
-
-/**
- * @brief 销毁播放器，会自动停止播放
- * @param handle 播放器句柄
- */
-void crp_destroy(crp_handle handle);
 
 /**
  * @brief 开始播放指定 RTSP 流，仅支持 H264 码流，暂时不支持音频

@@ -10,7 +10,7 @@ set(ENABLE_OPENCV ON CACHE BOOL "")
 if(NOT OpenCV_FOUND)
     message("OpenCV not found, define ENABLE_OPENCV with 0")
     set(ENABLE_OPENCV OFF CACHE BOOL "" FORCE)
-endif(NOT OpenCV_FOUND)
+endif()
 
 add_executable(${PROJECT_NAME}
     main.cpp
@@ -19,7 +19,7 @@ add_executable(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
 PRIVATE
-    ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/.
 )
 
 target_compile_definitions(${PROJECT_NAME}
@@ -46,7 +46,7 @@ if(ENABLE_OPENCV)
     add_dependencies(${PROJECT_NAME}
         ${OpenCV_LIBS}
     )
-endif(ENABLE_OPENCV)
+endif()
 
 install(TARGETS ${PROJECT_NAME}
     DESTINATION bin
@@ -66,5 +66,5 @@ if(WIN32)
             LIBRARY DESTINATION lib
             RUNTIME DESTINATION bin
         )
-    endif(ENABLE_OPENCV)
-endif(WIN32)
+    endif()
+endif()

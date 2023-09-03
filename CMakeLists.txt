@@ -15,7 +15,7 @@ if(MSVC)
         message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
     endif()
     message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
-endif(MSVC)
+endif()
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING "" FORCE)
 

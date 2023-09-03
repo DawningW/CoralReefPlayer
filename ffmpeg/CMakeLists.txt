@@ -80,4 +80,4 @@ else()
     set_target_properties(avdevice avfilter avformat avcodec avutil postproc swresample swscale PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES ${LIBAV_INCLUDE_DIR}
     )
-endif(WIN32 OR CYGWIN)
+endif()
