@@ -88,7 +88,7 @@ void crp_destroy(crp_handle handle);
 void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
 
 /**
- * @brief 开始播放指定 RTSP 流，仅支持 H264 码流，暂时不支持音频
+ * @brief 开始播放指定 RTSP 流，仅支持 H264/H265 码流，暂不支持音频
  * @param handle 播放器句柄
  * @param url RTSP 流地址
  * @param transport 传输协议
