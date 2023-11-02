@@ -1,105 +1,18 @@
 #include "StreamPuller.h"
-#include <stdexcept>
 #include <atomic>
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
-extern "C"
-{
-#include "libavutil/opt.h"
-}
 #include "StreamSink.h"
-
-static uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
-
-static AVPixelFormat to_av_format(Format format) {
-    switch (format) {
-        case CRP_YUV420P: return AV_PIX_FMT_YUV420P;
-        case CRP_RGB24: return AV_PIX_FMT_RGB24;
-        case CRP_BGR24: return AV_PIX_FMT_BGR24;
-        case CRP_ARGB32: return AV_PIX_FMT_ARGB;
-        case CRP_RGBA32: return AV_PIX_FMT_RGBA;
-        case CRP_ABGR32: return AV_PIX_FMT_ABGR;
-        case CRP_BGRA32: return AV_PIX_FMT_BGRA;
-    }
-    return AV_PIX_FMT_NONE;
-}
-
-static int find_sps_pps_before_I_frame(AVPacket* pkt) {
-    //printf("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-    //    pkt->data[0], pkt->data[1], pkt->data[2], pkt->data[3], pkt->data[4],
-    //    pkt->data[5], pkt->data[6], pkt->data[7], pkt->data[8], pkt->data[9]);
-    int length = 0;
-    unsigned char* buffer = pkt->data;
-    int size = pkt->size;
-    if ((pkt->data[0] == 0 && pkt->data[1] == 0 && pkt->data[2] == 0 && pkt->data[3] == 1) ||
-        (pkt->data[0] == 0 && pkt->data[1] == 0 && pkt->data[2] == 1)) {
-        while (size > 3) {
-            if (buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 0 && buffer[3] == 1) {
-                int nal_type = buffer[4] & 0x1F;
-                if (nal_type == 5) {
-                    return pkt->size - size;
-                }
-                buffer += 4;
-                size -= 4;
-            }
-            if (buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 1) {
-                int nal_type = buffer[3] & 0x1F;
-                if (nal_type == 5) {
-                    return pkt->size - size;
-                }
-                buffer += 3;
-                size -= 3;
-            }
-            buffer++;
-            size--;
-        }
-    } else {
-        while (size > 4) {
-            unsigned char* p = (unsigned char*) &length;
-            p[3] = buffer[0];
-            p[2] = buffer[1];
-            p[1] = buffer[2];
-            p[0] = buffer[3];
-            int nal_type = buffer[4] & 0x1F;
-            if (nal_type == 5) {
-                return pkt->size - size;
-            }
-            buffer += 4 + length;
-            size -= 4 + length;
-        }
-    }
-    return 0;
-}
 
 thread_local StreamPuller* StreamPuller::instance;
 
-StreamPuller::StreamPuller() : authenticator(nullptr), outFrame{}, exit(1)
+StreamPuller::StreamPuller() : exit(1), authenticator(nullptr)
 {
-    codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-    if (codec == NULL)
-    {
-        throw std::runtime_error("Codec not found.");
-    }
-
-    codecCtx = avcodec_alloc_context3(codec);
-    codecCtx->flags = AV_CODEC_FLAG_LOW_DELAY;
-    codecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS;
-    codecCtx->extradata = (uint8_t*) av_malloc(AV_INPUT_BUFFER_PADDING_SIZE);
-    codecCtx->extradata_size = 0;
-
-    // 由于需要sps和pps, 解码器初始化已移至void initCodec()函数
-
-    frame = av_frame_alloc();
 }
 
 StreamPuller::~StreamPuller()
 {
-    if (outFrame.data[0] != nullptr)
-    {
-        av_freep(&outFrame.data[0]);
-    }
-    av_frame_free(&frame);
-    avcodec_close(codecCtx);
-    av_free(codecCtx->extradata);
+    if (!exit)
+        stop();
 }
 
 void StreamPuller::authenticate(const char* username, const char* password, bool useMD5)
@@ -111,19 +24,18 @@ void StreamPuller::authenticate(const char* username, const char* password, bool
 
 bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, Callback callback)
 {
-    if (!exit) return false;
+    if (!exit)
+        return false;
 
-    this->url = std::make_unique<char[]>(strlen(url) + 1);
-    strcpy(this->url.get(), url);
+    this->url = url;
     this->transport = transport;
-    outFrame.width = width;
-    outFrame.height = height;
-    outFrame.format = format;
+    this->width = width;
+    this->height = height;
+    this->format = format;
     this->callback = callback;
 
     exit = 0;
     thread = std::thread(&StreamPuller::run, this);
-    callbackThread = std::thread(&StreamPuller::runCallback, this);
 
     return true;
 }
@@ -131,29 +43,8 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
 void StreamPuller::stop()
 {
     exit = 1;
-    signal.test_and_set();
-    signal.notify_all();
     thread.join();
-    callbackThread.join();
-}
-
-void StreamPuller::initCodec()
-{
-    AVDictionary* opts = NULL;
-    av_dict_set(&opts, "preset", "ultrafast", 0);
-    av_dict_set(&opts, "tune", "zerolatency", 0);
-    //av_dict_set(&opts, "strict", "1", 0);
-    if (avcodec_open2(codecCtx, codec, &opts) < 0)
-    {
-        throw std::runtime_error("Open codec failed.");
-    }
-    av_dict_free(&opts);
-}
-
-void StreamPuller::initBuffer()
-{
-    av_image_alloc(outFrame.data, outFrame.linesize, outFrame.width, outFrame.height,
-        to_av_format(outFrame.format), 1);
+    callback = Callback();
 }
 
 void StreamPuller::run()
@@ -163,30 +54,18 @@ void StreamPuller::run()
     scheduler = BasicTaskScheduler::createNew();
     environment = BasicUsageEnvironment::createNew(*scheduler);
 
-    rtspClient = RTSPClient::createNew(*environment, url.get(), 1, "CoralReefPlayer");
+    rtspClient = RTSPClient::createNew(*environment, url.c_str(), 1, "CoralReefPlayer");
     rtspClient->sendDescribeCommand(continueAfterDESCRIBE, authenticator);
     session = NULL;
+    videoDecoder = nullptr;
 
     environment->taskScheduler().doEventLoop(&exit);
 
     if (rtspClient != NULL)
-    {
         shutdownStream(rtspClient);
-    }
     delete scheduler;
-}
-
-void StreamPuller::runCallback()
-{
-    while (!exit)
-    {
-        signal.wait(false);
-        if (!exit)
-        {
-            callback(CRP_EV_NEW_FRAME, &outFrame);
-        }
-        signal.clear();
-    }
+    if (videoDecoder != nullptr)
+        delete videoDecoder;
 }
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
@@ -233,7 +112,7 @@ void StreamPuller::continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode
         env << "Failed to get a SDP description: " << resultString << "\n";
         return;
     }
-    char* const sdpDescription = resultString;
+    const char* sdpDescription = resultString;
     env << "Got a SDP description:\n" << sdpDescription << "\n";
 
     session = MediaSession::createNew(env, sdpDescription);
@@ -259,7 +138,8 @@ end:
 void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, char* resultString)
 {
     UsageEnvironment& env = rtspClient->envir();
-    const char *codecName, *sprops;
+    const char* mediumName;
+    const char* codecName;
 
     if (resultCode != 0)
     {
@@ -269,104 +149,85 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
 
     env << "Set up the subsession (" << subsession->clientPortNum() << ")\n";
 
+    mediumName = subsession->mediumName();
     codecName = subsession->codecName();
-    if (strcmp(codecName, "H264") != 0)
+    if (strcmp(mediumName, "video") == 0)
     {
-        env << "Not support codec: " << codecName << "\n";
+        videoDecoder = VideoDecoder::createNew(codecName, format, width, height);
+        if (videoDecoder == nullptr)
+        {
+            env << "Not support video codec: " << codecName << "\n";
+            goto end;
+        }
+
+        if (strcmp(codecName, "H264") == 0)
+        {
+            const char* sprops = subsession->fmtp_spropparametersets();
+            unsigned spropCount;
+            SPropRecord* spropRecords = parseSPropParameterSets(sprops, spropCount);
+            if (spropCount == 2)
+            {
+                for (int i = 0; i < spropCount; i++)
+                {
+                    SPropRecord& record = spropRecords[i];
+                    videoDecoder->addExtraData(startCode4, sizeof(startCode4));
+                    videoDecoder->addExtraData(record.sPropBytes, record.sPropLength);
+                }
+                env << "Get SPropRecords.\n";
+            }
+            if (spropRecords)
+                delete[] spropRecords;
+        }
+        else if (strcmp(codecName, "H265") == 0)
+        {
+            if (strcmp(subsession->fmtp_spropparametersets(), "") != 0)
+            {
+                unsigned spropCount;
+                SPropRecord* spropRecords = parseSPropParameterSets(subsession->fmtp_spropparametersets(), spropCount);
+                if (spropCount == 3)
+                {
+                    for (int i = 0; i < spropCount; i++)
+                    {
+                        SPropRecord& record = spropRecords[i];
+                        videoDecoder->addExtraData(startCode4, sizeof(startCode4));
+                        videoDecoder->addExtraData(record.sPropBytes, record.sPropLength);
+                    }
+                    env << "Get SPropRecords.\n";
+                }
+                if (spropRecords)
+                    delete[] spropRecords;
+            }
+            else if (strcmp(subsession->fmtp_spropvps(), "") != 0)
+            {
+                unsigned spropCounts[3];
+                SPropRecord* spropRecords[3];
+                spropRecords[0] = parseSPropParameterSets(subsession->fmtp_spropvps(), spropCounts[0]);
+                spropRecords[1] = parseSPropParameterSets(subsession->fmtp_spropsps(), spropCounts[1]);
+                spropRecords[2] = parseSPropParameterSets(subsession->fmtp_sproppps(), spropCounts[2]);
+                for (int i = 0; i < 3; i++)
+                {
+                    if (spropRecords[i])
+                    {
+                        SPropRecord& record = spropRecords[i][0];
+                        videoDecoder->addExtraData(startCode4, sizeof(startCode4));
+                        videoDecoder->addExtraData(record.sPropBytes, record.sPropLength);
+                        delete[] spropRecords[i];
+                    }
+                }
+            }
+        }
+    }
+    else if (strcmp(mediumName, "audio") == 0)
+    {
+        env << "Not support audio codec: " << codecName << "\n";
         goto end;
     }
 
-    sprops = subsession->fmtp_spropparametersets();
-    if (strcmp(sprops, "") != 0)
+    subsession->sink = StreamSink::createNew(env, *subsession, [this, &env](AVPacket* packet)
     {
-        unsigned spropCount;
-        SPropRecord* spropRecords = parseSPropParameterSets(sprops, spropCount);
-        if (spropCount >= 2)
+        if (videoDecoder->processPacket(packet))
         {
-            SPropRecord& sps = spropRecords[0];
-            SPropRecord& pps = spropRecords[1];
-
-            int size = 8 + sps.sPropLength + pps.sPropLength;
-            uint8_t* buffer = codecCtx->extradata;
-            memcpy(buffer, startCode4, 4);
-            memcpy(buffer + 4, sps.sPropBytes, sps.sPropLength);
-            memcpy(buffer + 4 + sps.sPropLength, startCode4, 4);
-            memcpy(buffer + 4 + sps.sPropLength + 4, pps.sPropBytes, pps.sPropLength);
-            codecCtx->extradata_size = size;
-
-            delete[] spropRecords;
-            env << "Get SPropRecords.\n";
-        }
-    }
-
-    subsession->sink = StreamSink::createNew(env, *subsession, [this, &env](StreamSink* sink, AVPacket* packet)
-    {
-        // FIXME 有些监控单独发SPS和PPS, 并不在I帧前面
-        int sps_pps_len = find_sps_pps_before_I_frame(packet);
-        if (!sink->fHasFirstKeyframe)
-        {
-            if (codecCtx->extradata_size <= 0)
-            {
-                if (sps_pps_len <= 0)
-                {
-                    env << "Waiting for the first keyframe.\n";
-                    return;
-                }
-                memcpy(codecCtx->extradata, packet->data, sps_pps_len);
-                codecCtx->extradata_size = sps_pps_len;
-            }
-            initCodec();
-            if (outFrame.width != CRP_WIDTH_AUTO && outFrame.height != CRP_HEIGHT_AUTO)
-                initBuffer();
-            sink->fHasFirstKeyframe = True;
-        }
-
-        if (sps_pps_len > 0)
-        {
-            packet->data += sps_pps_len;
-            packet->size -= sps_pps_len;
-
-            //avcodec_flush_buffers(codecCtx);
-            //env << "Flush deocder buffer.\n";
-        }
-
-        codecCtx->has_b_frames = 0; // 丢帧使reordering buffer增大导致延迟变高
-        if (avcodec_send_packet(codecCtx, packet) < 0)
-        {
-            env << "Decode Error.\n";
-            return;
-        }
-
-        while (avcodec_receive_frame(codecCtx, frame) >= 0)
-        {
-            if (outFrame.width == CRP_WIDTH_AUTO && outFrame.height == CRP_HEIGHT_AUTO)
-            {
-                outFrame.width = codecCtx->width;
-                outFrame.height = codecCtx->height;
-                initBuffer();
-            }
-
-            //AVFrame* frameYUV = av_frame_alloc();
-            //frameYUV->format = frame->format;
-            //frameYUV->width = frame->width;
-            //frameYUV->height = frame->height;
-            //frameYUV->channels = frame->channels;
-            //frameYUV->channel_layout = frame->channel_layout;
-            //frameYUV->nb_samples = frame->nb_samples;
-            //av_frame_get_buffer(frameYUV, 32);
-            //av_frame_copy(frameYUV, frame);
-            //av_frame_copy_props(frameYUV, frame);
-            //av_frame_free(frameYUV);
-
-            AVPixelFormat pixFmt = codecCtx->pix_fmt == AV_PIX_FMT_YUVJ420P ? AV_PIX_FMT_YUV420P : codecCtx->pix_fmt;
-            struct SwsContext* swsCxt = sws_getContext(codecCtx->width, codecCtx->height, pixFmt,
-            	outFrame.width, outFrame.height, to_av_format(outFrame.format), SWS_FAST_BILINEAR, NULL, NULL, NULL);
-            sws_scale(swsCxt, frame->data, frame->linesize, 0, codecCtx->height, outFrame.data, outFrame.linesize);
-            sws_freeContext(swsCxt);
-            outFrame.pts = frame->pts;
-
-            signal.test_and_set();
-            signal.notify_all();
+            callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
         }
     });
     if (subsession->sink == NULL)

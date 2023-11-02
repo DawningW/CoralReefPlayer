@@ -23,15 +23,15 @@ void crp_destroy(crp_handle handle)
 
 void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5)
 {
-    StreamPuller* player = (StreamPuller*)handle;
+    StreamPuller* player = (StreamPuller*) handle;
     player->authenticate(username, password, is_md5);
 }
 
-void crp_play(crp_handle handle, const char* url, Transport transport,
-    int width, int height, Format format, crp_callback callback)
+void crp_play(crp_handle handle, const char* url, int transport,
+    int width, int height, int format, crp_callback callback)
 {
     StreamPuller* player = (StreamPuller*) handle;
-    player->start(url, transport, width, height, format, callback);
+    player->start(url, (Transport) transport, width, height, (Format) format, callback);
 }
 
 #ifdef WIN32

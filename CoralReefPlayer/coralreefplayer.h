@@ -20,15 +20,14 @@ extern "C"
 
 #define CRP_WIDTH_AUTO 0
 #define CRP_HEIGHT_AUTO 0
-#define CRP_EV_NEW_FRAME 0 // 收到新视频帧事件
 
-enum Transport : int32_t
+enum Transport
 {
     CRP_UDP,
-    CRP_TCP
+    CRP_TCP,
 };
 
-enum Format : int32_t // 管老厮不喜欢掷色子喵
+enum Format
 {
     CRP_YUV420P, // AV_PIX_FMT_YUV420P
     CRP_RGB24,   // AV_PIX_FMT_RGB24
@@ -39,11 +38,16 @@ enum Format : int32_t // 管老厮不喜欢掷色子喵
     CRP_BGRA32,  // AV_PIX_FMT_BGRA
 };
 
+enum Event
+{
+    CRP_EV_NEW_FRAME, // 收到新视频帧事件
+};
+
 struct Frame
 {
     int width;
     int height;
-    Format format;
+    enum Format format;
     uint8_t* data[4];
     int linesize[4];
     uint64_t pts;
@@ -55,8 +59,8 @@ typedef void (*crp_callback)(int /* event */, void* /* data */);
 CRP_DLL_EXPORT crp_handle crp_create();
 CRP_DLL_EXPORT void crp_destroy(crp_handle handle);
 CRP_DLL_EXPORT void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
-CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, Transport transport,
-    int width, int height, Format format, crp_callback callback);
+CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, int transport,
+    int width, int height, int format, crp_callback callback);
 
 #ifdef __cplusplus
 }

@@ -1,37 +1,36 @@
 #include "StreamSink.h"
 #include <cstdio>
+#include "VideoDecoder.h"
 
 #define SINK_RECEIVE_BUFFER_SIZE 1000000
 
-static const uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
-
-//FILE* pH264;
-
-StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, Callback callback) {
+StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, Callback callback)
+{
     return new StreamSink(env, subsession, callback);
 }
 
 StreamSink::StreamSink(UsageEnvironment& env, MediaSubsession& subsession, Callback callback)
-    : MediaSink(env), fHasFirstKeyframe(False), fSubsession(subsession), fCallback(callback) {
+    : MediaSink(env), fSubsession(subsession), fCallback(callback)
+{
     fReceiveBuffer = new u_int8_t[SINK_RECEIVE_BUFFER_SIZE];
     memcpy(fReceiveBuffer, startCode4, sizeof(startCode4));
-    //pH264 = fopen("stream.h264", "w");
 }
 
-StreamSink::~StreamSink() {
+StreamSink::~StreamSink()
+{
     delete[] fReceiveBuffer;
-    //fclose(pH264);
 }
 
 void StreamSink::afterGettingFrame(void* clientData, unsigned frameSize, unsigned numTruncatedBytes,
-    struct timeval presentationTime, unsigned durationInMicroseconds) {
+    struct timeval presentationTime, unsigned durationInMicroseconds)
+{
     StreamSink* sink = (StreamSink*) clientData;
     sink->afterGettingFrame(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
 }
 
 void StreamSink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedBytes,
-    struct timeval presentationTime, unsigned durationInMicroseconds) {
-
+    struct timeval presentationTime, unsigned durationInMicroseconds)
+{
 #ifdef _DEBUG
     envir() << fSubsession.mediumName() << "/" << fSubsession.codecName() << ":\tReceived " << frameSize << " bytes";
     if (numTruncatedBytes > 0) envir() << " (with " << numTruncatedBytes << " bytes truncated)";
@@ -45,27 +44,25 @@ void StreamSink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedByte
 #endif
 
     uint8_t* buffer = fReceiveBuffer + 4;
-    if (!(buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 0 && buffer[3] == 1) &&
-        !(buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 1)) {
+    if (memcmp(buffer, startCode4, sizeof(startCode4)) != 0 &&
+        memcmp(buffer, startCode3, sizeof(startCode3)) != 0)
+    {
         buffer -= 4;
         frameSize += 4;
     }
-    //printf("%#02x %#02x %#02x %#02x %#02x %#02x %#02x %#02x\n",
-    //    buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]);
-    //fwrite(buffer, frameSize, 1, pH264);
-
     AVPacket packet{};
     packet.data = buffer;
     packet.size = frameSize;
     packet.pts = presentationTime.tv_sec * 1000 + presentationTime.tv_usec / 1000;
-    fCallback(this, &packet);
+    packet.dts = AV_NOPTS_VALUE;
+    fCallback(&packet);
 
-    if (!continuePlaying()) {
+    if (!continuePlaying())
         onSourceClosure(this);
-    }
 }
 
-Boolean StreamSink::continuePlaying() {
+Boolean StreamSink::continuePlaying()
+{
     if (fSource == NULL)
         return False;
 
