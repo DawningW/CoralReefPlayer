@@ -17,7 +17,6 @@ crp_handle crp_create()
 void crp_destroy(crp_handle handle)
 {
     StreamPuller* player = (StreamPuller*) handle;
-    player->stop();
     delete player;
 }
 
@@ -32,6 +31,12 @@ void crp_play(crp_handle handle, const char* url, int transport,
 {
     StreamPuller* player = (StreamPuller*) handle;
     player->start(url, (Transport) transport, width, height, (Format) format, callback);
+}
+
+void crp_stop(crp_handle handle)
+{
+    StreamPuller* player = (StreamPuller*) handle;
+    player->stop();
 }
 
 #ifdef WIN32

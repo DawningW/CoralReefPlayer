@@ -99,6 +99,12 @@ void crp_auth(crp_handle handle, const char* username, const char* password, boo
  */
 void crp_play(crp_handle handle, const char* url, Transport transport,
     int width, int height, Format format, crp_callback callback);
+
+/**
+ * @brief 停止播放指定 RTSP 流
+ * @param handle 播放器句柄
+ */
+void crp_stop(crp_handle handle);
 ```
 
 ## 版权声明

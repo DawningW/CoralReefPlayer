@@ -69,19 +69,24 @@ static bool extractH264Or5Frame(AVPacket* pkt, int& offset, int& size, int& mark
     return false;
 }
 
-VideoDecoder* VideoDecoder::createNew(const char* codecName, Format format, int width, int height)
+VideoDecoder* VideoDecoder::createNew(const std::string codecName, Format format, int width, int height)
 {
     const AVCodec* codec = nullptr;
-    if (strcmp(codecName, "H264") == 0)
+    if (codecName == "H264")
     {
         codec = avcodec_find_decoder(AV_CODEC_ID_H264);
         // codec = avcodec_find_decoder_by_name("h264");
         return new H264VideoDecoder(codec, format, width, height);
     }
-    else if (strcmp(codecName, "H265") == 0)
+    else if (codecName == "H265")
     {
         codec = avcodec_find_decoder(AV_CODEC_ID_H265);
         return new H265VideoDecoder(codec, format, width, height);
+    }
+    else if (codecName == "JPEG")
+    {
+        codec = avcodec_find_decoder(AV_CODEC_ID_MJPEG);
+        return new MJPEGVideoDecoder(codec, format, width, height);
     }
     return nullptr;
 }
@@ -278,4 +283,10 @@ bool H265VideoDecoder::processPacket(AVPacket* packet)
 
     codecCtx->has_b_frames = 0;
     return VideoDecoder::processPacket(packet);
+}
+
+MJPEGVideoDecoder::MJPEGVideoDecoder(const AVCodec* codec, Format format, int width, int height)
+    : VideoDecoder(codec, format, width, height)
+{
+    avcodec_open2(codecCtx, NULL, NULL);
 }

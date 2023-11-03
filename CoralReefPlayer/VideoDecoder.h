@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 extern "C"
 {
 #include "libavcodec/avcodec.h"
@@ -18,7 +19,7 @@ public:
     virtual bool processPacket(AVPacket* packet);
     void addExtraData(const uint8_t* data, int size);
     Frame* getFrame();
-    static VideoDecoder* createNew(const char* codecName, Format format, int width, int height);
+    static VideoDecoder* createNew(const std::string codecName, Format format, int width, int height);
 
 protected:
     AVCodecContext* codecCtx;
@@ -45,4 +46,10 @@ public:
 
 private:
     int state = 0;
+};
+
+class MJPEGVideoDecoder : public VideoDecoder
+{
+public:
+    MJPEGVideoDecoder(const AVCodec* codec, Format format, int width, int height);
 };

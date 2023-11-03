@@ -71,7 +71,7 @@ void loop()
         ImGui::Text("Frame Info");
         ImGui::Separator();
         ImGui::Text("FPS: %.1f", io.Framerate);
-        ImGui::Text("PTS: %ld", pts);
+        ImGui::Text("PTS: %lu", pts);
     }
     ImGui::End();
 

@@ -29,4 +29,5 @@ private:
     u_int8_t* fReceiveBuffer;
     MediaSubsession& fSubsession;
     Callback fCallback;
+    bool fH264OrH265;
 };

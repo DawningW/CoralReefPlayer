@@ -14,6 +14,8 @@ StreamSink::StreamSink(UsageEnvironment& env, MediaSubsession& subsession, Callb
 {
     fReceiveBuffer = new u_int8_t[SINK_RECEIVE_BUFFER_SIZE];
     memcpy(fReceiveBuffer, startCode4, sizeof(startCode4));
+    fH264OrH265 = strcmp(subsession.codecName(), "H264") == 0 ||
+        strcmp(subsession.codecName(), "H265") == 0;
 }
 
 StreamSink::~StreamSink()
@@ -44,11 +46,14 @@ void StreamSink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedByte
 #endif
 
     uint8_t* buffer = fReceiveBuffer + 4;
-    if (memcmp(buffer, startCode4, sizeof(startCode4)) != 0 &&
-        memcmp(buffer, startCode3, sizeof(startCode3)) != 0)
+    if (fH264OrH265)
     {
-        buffer -= 4;
-        frameSize += 4;
+        if ((memcmp(buffer, startCode4, sizeof(startCode4)) != 0 &&
+            memcmp(buffer, startCode3, sizeof(startCode3)) != 0))
+        {
+            buffer -= 4;
+            frameSize += 4;
+        }
     }
     AVPacket packet{};
     packet.data = buffer;

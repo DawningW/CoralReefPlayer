@@ -61,6 +61,7 @@ CRP_DLL_EXPORT void crp_destroy(crp_handle handle);
 CRP_DLL_EXPORT void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
 CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, int transport,
     int width, int height, int format, crp_callback callback);
+CRP_DLL_EXPORT void crp_stop(crp_handle handle);
 
 #ifdef __cplusplus
 }

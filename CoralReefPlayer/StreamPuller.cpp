@@ -1,18 +1,14 @@
 #include "StreamPuller.h"
-#include <atomic>
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "StreamSink.h"
 
 thread_local StreamPuller* StreamPuller::instance;
 
-StreamPuller::StreamPuller() : exit(1), authenticator(nullptr)
-{
-}
+StreamPuller::StreamPuller() : exit(1), authenticator(nullptr) {}
 
 StreamPuller::~StreamPuller()
 {
-    if (!exit)
-        stop();
+    stop();
 }
 
 void StreamPuller::authenticate(const char* username, const char* password, bool useMD5)
@@ -42,6 +38,9 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
 
 void StreamPuller::stop()
 {
+    if (exit)
+        return;
+
     exit = 1;
     thread.join();
     callback = Callback();
@@ -100,7 +99,7 @@ void StreamPuller::shutdownStream(RTSPClient* rtspClient)
 
     env << "Closing the stream.\n";
     Medium::close(rtspClient);
-    rtspClient = NULL;
+    this->rtspClient = NULL;
 }
 
 void StreamPuller::continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode, char* resultString)
@@ -214,6 +213,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
                         delete[] spropRecords[i];
                     }
                 }
+                env << "Get SPropRecords.\n";
             }
         }
     }
