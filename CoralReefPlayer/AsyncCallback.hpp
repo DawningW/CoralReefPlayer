@@ -10,13 +10,13 @@ class AsyncCallback
 public:
     using Func = void(Args...);
 
-    AsyncCallback() : stop(true) {}
-
-    AsyncCallback(std::function<Func> callback) : AsyncCallback(), callback(callback)
+    AsyncCallback(std::function<Func> callback) : callback(callback), stop(true)
     {
         if (callback)
             thread = std::thread(&AsyncCallback::loop, this);
     }
+
+    AsyncCallback() : stop(true) {}
 
     AsyncCallback& operator=(std::function<Func> callback)
     {

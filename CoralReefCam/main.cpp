@@ -63,7 +63,7 @@ void loop()
 
     ImGui::NewFrame();
 
-    ImGui::ShowDemoWindow(&show_demo_window);
+    //ImGui::ShowDemoWindow(&show_demo_window);
 
     // ImGuiWindowFlags_NoMove
     if (BeginOverlay("Top-Left Overlay", TopLeft))
@@ -75,16 +75,16 @@ void loop()
     }
     ImGui::End();
 
-    if (ImGui::Begin("Charts Window"))
-    {
-        if (ImPlot::BeginPlot("Example Plot"))
-        {
-            static double values[] = { 1., 3., 5., 3., 1. };
-            ImPlot::PlotLine("Values", values, 5);
-            ImPlot::EndPlot();
-        }
-    }
-    ImGui::End();
+    //if (ImGui::Begin("Charts Window"))
+    //{
+    //    if (ImPlot::BeginPlot("Example Plot"))
+    //    {
+    //        static double values[] = { 1., 3., 5., 3., 1. };
+    //        ImPlot::PlotLine("Values", values, 5);
+    //        ImPlot::EndPlot();
+    //    }
+    //}
+    //ImGui::End();
 
     ImGui::Render();
 }
@@ -141,12 +141,13 @@ int main(int argc, char* argv[])
     ImGui_ImplSDLRenderer_Init(renderer);
     
     const char* url = "rtsp://172.6.2.20/main";
+    Transport transport = CRP_UDP;
     if (argc > 1)
-    {
         url = argv[1];
-    }
+    if (argc > 2)
+        transport = strcmp(argv[2], "tcp") == 0 ? CRP_TCP : CRP_UDP;
     player = crp_create();
-    crp_play(player, url, CRP_UDP, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, [](int ev, void *data)
+    crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, [](int ev, void *data)
     {
         if (ev == CRP_EV_NEW_FRAME)
         {

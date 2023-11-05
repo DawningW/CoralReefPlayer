@@ -3,13 +3,6 @@
 #include <string>
 #include <thread>
 #include <functional>
-extern "C"
-{
-#include "libavformat/avformat.h"
-#include "libavcodec/avcodec.h"
-#include "libswscale/swscale.h"
-#include "libavutil/imgutils.h"
-}
 #include "GroupsockHelper.hh"
 #include "BasicUsageEnvironment.hh"
 #include "RTSPClient.hh"
