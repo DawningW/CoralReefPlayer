@@ -23,6 +23,8 @@ endif()
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING "" FORCE)
 
+find_package(CURL REQUIRED)
+
 add_subdirectory(live555)
 add_subdirectory(ffmpeg)
 add_subdirectory(CoralReefPlayer)

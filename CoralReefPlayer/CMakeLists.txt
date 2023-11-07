@@ -23,6 +23,7 @@ PRIVATE
 
 target_link_libraries(${PROJECT_NAME}
 PRIVATE
+    CURL::libcurl_shared
     live555
     avformat
     avcodec
@@ -31,6 +32,7 @@ PRIVATE
 )
 
 add_dependencies(${PROJECT_NAME}
+    CURL::libcurl_shared
     live555
     avformat
     avcodec
@@ -46,3 +48,10 @@ install(TARGETS ${PROJECT_NAME}
 install(FILES coralreefplayer.h 
     DESTINATION include
 )
+
+if(WIN32)
+    install(IMPORTED_RUNTIME_ARTIFACTS CURL::libcurl_shared
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+    )
+endif()
