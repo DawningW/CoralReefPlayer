@@ -4,27 +4,19 @@
 #include <atomic>
 #include <thread>
 
-template<typename... Args>
+template <typename... Args>
 class AsyncCallback
 {
 public:
-    using Func = void(Args...);
-
-    AsyncCallback(std::function<Func> callback) : callback(callback), stop(true)
-    {
-        if (callback)
-            thread = std::thread(&AsyncCallback::loop, this);
-    }
+    using Callback = std::function<void(Args...)>;
 
     AsyncCallback() : stop(true) {}
 
-    AsyncCallback& operator=(std::function<Func> callback)
+    template <typename T>
+    AsyncCallback(T&& callback) : callback(std::forward<T>(callback)), stop(true)
     {
-        finish();
-        this->callback = callback;
-        if (callback)
+        if (this->callback)
             thread = std::thread(&AsyncCallback::loop, this);
-        return *this;
     }
 
     ~AsyncCallback()
@@ -32,18 +24,30 @@ public:
         finish();
     }
 
-    void invoke(Args&&... args)
+    template <typename T>
+    AsyncCallback& operator=(T&& callback)
+    {
+        finish();
+        this->callback = std::forward<T>(callback);
+        if (this->callback)
+            thread = std::thread(&AsyncCallback::loop, this);
+        return *this;
+    }
+
+    template <typename... T>
+    void invoke(T&&... args)
     {
         if (!callback)
             return;
-        next = std::bind(callback, std::forward<Args>(args)...);
+        next = std::bind(callback, std::forward<T>(args)...);
         signal.test_and_set();
         signal.notify_all();
     }
 
-    void operator()(Args&&... args)
+    template <typename... T>
+    void operator()(T&&... args)
     {
-        invoke(std::forward<Args>(args)...);
+        invoke(std::forward<T>(args)...);
     }
 
 private:
@@ -71,7 +75,7 @@ private:
     }
 
 private:
-    std::function<Func> callback;
+    Callback callback;
 
     volatile bool stop;
     std::thread thread;

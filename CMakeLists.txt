@@ -23,7 +23,7 @@ endif()
 
 set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING "" FORCE)
 
-find_package(CURL REQUIRED)
+find_package(CURL REQUIRED PATHS $<BOOL:${WIN32}>:${CMAKE_SOURCE_DIR}/libcurl)
 
 add_subdirectory(live555)
 add_subdirectory(ffmpeg)
