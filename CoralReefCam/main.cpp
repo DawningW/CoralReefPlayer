@@ -101,7 +101,7 @@ void process(cv::Mat &mat)
 extern "C"
 int main(int argc, char* argv[])
 {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER))
+    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER))
     {
         printf("Could not initialize SDL: %s\n", SDL_GetError());
         return -1;
@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer_Init(renderer);
     
-    const char* url = "rtsp://172.6.2.20/main";
+    const char* url = "http://172.6.1.166:8080/?action=stream";
     Transport transport = CRP_UDP;
     if (argc > 1)
         url = argv[1];

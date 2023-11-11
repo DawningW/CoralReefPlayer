@@ -32,7 +32,7 @@ class H264VideoDecoder : public VideoDecoder
 {
 public:
     using VideoDecoder::VideoDecoder;
-    virtual bool processPacket(AVPacket* packet);
+    virtual bool processPacket(AVPacket* packet) override;
 
 private:
     int state = 0;
@@ -42,7 +42,7 @@ class H265VideoDecoder : public VideoDecoder
 {
 public:
     using VideoDecoder::VideoDecoder;
-    virtual bool processPacket(AVPacket* packet);
+    virtual bool processPacket(AVPacket* packet) override;
 
 private:
     int state = 0;

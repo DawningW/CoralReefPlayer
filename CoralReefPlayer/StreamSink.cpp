@@ -1,5 +1,6 @@
 #include "StreamSink.h"
 #include <cstdio>
+#include <cstring>
 #include "VideoDecoder.h"
 
 #define SINK_RECEIVE_BUFFER_SIZE 1000000

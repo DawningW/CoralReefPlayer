@@ -1,6 +1,10 @@
 #include "StreamPuller.h"
+#include <cstdio>
+#include <cstring>
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "StreamSink.h"
+
+#define HTTP_RECEIVE_BUFFER_MAX_SIZE 1200000
 
 thread_local StreamPuller* StreamPuller::instance;
 
@@ -24,14 +28,22 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
         return false;
 
     this->url = url;
+    protocol = parseUrl(this->url);
+    if (protocol == CRP_UNKNOWN)
+        return false;
+
     this->transport = transport;
     this->width = width;
     this->height = height;
     this->format = format;
     this->callback = callback;
 
+    videoDecoder = nullptr;
     exit = 0;
-    thread = std::thread(&StreamPuller::run, this);
+    if (protocol == CRP_RTSP)
+        thread = std::thread(&StreamPuller::runRTSP, this);
+    else if (protocol == CRP_HTTP)
+        thread = std::thread(&StreamPuller::runHTTP, this);
 
     return true;
 }
@@ -44,27 +56,52 @@ void StreamPuller::stop()
     exit = 1;
     thread.join();
     callback = Callback();
+    if (videoDecoder != nullptr)
+        delete videoDecoder;
 }
 
-void StreamPuller::run()
+void StreamPuller::runRTSP()
 {
     instance = this;
 
     scheduler = BasicTaskScheduler::createNew();
     environment = BasicUsageEnvironment::createNew(*scheduler);
-
     rtspClient = RTSPClient::createNew(*environment, url.c_str(), 1, "CoralReefPlayer");
-    rtspClient->sendDescribeCommand(continueAfterDESCRIBE, authenticator);
     session = NULL;
-    videoDecoder = nullptr;
-
+    
+    rtspClient->sendDescribeCommand(continueAfterDESCRIBE, authenticator);
     environment->taskScheduler().doEventLoop(&exit);
 
     if (rtspClient != NULL)
         shutdownStream(rtspClient);
     delete scheduler;
-    if (videoDecoder != nullptr)
-        delete videoDecoder;
+}
+
+void StreamPuller::runHTTP()
+{
+    instance = this;
+
+    StreamMemory mem{};
+    curl = curl_easy_init();
+    videoDecoder = VideoDecoder::createNew("JPEG", format, width, height);
+    if (curl != NULL)
+    {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, "CoralReefPlayer");
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteMemoryCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*) &mem);
+
+        CURLcode res = curl_easy_perform(curl);
+        if (res != CURLE_OK)
+        {
+            fprintf(stderr, "curl_easy_perform failed: %s\n", curl_easy_strerror(res));
+        }
+
+        curl_easy_cleanup(curl);
+    }
+
+    if (mem.memory != nullptr)
+        delete[] mem.memory;
 }
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
@@ -255,10 +292,12 @@ void StreamPuller::continueAfterPLAY0(RTSPClient* rtspClient, int resultCode, ch
     if (resultCode != 0)
     {
         env << "Failed to start playing session: " << resultString << "\n";
-        shutdownStream(rtspClient);
-        return;
+        goto end;
     }
     env << "Started playing session...\n";
+
+end:
+    shutdownStream(rtspClient);
 }
 
 void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
@@ -312,4 +351,83 @@ void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const*
     env << " on subsession\n";
 
     subsessionAfterPlaying(subsession);
+}
+
+size_t StreamPuller::curlWriteMemoryCallback0(void* contents, size_t size, size_t nmemb, StreamMemory* mem)
+{
+    if (exit)
+        return 0;
+
+    size_t realsize = size * nmemb;
+    if (mem->size + realsize + 1 > mem->capacity)
+    {
+        mem->capacity = mem->size + realsize + 1;
+        if (mem->capacity > HTTP_RECEIVE_BUFFER_MAX_SIZE)
+        {
+            return 0;
+        }
+        uint8_t* ptr = (uint8_t*) realloc(mem->memory, mem->capacity);
+        if (!ptr) {
+            printf("not enough memory\n");
+            return 0;
+        }
+        mem->memory = ptr;
+    }
+    memcpy(&(mem->memory[mem->size]), contents, realsize);
+    mem->size += realsize;
+    mem->memory[mem->size] = 0;
+
+    uint8_t* start = nullptr;
+    uint8_t* end = nullptr;
+    for (uint8_t* p = mem->memory; p < mem->memory + mem->size; p++)
+    {
+        if (p[0] == 0xFF && p[1] == 0xD8)
+        {
+            start = p;
+            break;
+        }
+    }
+    if (start == nullptr)
+    {
+        mem->size = 0;
+        return realsize;
+    }
+    for (uint8_t* p = start + 2; p < mem->memory + mem->size; p++)
+    {
+        if (p[0] == 0xFF && p[1] == 0xD9)
+        {
+            end = p + 2;
+            break;
+        }
+    }
+    if (end == nullptr)
+    {
+        return realsize;
+    }
+
+    if (start < end)
+    {
+        AVPacket packet{};
+        packet.data = start;
+        packet.size = end - start;
+
+        if (videoDecoder->processPacket(&packet))
+        {
+            callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
+        }
+
+        memmove(mem->memory, end, mem->size - (end - mem->memory));
+        mem->size -= end - mem->memory;
+    }
+
+    return realsize;
+}
+
+StreamPuller::Protocol StreamPuller::parseUrl(const std::string& url)
+{
+    if (url.starts_with("rtsp"))
+        return CRP_RTSP;
+    else if (url.starts_with("http"))
+        return CRP_HTTP;
+    return CRP_UNKNOWN;
 }

@@ -138,7 +138,14 @@ bool VideoDecoder::processPacket(AVPacket* packet)
                 to_av_format(outFrame.format), 1);
         }
 
-        AVPixelFormat pixFmt = codecCtx->pix_fmt == AV_PIX_FMT_YUVJ420P ? AV_PIX_FMT_YUV420P : codecCtx->pix_fmt;
+        AVPixelFormat pixFmt;
+        switch (codecCtx->pix_fmt)
+        {
+            case AV_PIX_FMT_YUVJ420P: pixFmt = AV_PIX_FMT_YUV420P; break;
+            case AV_PIX_FMT_YUVJ422P: pixFmt = AV_PIX_FMT_YUV422P; break;
+            case AV_PIX_FMT_YUVJ444P: pixFmt = AV_PIX_FMT_YUV444P; break;
+            default: pixFmt = codecCtx->pix_fmt; break;
+        }
         struct SwsContext* swsCxt = sws_getContext(codecCtx->width, codecCtx->height, pixFmt,
             outFrame.width, outFrame.height, to_av_format(outFrame.format), SWS_FAST_BILINEAR, NULL, NULL, NULL);
         sws_scale(swsCxt, frame->data, frame->linesize, 0, codecCtx->height, outFrame.data, outFrame.linesize);
@@ -213,7 +220,10 @@ bool H264VideoDecoder::processPacket(AVPacket* packet)
         }
 
         if (state != 3)
+        {
+            printf("Waiting for the first keyframe.\n");
             return false;
+        }
     }
 
     codecCtx->has_b_frames = 0; // 丢帧使reordering buffer增大导致延迟变高
@@ -278,7 +288,10 @@ bool H265VideoDecoder::processPacket(AVPacket* packet)
         }
 
         if (state != 4)
+        {
+            printf("Waiting for the first keyframe.\n");
             return false;
+        }
     }
 
     codecCtx->has_b_frames = 0;
