@@ -33,7 +33,7 @@ static bool extractH264Or5Frame(AVPacket* pkt, int& offset, int& size, int& mark
     if (offset >= pkt->size)
         return false;
     int tempOffset = offset;
-    // Á½ÖÖÆğÊ¼ÂëÓĞ¿ÉÄÜ»ìÓÃ, ËùÒÔĞèÒªÍ¬Ê±ÅĞ¶Ï
+    // ä¸¤ç§èµ·å§‹ç æœ‰å¯èƒ½æ··ç”¨, æ‰€ä»¥éœ€è¦åŒæ—¶åˆ¤æ–­
     if (memcmp(pkt->data + offset, startCode4, sizeof(startCode4)) == 0 ||
         memcmp(pkt->data + offset, startCode3, sizeof(startCode3)) == 0)
     {
@@ -159,7 +159,10 @@ bool VideoDecoder::processPacket(AVPacket* packet)
 void VideoDecoder::addExtraData(const uint8_t* data, int size)
 {
     if (codecCtx->extradata_size + size > EXTRADATA_MAX_SIZE)
+    {
+        fprintf(stderr, "Decoder extradata overflowed.\n");
         return;
+    }
     memcpy(codecCtx->extradata + codecCtx->extradata_size, data, size);
     codecCtx->extradata_size += size;
 }
@@ -221,12 +224,12 @@ bool H264VideoDecoder::processPacket(AVPacket* packet)
 
         if (state != 3)
         {
-            printf("Waiting for the first keyframe.\n");
+            printf("Waiting for the first keyframe, state: %d.\n", state);
             return false;
         }
     }
 
-    codecCtx->has_b_frames = 0; // ¶ªÖ¡Ê¹reordering bufferÔö´óµ¼ÖÂÑÓ³Ù±ä¸ß
+    codecCtx->has_b_frames = 0; // ä¸¢å¸§ä½¿reordering bufferå¢å¤§å¯¼è‡´å»¶è¿Ÿå˜é«˜
     return VideoDecoder::processPacket(packet);
 }
 
@@ -289,7 +292,7 @@ bool H265VideoDecoder::processPacket(AVPacket* packet)
 
         if (state != 4)
         {
-            printf("Waiting for the first keyframe.\n");
+            printf("Waiting for the first keyframe, state: %d.\n", state);
             return false;
         }
     }

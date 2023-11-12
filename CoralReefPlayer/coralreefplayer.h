@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #ifdef __cplusplus
 extern "C"
@@ -41,6 +41,11 @@ enum Format
 enum Event
 {
     CRP_EV_NEW_FRAME, // 收到新视频帧事件
+    CRP_EV_ERROR,     // 发生错误事件
+    CRP_EV_START,     // 开始拉流事件
+    CRP_EV_PLAYING,   // 开始播放事件
+    CRP_EV_END,       // 播放结束事件
+    CRP_EV_STOP,      // 停止拉流事件
 };
 
 struct Frame

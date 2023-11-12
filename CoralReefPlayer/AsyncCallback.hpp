@@ -45,6 +45,14 @@ public:
     }
 
     template <typename... T>
+    void invokeSync(T&&... args)
+    {
+        if (!callback)
+            return;
+        callback(std::forward<T>(args)...);
+    }
+
+    template <typename... T>
     void operator()(T&&... args)
     {
         invoke(std::forward<T>(args)...);

@@ -57,6 +57,10 @@ public:
         instance->subsessionByeHandler((MediaSubsession*) clientData, reason);
         delete[] reason;
     }
+    static size_t curlProgressCallback(void* userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+    {
+        return instance->curlProgressCallback0(dltotal, dlnow, ultotal, ulnow);
+    }
     static size_t curlWriteMemoryCallback(void* contents, size_t size, size_t nmemb, void* userdata)
     {
         return instance->curlWriteMemoryCallback0(contents, size, nmemb, (StreamMemory*) userdata);
@@ -72,6 +76,7 @@ private:
     void setupNextSubsession(RTSPClient* rtspClient);
     void subsessionAfterPlaying(MediaSubsession* subsession);
     void subsessionByeHandler(MediaSubsession* subsession, char const* reason);
+    size_t curlProgressCallback0(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
     size_t curlWriteMemoryCallback0(void* contents, size_t size, size_t nmemb, StreamMemory* mem);
     static Protocol parseUrl(const std::string& url);
 

@@ -7,11 +7,8 @@ endif()
 
 project(CoralReefCamCpp)
 
+set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING "" FORCE)
 if(MSVC)
-    set(LINK_STATIC_MSVC_LIB OFF CACHE BOOL "")
-    if(LINK_STATIC_MSVC_LIB)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-    endif()
     if(NOT CMAKE_VS_PLATFORM_NAME)
         set(CMAKE_VS_PLATFORM_NAME x64 CACHE STRING "" FORCE)
     endif()
@@ -19,9 +16,13 @@ if(MSVC)
         message(FATAL_ERROR "${CMAKE_VS_PLATFORM_NAME} arch is not supported!")
     endif()
     message("${CMAKE_VS_PLATFORM_NAME} architecture in use")
-endif()
 
-set(CMAKE_CONFIGURATION_TYPES Debug Release CACHE STRING "" FORCE)
+    set(LINK_STATIC_MSVC_LIB OFF CACHE BOOL "")
+    if(LINK_STATIC_MSVC_LIB)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+    add_compile_options("/utf-8")
+endif()
 
 find_package(CURL REQUIRED PATHS $<BOOL:${WIN32}>:${CMAKE_SOURCE_DIR}/libcurl)
 

@@ -15,6 +15,8 @@
 #define HEIGHT 720
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
 
+const char* url = "rtsp://172.6.2.10/main";
+Transport transport = CRP_UDP;
 crp_handle player;
 bool has_frame;
 uint64_t pts;
@@ -97,10 +99,47 @@ void process(cv::Mat &mat)
 }
 #endif
 
+void callback(int ev, void* data)
+{
+    if (ev == CRP_EV_NEW_FRAME)
+    {
+        SDL_Event event = {};
+        event.type = SDL_REFRESH_EVENT;
+        event.user.data1 = data;
+        SDL_PushEvent(&event);
+    }
+    else if (ev == CRP_EV_ERROR)
+    {
+        printf("An error has occurred, will reconnect after 5 seconds\n");
+        SDL_AddTimer(5000, [](Uint32 interval, void* param)
+        {
+            crp_stop(player);
+            crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, callback);
+            return 0U;
+        }, NULL);
+    }
+    else if (ev == CRP_EV_PLAYING)
+    {
+        printf("Playing stream\n");
+    }
+    else if (ev == CRP_EV_END)
+    {
+        printf("The stream has reached its end\n");
+        SDL_Event event = {};
+        event.type = SDL_QUIT;
+        SDL_PushEvent(&event);
+    }
+};
+
 #undef main
 extern "C"
 int main(int argc, char* argv[])
 {
+    if (argc > 1)
+        url = argv[1];
+    if (argc > 2)
+        transport = strcmp(argv[2], "tcp") == 0 ? CRP_TCP : CRP_UDP;
+
     if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER))
     {
         printf("Could not initialize SDL: %s\n", SDL_GetError());
@@ -139,24 +178,9 @@ int main(int argc, char* argv[])
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer_Init(renderer);
-    
-    const char* url = "http://172.6.1.166:8080/?action=stream";
-    Transport transport = CRP_UDP;
-    if (argc > 1)
-        url = argv[1];
-    if (argc > 2)
-        transport = strcmp(argv[2], "tcp") == 0 ? CRP_TCP : CRP_UDP;
+
     player = crp_create();
-    crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, [](int ev, void *data)
-    {
-        if (ev == CRP_EV_NEW_FRAME)
-        {
-            SDL_Event event = {};
-            event.type = SDL_REFRESH_EVENT;
-            event.user.data1 = data;
-            SDL_PushEvent(&event);
-        }
-    });
+    crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, callback);
 
     SDL_Event event;
     while (true)

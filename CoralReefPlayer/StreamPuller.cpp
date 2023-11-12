@@ -69,12 +69,14 @@ void StreamPuller::runRTSP()
     rtspClient = RTSPClient::createNew(*environment, url.c_str(), 1, "CoralReefPlayer");
     session = NULL;
     
+    callback.invokeSync(CRP_EV_START, nullptr);
     rtspClient->sendDescribeCommand(continueAfterDESCRIBE, authenticator);
     environment->taskScheduler().doEventLoop(&exit);
 
     if (rtspClient != NULL)
         shutdownStream(rtspClient);
     delete scheduler;
+    callback.invokeSync(CRP_EV_STOP, nullptr);
 }
 
 void StreamPuller::runHTTP()
@@ -84,24 +86,47 @@ void StreamPuller::runHTTP()
     StreamMemory mem{};
     curl = curl_easy_init();
     videoDecoder = VideoDecoder::createNew("JPEG", format, width, height);
-    if (curl != NULL)
+    if (curl == NULL)
     {
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, "CoralReefPlayer");
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteMemoryCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*) &mem);
-
-        CURLcode res = curl_easy_perform(curl);
-        if (res != CURLE_OK)
-        {
-            fprintf(stderr, "curl_easy_perform failed: %s\n", curl_easy_strerror(res));
-        }
-
-        curl_easy_cleanup(curl);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        return;
     }
 
+    callback.invokeSync(CRP_EV_START, nullptr);
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "CoralReefPlayer");
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, curlProgressCallback);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, NULL);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteMemoryCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*) &mem);
+    CURLcode res = curl_easy_perform(curl);
+    if (res == CURLE_OK)
+    {
+        long response_code;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+        if (response_code == 0 || response_code == 200)
+        {
+            callback.invokeSync(CRP_EV_END, nullptr);
+        }
+        else
+        {
+            fprintf(stderr, "Invalid response with status code %ld\n%s\n", response_code, mem.memory);
+            callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        }
+    }
+    else if(res != CURLE_ABORTED_BY_CALLBACK)
+    {
+        fprintf(stderr, "curl_easy_perform failed: %s\n", curl_easy_strerror(res));
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+    }
+
+    curl_easy_cleanup(curl);
     if (mem.memory != nullptr)
         delete[] mem.memory;
+    callback.invokeSync(CRP_EV_STOP, nullptr);
 }
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
@@ -146,6 +171,7 @@ void StreamPuller::continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode
     if (resultCode != 0)
     {
         env << "Failed to get a SDP description: " << resultString << "\n";
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
         return;
     }
     const char* sdpDescription = resultString;
@@ -155,11 +181,13 @@ void StreamPuller::continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode
     if (session == NULL)
     {
         env << "Failed to create a MediaSession object from the SDP description: " << env.getResultMsg() << "\n";
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
         goto end;
     }
     else if (!session->hasSubsessions())
     {
         env << "This session has no media subsessions (i.e., no \"m=\" lines)\n";
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
         goto end;
     }
 
@@ -180,11 +208,11 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
     if (resultCode != 0)
     {
         env << "Failed to set up the subsession: " << resultString << "\n";
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
         goto end;
     }
 
     env << "Set up the subsession (" << subsession->clientPortNum() << ")\n";
-
     mediumName = subsession->mediumName();
     codecName = subsession->codecName();
     if (strcmp(mediumName, "video") == 0)
@@ -260,20 +288,14 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
         goto end;
     }
 
-    subsession->sink = StreamSink::createNew(env, *subsession, [this, &env](AVPacket* packet)
+    env << "Created a data sink for the subsession\n";
+    subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
     {
         if (videoDecoder->processPacket(packet))
         {
             callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
         }
     });
-    if (subsession->sink == NULL)
-    {
-        env << "Failed to create a data sink for the subsession: " << env.getResultMsg() << "\n";
-        goto end;
-    }
-
-    env << "Created a data sink for the subsession\n";
     subsession->miscPtr = rtspClient;
     subsession->sink->startPlaying(*(subsession->readSource()), subsessionAfterPlaying, subsession);
     if (subsession->rtcpInstance() != NULL)
@@ -292,9 +314,13 @@ void StreamPuller::continueAfterPLAY0(RTSPClient* rtspClient, int resultCode, ch
     if (resultCode != 0)
     {
         env << "Failed to start playing session: " << resultString << "\n";
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
         goto end;
     }
+
     env << "Started playing session...\n";
+    callback.invokeSync(CRP_EV_PLAYING, nullptr);
+    return;
 
 end:
     shutdownStream(rtspClient);
@@ -310,6 +336,7 @@ void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
         if (!subsession->initiate())
         {
             env << "Failed to initiate the subsession: " << env.getResultMsg() << "\n";
+            callback.invokeSync(CRP_EV_ERROR, (void*) 0);
             setupNextSubsession(rtspClient);
         }
         else
@@ -337,6 +364,7 @@ void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession)
     }
 
     shutdownStream(rtspClient);
+    callback.invokeSync(CRP_EV_END, nullptr);
 }
 
 void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const* reason)
@@ -353,22 +381,33 @@ void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const*
     subsessionAfterPlaying(subsession);
 }
 
+size_t StreamPuller::curlProgressCallback0(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+{
+#ifdef _DEBUG
+    if (!exit)
+        return CURL_PROGRESSFUNC_CONTINUE;
+#endif
+    return exit;
+}
+
 size_t StreamPuller::curlWriteMemoryCallback0(void* contents, size_t size, size_t nmemb, StreamMemory* mem)
 {
-    if (exit)
-        return 0;
-
     size_t realsize = size * nmemb;
     if (mem->size + realsize + 1 > mem->capacity)
     {
+        if (mem->capacity == 0)
+            callback.invokeSync(CRP_EV_PLAYING, nullptr);
         mem->capacity = mem->size + realsize + 1;
         if (mem->capacity > HTTP_RECEIVE_BUFFER_MAX_SIZE)
         {
+            fprintf(stderr, "received data had overflowed by %llu bytes\n",
+                mem->capacity - HTTP_RECEIVE_BUFFER_MAX_SIZE);
             return 0;
         }
         uint8_t* ptr = (uint8_t*) realloc(mem->memory, mem->capacity);
-        if (!ptr) {
-            printf("not enough memory\n");
+        if (!ptr)
+        {
+            fprintf(stderr, "not enough memory\n");
             return 0;
         }
         mem->memory = ptr;
@@ -427,7 +466,7 @@ StreamPuller::Protocol StreamPuller::parseUrl(const std::string& url)
 {
     if (url.starts_with("rtsp"))
         return CRP_RTSP;
-    else if (url.starts_with("http"))
+    else if (url.starts_with("http") || url.starts_with("file"))
         return CRP_HTTP;
     return CRP_UNKNOWN;
 }

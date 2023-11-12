@@ -25,7 +25,6 @@ target_link_libraries(${PROJECT_NAME}
 PRIVATE
     CURL::libcurl_shared
     live555
-    avformat
     avcodec
     avutil
     swscale
@@ -34,7 +33,6 @@ PRIVATE
 add_dependencies(${PROJECT_NAME}
     CURL::libcurl_shared
     live555
-    avformat
     avcodec
     avutil
     swscale
