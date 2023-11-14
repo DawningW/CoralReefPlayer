@@ -10,6 +10,8 @@ extern "C"
 
 extern const uint8_t startCode3[3];
 extern const uint8_t startCode4[4];
+extern const uint8_t jpegStartCode[2];
+extern const uint8_t jpegEndCode[2];
 
 class VideoDecoder
 {

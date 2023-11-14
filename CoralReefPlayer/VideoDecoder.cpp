@@ -11,6 +11,8 @@ extern "C"
 
 const uint8_t startCode3[3] = { 0x00, 0x00, 0x01 };
 const uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
+const uint8_t jpegStartCode[2] = {0xFF, 0xD8};
+const uint8_t jpegEndCode[2] = {0xFF, 0xD9};
 
 static AVPixelFormat to_av_format(Format format)
 {

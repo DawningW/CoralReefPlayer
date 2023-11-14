@@ -4,8 +4,6 @@
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "StreamSink.h"
 
-#define HTTP_RECEIVE_BUFFER_MAX_SIZE 1200000
-
 thread_local StreamPuller* StreamPuller::instance;
 
 StreamPuller::StreamPuller() : exit(1), authenticator(nullptr) {}
@@ -83,8 +81,15 @@ void StreamPuller::runHTTP()
 {
     instance = this;
 
-    StreamMemory mem{};
+    HTTPSink sink([this](AVPacket* packet)
+        {
+            if (videoDecoder->processPacket(packet))
+            {
+                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
+            }
+        });
     curl = curl_easy_init();
+    downloading = false;
     videoDecoder = VideoDecoder::createNew("JPEG", format, width, height);
     if (curl == NULL)
     {
@@ -98,10 +103,28 @@ void StreamPuller::runHTTP()
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "CoralReefPlayer");
     curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
-    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, curlProgressCallback);
-    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, NULL);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlWriteMemoryCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*) &mem);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION,
+        +[](void* userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+        {
+            return ((StreamPuller*) userdata)->curlProgressCallback(dltotal, dlnow, ultotal, ulnow);
+        });
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, this);
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sink);
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION,
+        +[](void* contents, size_t size, size_t nmemb, void* userdata)
+        {
+            size_t realsize = size * nmemb;
+            ((HTTPSink*) userdata)->writeHeader((const uint8_t*) contents, realsize);
+            return realsize;
+        });
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION,
+        +[](void* contents, size_t size, size_t nmemb, void* userdata)
+        {
+            size_t realsize = size * nmemb;
+            ((HTTPSink*) userdata)->writeData((const uint8_t*) contents, realsize);
+            return realsize;
+        });
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &sink);
     CURLcode res = curl_easy_perform(curl);
     if (res == CURLE_OK)
     {
@@ -113,7 +136,7 @@ void StreamPuller::runHTTP()
         }
         else
         {
-            fprintf(stderr, "Invalid response with status code %ld\n%s\n", response_code, mem.memory);
+            fprintf(stderr, "Invalid response with status code %ld\n", response_code);
             callback.invokeSync(CRP_EV_ERROR, (void*) 0);
         }
     }
@@ -124,8 +147,6 @@ void StreamPuller::runHTTP()
     }
 
     curl_easy_cleanup(curl);
-    if (mem.memory != nullptr)
-        delete[] mem.memory;
     callback.invokeSync(CRP_EV_STOP, nullptr);
 }
 
@@ -290,12 +311,12 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
 
     env << "Created a data sink for the subsession\n";
     subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
-    {
-        if (videoDecoder->processPacket(packet))
         {
-            callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
-        }
-    });
+            if (videoDecoder->processPacket(packet))
+            {
+                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
+            }
+        });
     subsession->miscPtr = rtspClient;
     subsession->sink->startPlaying(*(subsession->readSource()), subsessionAfterPlaying, subsession);
     if (subsession->rtcpInstance() != NULL)
@@ -381,85 +402,24 @@ void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const*
     subsessionAfterPlaying(subsession);
 }
 
-size_t StreamPuller::curlProgressCallback0(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+size_t StreamPuller::curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
 {
+    if (!downloading && dlnow > 0)
+    {
+        long response_code;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+        if (response_code == 0 || response_code == 200)
+        {
+            downloading = true;
+            callback.invokeSync(CRP_EV_PLAYING, nullptr);
+        }
+    }
+
 #ifdef _DEBUG
     if (!exit)
         return CURL_PROGRESSFUNC_CONTINUE;
 #endif
     return exit;
-}
-
-size_t StreamPuller::curlWriteMemoryCallback0(void* contents, size_t size, size_t nmemb, StreamMemory* mem)
-{
-    size_t realsize = size * nmemb;
-    if (mem->size + realsize + 1 > mem->capacity)
-    {
-        if (mem->capacity == 0)
-            callback.invokeSync(CRP_EV_PLAYING, nullptr);
-        mem->capacity = mem->size + realsize + 1;
-        if (mem->capacity > HTTP_RECEIVE_BUFFER_MAX_SIZE)
-        {
-            fprintf(stderr, "received data had overflowed by %llu bytes\n",
-                mem->capacity - HTTP_RECEIVE_BUFFER_MAX_SIZE);
-            return 0;
-        }
-        uint8_t* ptr = (uint8_t*) realloc(mem->memory, mem->capacity);
-        if (!ptr)
-        {
-            fprintf(stderr, "not enough memory\n");
-            return 0;
-        }
-        mem->memory = ptr;
-    }
-    memcpy(&(mem->memory[mem->size]), contents, realsize);
-    mem->size += realsize;
-    mem->memory[mem->size] = 0;
-
-    uint8_t* start = nullptr;
-    uint8_t* end = nullptr;
-    for (uint8_t* p = mem->memory; p < mem->memory + mem->size; p++)
-    {
-        if (p[0] == 0xFF && p[1] == 0xD8)
-        {
-            start = p;
-            break;
-        }
-    }
-    if (start == nullptr)
-    {
-        mem->size = 0;
-        return realsize;
-    }
-    for (uint8_t* p = start + 2; p < mem->memory + mem->size; p++)
-    {
-        if (p[0] == 0xFF && p[1] == 0xD9)
-        {
-            end = p + 2;
-            break;
-        }
-    }
-    if (end == nullptr)
-    {
-        return realsize;
-    }
-
-    if (start < end)
-    {
-        AVPacket packet{};
-        packet.data = start;
-        packet.size = end - start;
-
-        if (videoDecoder->processPacket(&packet))
-        {
-            callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
-        }
-
-        memmove(mem->memory, end, mem->size - (end - mem->memory));
-        mem->size -= end - mem->memory;
-    }
-
-    return realsize;
 }
 
 StreamPuller::Protocol StreamPuller::parseUrl(const std::string& url)

@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 add_library(${PROJECT_NAME} SHARED
     dllmain.cpp
     AsyncCallback.hpp
+    Matcher.hpp
     StreamPuller.cpp
     StreamSink.cpp
     VideoDecoder.cpp

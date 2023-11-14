@@ -1,13 +1,13 @@
 #pragma once
 
+#include <string>
+#include <vector>
 #include <functional>
 #include "UsageEnvironment.hh"
 #include "MediaSink.hh"
 #include "MediaSession.hh"
-extern "C"
-{
-#include "libavcodec/avcodec.h"
-}
+#include "VideoDecoder.h" // for AVPacket and start codes
+#include "Matcher.hpp"
 
 class StreamSink : public MediaSink
 {
@@ -29,5 +29,25 @@ private:
     u_int8_t* fReceiveBuffer;
     MediaSubsession& fSubsession;
     Callback fCallback;
-    bool fH264OrH265;
+    Boolean fH264OrH265;
+};
+
+class HTTPSink
+{
+public:
+    using Callback = StreamSink::Callback;
+
+    HTTPSink(Callback callback);
+    ~HTTPSink();
+    bool writeHeader(const uint8_t* data, size_t size);
+    bool writeData(const uint8_t* data, size_t size);
+
+private:
+    Callback onFrame;
+
+    std::string boundary;
+    std::vector<uint8_t> buffer;
+    Matcher<uint8_t> boundaryMatcher;
+    Matcher<uint8_t> startMatcher{ std::vector(jpegStartCode, jpegStartCode + sizeof(jpegStartCode)) };
+    Matcher<uint8_t> endMatcher{ std::vector(jpegEndCode, jpegEndCode + sizeof(jpegEndCode)) };
 };
