@@ -46,7 +46,7 @@ if(WIN32 OR CYGWIN)
         INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/include
     )
 
-    install(IMPORTED_RUNTIME_ARTIFACTS avformat avcodec avutil swresample swscale
+    install(IMPORTED_RUNTIME_ARTIFACTS avcodec avutil swresample swscale
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
     )

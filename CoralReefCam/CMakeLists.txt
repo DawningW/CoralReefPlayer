@@ -1,6 +1,9 @@
 project(CoralReefCam)
 
-find_package(SDL2 2.28.0 REQUIRED PATHS $<BOOL:${WIN32}>:${CMAKE_SOURCE_DIR}/SDL2)
+if(WIN32)
+    set(SDL2_DIR "${CMAKE_SOURCE_DIR}/SDL2/cmake" CACHE PATH "")
+endif()
+find_package(SDL2 2.28.0 REQUIRED)
 find_package(OpenCV 4.4.0)
 
 add_subdirectory(../imgui imgui)

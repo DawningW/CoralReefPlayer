@@ -24,7 +24,23 @@ if(MSVC)
     add_compile_options("/utf-8")
 endif()
 
-find_package(CURL REQUIRED PATHS $<BOOL:${WIN32}>:${CMAKE_SOURCE_DIR}/libcurl)
+set(CURL_USE_STATIC_LIBS OFF CACHE BOOL "")
+if(WIN32)
+    set(CURL_DIR "${CMAKE_SOURCE_DIR}/libcurl/lib/cmake/CURL" CACHE PATH "")
+    find_package(CURL REQUIRED)
+    if(NOT CURL_USE_STATIC_LIBS)
+        set(CURL_LIBS CURL::libcurl_shared)
+    else()
+        set(CURL_LIBS CURL::libcurl_static)
+    endif()
+    install(IMPORTED_RUNTIME_ARTIFACTS ${CURL_LIBS}
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+    )
+else()
+    find_package(CURL REQUIRED)
+    set(CURL_LIBS CURL::libcurl)
+endif()
 
 add_subdirectory(live555)
 add_subdirectory(ffmpeg)

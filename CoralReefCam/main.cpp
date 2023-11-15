@@ -14,6 +14,7 @@
 #define WIDTH 1280
 #define HEIGHT 720
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
+#define SDL_REPLAY_EVENT (SDL_USEREVENT + 2)
 
 const char* url = "rtsp://172.6.2.10/main";
 Transport transport = CRP_UDP;
@@ -113,8 +114,9 @@ void callback(int ev, void* data)
         printf("An error has occurred, will reconnect after 5 seconds\n");
         SDL_AddTimer(5000, [](Uint32 interval, void* param)
         {
-            crp_stop(player);
-            crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, callback);
+            SDL_Event event = {};
+            event.type = SDL_REPLAY_EVENT;
+            SDL_PushEvent(&event);
             return 0U;
         }, NULL);
     }
@@ -201,6 +203,12 @@ int main(int argc, char* argv[])
 #endif
             pts = frame->pts;
             has_frame = true;
+        }
+        else if (event.type == SDL_REPLAY_EVENT)
+        {
+            crp_stop(player);
+            crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, callback);
+            continue;
         }
         else if (event.type == SDL_QUIT)
         {
