@@ -27,38 +27,14 @@ public:
     void authenticate(const char* username, const char* password, bool useMD5 = false);
     bool start(const char* url, Transport transport, int width, int height, Format format, Callback callback);
     void stop();
-    static void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString)
-    {
-        instance->continueAfterDESCRIBE0(rtspClient, resultCode, resultString);
-        delete[] resultString;
-    }
-    static void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString)
-    {
-        instance->continueAfterSETUP0(rtspClient, resultCode, resultString);
-        delete[] resultString;
-    }
-    static void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString)
-    {
-        instance->continueAfterPLAY0(rtspClient, resultCode, resultString);
-        delete[] resultString;
-    }
-    static void subsessionAfterPlaying(void* clientData)
-    {
-        instance->subsessionAfterPlaying((MediaSubsession*) clientData);
-    }
-    static void subsessionByeHandler(void* clientData, char const* reason)
-    {
-        instance->subsessionByeHandler((MediaSubsession*) clientData, reason);
-        delete[] reason;
-    }
 
 private:
     void runRTSP();
     void runHTTP();
     void shutdownStream(RTSPClient* rtspClient);
-    void continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode, char* resultString);
-    void continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, char* resultString);
-    void continueAfterPLAY0(RTSPClient* rtspClient, int resultCode, char* resultString);
+    void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
+    void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
+    void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString);
     void setupNextSubsession(RTSPClient* rtspClient);
     void subsessionAfterPlaying(MediaSubsession* subsession);
     void subsessionByeHandler(MediaSubsession* subsession, char const* reason);
@@ -86,6 +62,4 @@ private:
     CURL* curl;
     bool downloading;
     VideoDecoder* videoDecoder;
-
-    thread_local static StreamPuller* instance;
 };

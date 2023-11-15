@@ -4,7 +4,21 @@
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "StreamSink.h"
 
-thread_local StreamPuller* StreamPuller::instance;
+class OurRTSPClient : public RTSPClient
+{
+public:
+    static OurRTSPClient* createNew(UsageEnvironment& env, char const* rtspURL, int verbosityLevel = 0,
+        char const* applicationName = NULL, portNumBits tunnelOverHTTPPortNum = 0, int socketNumToServer = -1)
+    {
+        return new OurRTSPClient(env, rtspURL, verbosityLevel, applicationName, tunnelOverHTTPPortNum, socketNumToServer);
+    }
+
+protected:
+    using RTSPClient::RTSPClient;
+
+public:
+    StreamPuller* parent;
+};
 
 StreamPuller::StreamPuller() : exit(1), authenticator(nullptr) {}
 
@@ -60,15 +74,18 @@ void StreamPuller::stop()
 
 void StreamPuller::runRTSP()
 {
-    instance = this;
-
     scheduler = BasicTaskScheduler::createNew();
     environment = BasicUsageEnvironment::createNew(*scheduler);
-    rtspClient = RTSPClient::createNew(*environment, url.c_str(), 1, "CoralReefPlayer");
+    rtspClient = OurRTSPClient::createNew(*environment, url.c_str(), 1, "CoralReefPlayer");
     session = NULL;
     
     callback.invokeSync(CRP_EV_START, nullptr);
-    rtspClient->sendDescribeCommand(continueAfterDESCRIBE, authenticator);
+    ((OurRTSPClient*) rtspClient)->parent = this;
+    rtspClient->sendDescribeCommand([](RTSPClient * rtspClient, int resultCode, char* resultString)
+        {
+            ((OurRTSPClient*) rtspClient)->parent->continueAfterDESCRIBE(rtspClient, resultCode, resultString);
+            delete[] resultString;
+        }, authenticator);
     environment->taskScheduler().doEventLoop(&exit);
 
     if (rtspClient != NULL)
@@ -79,8 +96,6 @@ void StreamPuller::runRTSP()
 
 void StreamPuller::runHTTP()
 {
-    instance = this;
-
     HTTPSink sink([this](AVPacket* packet)
         {
             if (videoDecoder->processPacket(packet))
@@ -140,7 +155,7 @@ void StreamPuller::runHTTP()
             callback.invokeSync(CRP_EV_ERROR, (void*) 0);
         }
     }
-    else if(res != CURLE_ABORTED_BY_CALLBACK)
+    else if (res != CURLE_ABORTED_BY_CALLBACK)
     {
         fprintf(stderr, "curl_easy_perform failed: %s\n", curl_easy_strerror(res));
         callback.invokeSync(CRP_EV_ERROR, (void*) 0);
@@ -185,7 +200,7 @@ void StreamPuller::shutdownStream(RTSPClient* rtspClient)
     this->rtspClient = NULL;
 }
 
-void StreamPuller::continueAfterDESCRIBE0(RTSPClient* rtspClient, int resultCode, char* resultString)
+void StreamPuller::continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString)
 {
     UsageEnvironment& env = rtspClient->envir();
 
@@ -220,7 +235,7 @@ end:
     shutdownStream(rtspClient);
 }
 
-void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, char* resultString)
+void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString)
 {
     UsageEnvironment& env = rtspClient->envir();
     const char* mediumName;
@@ -233,7 +248,12 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
         goto end;
     }
 
-    env << "Set up the subsession (" << subsession->clientPortNum() << ")\n";
+    env << "Set up the subsession (";
+    if (subsession->rtcpIsMuxed())
+        env << "client port " << subsession->clientPortNum();
+    else
+        env << "client ports " << subsession->clientPortNum() << "-" << subsession->clientPortNum() + 1;
+    env << ")\n";
     mediumName = subsession->mediumName();
     codecName = subsession->codecName();
     if (strcmp(mediumName, "video") == 0)
@@ -258,7 +278,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
                     videoDecoder->addExtraData(startCode4, sizeof(startCode4));
                     videoDecoder->addExtraData(record.sPropBytes, record.sPropLength);
                 }
-                env << "Get SPropRecords.\n";
+                env << "Get H264 SPropRecords.\n";
             }
             if (spropRecords)
                 delete[] spropRecords;
@@ -277,7 +297,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
                         videoDecoder->addExtraData(startCode4, sizeof(startCode4));
                         videoDecoder->addExtraData(record.sPropBytes, record.sPropLength);
                     }
-                    env << "Get SPropRecords.\n";
+                    env << "Get H265 SPropRecords.\n";
                 }
                 if (spropRecords)
                     delete[] spropRecords;
@@ -299,7 +319,7 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
                         delete[] spropRecords[i];
                     }
                 }
-                env << "Get SPropRecords.\n";
+                env << "Get H265 SPropRecords.\n";
             }
         }
     }
@@ -318,17 +338,26 @@ void StreamPuller::continueAfterSETUP0(RTSPClient* rtspClient, int resultCode, c
             }
         });
     subsession->miscPtr = rtspClient;
-    subsession->sink->startPlaying(*(subsession->readSource()), subsessionAfterPlaying, subsession);
+    subsession->sink->startPlaying(*(subsession->readSource()), [](void* clientData)
+        {
+            MediaSubsession* subsession = (MediaSubsession*) clientData;
+            ((OurRTSPClient*)subsession->miscPtr)->parent->subsessionAfterPlaying(subsession);
+        }, subsession);
     if (subsession->rtcpInstance() != NULL)
     {
-        subsession->rtcpInstance()->setByeWithReasonHandler(subsessionByeHandler, subsession);
+        subsession->rtcpInstance()->setByeWithReasonHandler([](void* clientData, char const* reason)
+            {
+                MediaSubsession* subsession = (MediaSubsession*) clientData;
+                ((OurRTSPClient*) subsession->miscPtr)->parent->subsessionByeHandler(subsession, reason);
+                delete[] reason;
+            }, subsession);
     }
     
 end:
     setupNextSubsession(rtspClient);
 }
 
-void StreamPuller::continueAfterPLAY0(RTSPClient* rtspClient, int resultCode, char* resultString)
+void StreamPuller::continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString)
 {
     UsageEnvironment& env = rtspClient->envir();
 
@@ -362,13 +391,26 @@ void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
         }
         else
         {
-            env << "Initiated the subsession (" << subsession->clientPortNum() << ")\n";
-            rtspClient->sendSetupCommand(*subsession, continueAfterSETUP, False, transport == CRP_TCP);
+            env << "Initiated the subsession (";
+            if (subsession->rtcpIsMuxed())
+                env << "client port " << subsession->clientPortNum();
+            else
+                env << "client ports " << subsession->clientPortNum() << "-" << subsession->clientPortNum() + 1;
+            env << ")\n";
+            rtspClient->sendSetupCommand(*subsession, [](RTSPClient * rtspClient, int resultCode, char* resultString)
+                {
+                    ((OurRTSPClient*) rtspClient)->parent->continueAfterSETUP(rtspClient, resultCode, resultString);
+                    delete[] resultString;
+                }, False, transport == CRP_TCP);
         }
         return;
     }
 
-    rtspClient->sendPlayCommand(*session, continueAfterPLAY);
+    rtspClient->sendPlayCommand(*session, [](RTSPClient * rtspClient, int resultCode, char* resultString)
+        {
+            ((OurRTSPClient*) rtspClient)->parent->continueAfterPLAY(rtspClient, resultCode, resultString);
+            delete[] resultString;
+        });
 }
 
 void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession)
@@ -394,9 +436,7 @@ void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const*
 
     env << "Received RTCP \"BYE\"";
     if (reason != NULL)
-    {
         env << " (reason: \"" << reason << "\")";
-    }
     env << " on subsession\n";
 
     subsessionAfterPlaying(subsession);
