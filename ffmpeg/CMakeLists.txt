@@ -47,8 +47,8 @@ if(WIN32 OR CYGWIN)
     )
 
     install(IMPORTED_RUNTIME_ARTIFACTS avcodec avutil swresample swscale
-        LIBRARY DESTINATION lib
-        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     )
 else()
     add_library(avdevice SHARED IMPORTED GLOBAL)

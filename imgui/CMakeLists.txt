@@ -11,21 +11,21 @@ add_library(${PROJECT_NAME} STATIC
 )
 
 target_include_directories(${PROJECT_NAME}
-PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/.
-    ${CMAKE_CURRENT_SOURCE_DIR}/backends
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/backends
 )
 
 target_link_libraries(${PROJECT_NAME}
-PRIVATE
-    SDL2::SDL2
+    PRIVATE
+        SDL2::SDL2
 )
 
 add_dependencies(${PROJECT_NAME}
     SDL2::SDL2
 )
 
-install(TARGETS ${PROJECT_NAME}
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
+# install(TARGETS ${PROJECT_NAME}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+# )

@@ -7,20 +7,20 @@ add_library(${PROJECT_NAME} STATIC
 )
 
 target_include_directories(${PROJECT_NAME}
-PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/.
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(${PROJECT_NAME}
-PUBLIC
-    imgui
+    PUBLIC
+        imgui
 )
 
 add_dependencies(${PROJECT_NAME}
     imgui
 )
 
-install(TARGETS ${PROJECT_NAME}
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
+# install(TARGETS ${PROJECT_NAME}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+# )

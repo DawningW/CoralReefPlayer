@@ -15,6 +15,7 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作
     - CoralReefPlayer
         - live555 2023.07.24
         - FFmpeg 4.4 (4.4+)
+        - libcurl 8.4.0 (7.32.0+)
     - SDL2 2.28.1 (2.26.0+)
     - imgui 1.89.5
     - implot 0.16
@@ -39,10 +40,11 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作
 ### Linux
 
 前置条件:
-- CMake 3.16.0 或更高版本（cygwin 需要 3.21.0+）
+- CMake 3.21.0 或更高版本
 - gcc 11 或更高版本
 - 使用包管理器或源码编译安装下列库或它们的更高版本：
     - FFmpeg 4.4+
+    - libcurl 7.32.0+
     - SDL2 2.26.0+
     - （可选）OpenCV 4.4.0+
 

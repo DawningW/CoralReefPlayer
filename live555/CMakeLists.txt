@@ -205,34 +205,34 @@ add_library(${PROJECT_NAME} STATIC
 )
 
 target_include_directories(${PROJECT_NAME}
-PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/BasicUsageEnvironment/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/UsageEnvironment/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/groupsock/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/liveMedia/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/WindowsAudioInputDevice
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/BasicUsageEnvironment/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/UsageEnvironment/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/groupsock/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/liveMedia/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/WindowsAudioInputDevice
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_compile_definitions(${PROJECT_NAME}
-PUBLIC
-    NO_OPENSSL
-PRIVATE
-    $<$<BOOL:${MSVC}>:_CRT_SECURE_NO_WARNINGS>
-    $<$<BOOL:${WIN32}>:NO_GETIFADDRS>
-    $<$<BOOL:${UNIX}>:SOCKLEN_T=socklen_t>
-    $<$<BOOL:${UNIX}>:_LARGEFILE_SOURCE=1>
-    $<$<BOOL:${UNIX}>:_FILE_OFFSET_BITS=64>
-    $<$<BOOL:${UNIX}>:BSD=1>
+    PUBLIC
+        NO_OPENSSL
+    PRIVATE
+        $<$<BOOL:${MSVC}>:_CRT_SECURE_NO_WARNINGS>
+        $<$<BOOL:${WIN32}>:NO_GETIFADDRS>
+        $<$<BOOL:${UNIX}>:SOCKLEN_T=socklen_t>
+        $<$<BOOL:${UNIX}>:_LARGEFILE_SOURCE=1>
+        $<$<BOOL:${UNIX}>:_FILE_OFFSET_BITS=64>
+        $<$<BOOL:${UNIX}>:BSD=1>
 )
 
 target_link_libraries(${PROJECT_NAME}
-PRIVATE
-    $<$<BOOL:${WIN32}>:ws2_32>
+    PRIVATE
+        $<$<BOOL:${WIN32}>:ws2_32>
 )
 
-install(TARGETS ${PROJECT_NAME}
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-)
+# install(TARGETS ${PROJECT_NAME}
+#     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+#     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+# )
