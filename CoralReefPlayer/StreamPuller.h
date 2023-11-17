@@ -38,6 +38,8 @@ private:
     void setupNextSubsession(RTSPClient* rtspClient);
     void subsessionAfterPlaying(MediaSubsession* subsession);
     void subsessionByeHandler(MediaSubsession* subsession, char const* reason);
+    void timeoutHandler();
+    void noteLiveness();
     size_t curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
     static Protocol parseUrl(const std::string& url);
 
@@ -49,6 +51,7 @@ private:
     int height;
     Format format;
     AsyncCallback<int, void*> callback;
+    int64_t timeout;
 
     volatile char exit;
     std::thread thread;
@@ -59,6 +62,7 @@ private:
     MediaSession* session;
     MediaSubsession* subsession;
     MediaSubsessionIterator* iter;
+    TaskToken livenessCheckTask;
     CURL* curl;
     bool downloading;
     VideoDecoder* videoDecoder;

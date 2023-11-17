@@ -4,6 +4,8 @@
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "StreamSink.h"
 
+#define DEFAULT_TIMEOUT_MS 5000
+
 class OurRTSPClient : public RTSPClient
 {
 public:
@@ -20,7 +22,7 @@ public:
     StreamPuller* parent;
 };
 
-StreamPuller::StreamPuller() : exit(1), authenticator(nullptr) {}
+StreamPuller::StreamPuller() : timeout(DEFAULT_TIMEOUT_MS), exit(1), authenticator(nullptr) {}
 
 StreamPuller::~StreamPuller()
 {
@@ -78,6 +80,7 @@ void StreamPuller::runRTSP()
     environment = BasicUsageEnvironment::createNew(*scheduler);
     rtspClient = OurRTSPClient::createNew(*environment, url.c_str(), 1, "CoralReefPlayer");
     session = NULL;
+    livenessCheckTask = NULL;
     
     callback.invokeSync(CRP_EV_START, nullptr);
     ((OurRTSPClient*) rtspClient)->parent = this;
@@ -332,6 +335,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
     env << "Created a data sink for the subsession\n";
     subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
         {
+            noteLiveness();
             if (videoDecoder->processPacket(packet))
             {
                 callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
@@ -370,6 +374,7 @@ void StreamPuller::continueAfterPLAY(RTSPClient* rtspClient, int resultCode, cha
 
     env << "Started playing session...\n";
     callback.invokeSync(CRP_EV_PLAYING, nullptr);
+    noteLiveness();
     return;
 
 end:
@@ -440,6 +445,26 @@ void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const*
     env << " on subsession\n";
 
     subsessionAfterPlaying(subsession);
+}
+
+void StreamPuller::timeoutHandler()
+{
+    UsageEnvironment& env = rtspClient->envir();
+
+    env << "Receive stream timeout after " << (int) timeout << " ms\n";
+    callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+}
+
+void StreamPuller::noteLiveness()
+{
+    if (timeout > 0)
+    {
+        rtspClient->envir().taskScheduler().rescheduleDelayedTask(livenessCheckTask, timeout * 1000,
+            [](void* clientData)
+            {
+                ((StreamPuller*) clientData)->timeoutHandler();
+            }, this);
+    }
 }
 
 size_t StreamPuller::curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
