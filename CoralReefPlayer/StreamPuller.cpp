@@ -22,7 +22,7 @@ public:
     StreamPuller* parent;
 };
 
-StreamPuller::StreamPuller() : timeout(DEFAULT_TIMEOUT_MS), exit(1), authenticator(nullptr) {}
+StreamPuller::StreamPuller() : timeout(DEFAULT_TIMEOUT_MS), exit(1), authenticator(NULL) {}
 
 StreamPuller::~StreamPuller()
 {
@@ -31,7 +31,7 @@ StreamPuller::~StreamPuller()
 
 void StreamPuller::authenticate(const char* username, const char* password, bool useMD5)
 {
-    if (authenticator != nullptr)
+    if (authenticator != NULL)
         delete authenticator;
     authenticator = new Authenticator(username, password, useMD5);
 }
@@ -94,6 +94,11 @@ void StreamPuller::runRTSP()
     if (rtspClient != NULL)
         shutdownStream(rtspClient);
     delete scheduler;
+    if (authenticator != NULL)
+    {
+        delete authenticator;
+        authenticator = NULL;
+    }
     callback.invokeSync(CRP_EV_STOP, nullptr);
 }
 
@@ -345,7 +350,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
     subsession->sink->startPlaying(*(subsession->readSource()), [](void* clientData)
         {
             MediaSubsession* subsession = (MediaSubsession*) clientData;
-            ((OurRTSPClient*)subsession->miscPtr)->parent->subsessionAfterPlaying(subsession);
+            ((OurRTSPClient*) subsession->miscPtr)->parent->subsessionAfterPlaying(subsession);
         }, subsession);
     if (subsession->rtcpInstance() != NULL)
     {
