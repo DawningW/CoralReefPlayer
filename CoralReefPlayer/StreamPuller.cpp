@@ -27,6 +27,8 @@ StreamPuller::StreamPuller() : timeout(DEFAULT_TIMEOUT_MS), exit(1), authenticat
 StreamPuller::~StreamPuller()
 {
     stop();
+    if (authenticator != NULL)
+        delete authenticator;
 }
 
 void StreamPuller::authenticate(const char* username, const char* password, bool useMD5)
@@ -107,11 +109,6 @@ void StreamPuller::runRTSP()
     if (rtspClient != NULL)
         shutdownStream(rtspClient);
     delete scheduler;
-    if (authenticator != NULL)
-    {
-        delete authenticator;
-        authenticator = NULL;
-    }
     callback.invokeSync(CRP_EV_STOP, nullptr);
 }
 
