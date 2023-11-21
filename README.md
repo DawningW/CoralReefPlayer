@@ -90,17 +90,25 @@ void crp_destroy(crp_handle handle);
 void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
 
 /**
- * @brief 开始播放指定 RTSP 流，仅支持 H264/H265 码流，暂不支持音频
+ * @brief 开始播放指定 RTSP/HTTP 流，仅支持 H264/H265/MJPEG 码流，暂不支持音频
  * @param handle 播放器句柄
- * @param url RTSP 流地址
- * @param transport 传输协议
+ * @param url RTSP/HTTP 流地址
+ * @param transport 传输协议 (仅 RTSP 有效)
  * @param width 解码图像宽度，CRP_WIDTH_AUTO 为从码流自动获取
  * @param height 解码图像高度，CRP_HEIGHT_AUTO 为从码流自动获取
  * @param format 解码图像格式
  * @param callback 图像帧回调函数
+ * @return 是否成功, 若参数不正确则返回 false, 其他错误会调用回调
  */
-void crp_play(crp_handle handle, const char* url, Transport transport,
+bool crp_play(crp_handle handle, const char* url, Transport transport,
     int width, int height, Format format, crp_callback callback);
+
+/**
+ * @brief 重新播放之前播放的 RTSP/HTTP 流
+ * @param handle 播放器句柄
+ * @return 是否成功, 若之前未播放过则返回 false, 其他错误会调用回调
+ */
+bool crp_replay(crp_handle handle);
 
 /**
  * @brief 停止播放指定 RTSP 流

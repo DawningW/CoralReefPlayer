@@ -16,8 +16,6 @@
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
 #define SDL_REPLAY_EVENT (SDL_USEREVENT + 2)
 
-const char* url = "rtsp://172.6.2.10/main";
-Transport transport = CRP_UDP;
 crp_handle player;
 bool has_frame;
 uint64_t pts;
@@ -100,43 +98,12 @@ void process(cv::Mat &mat)
 }
 #endif
 
-void callback(int ev, void* data)
-{
-    if (ev == CRP_EV_NEW_FRAME)
-    {
-        SDL_Event event = {};
-        event.type = SDL_REFRESH_EVENT;
-        event.user.data1 = data;
-        SDL_PushEvent(&event);
-    }
-    else if (ev == CRP_EV_ERROR)
-    {
-        printf("An error has occurred, will reconnect after 5 seconds\n");
-        SDL_AddTimer(5000, [](Uint32 interval, void* param)
-        {
-            SDL_Event event = {};
-            event.type = SDL_REPLAY_EVENT;
-            SDL_PushEvent(&event);
-            return 0U;
-        }, NULL);
-    }
-    else if (ev == CRP_EV_PLAYING)
-    {
-        printf("Playing stream\n");
-    }
-    else if (ev == CRP_EV_END)
-    {
-        printf("The stream has reached its end\n");
-        SDL_Event event = {};
-        event.type = SDL_QUIT;
-        SDL_PushEvent(&event);
-    }
-};
-
 #undef main
 extern "C"
 int main(int argc, char* argv[])
 {
+    const char* url = "rtsp://172.6.2.10/main";
+    Transport transport = CRP_UDP;
     if (argc > 1)
         url = argv[1];
     if (argc > 2)
@@ -182,7 +149,39 @@ int main(int argc, char* argv[])
     ImGui_ImplSDLRenderer_Init(renderer);
 
     player = crp_create();
-    crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, callback);
+    crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P,
+        [](int ev, void* data)
+        {
+            if (ev == CRP_EV_NEW_FRAME)
+            {
+                SDL_Event event = {};
+                event.type = SDL_REFRESH_EVENT;
+                event.user.data1 = data;
+                SDL_PushEvent(&event);
+            }
+            else if (ev == CRP_EV_ERROR)
+            {
+                printf("An error has occurred, will reconnect after 5 seconds\n");
+                SDL_AddTimer(5000, [](Uint32 interval, void* param)
+                {
+                    SDL_Event event = {};
+                    event.type = SDL_REPLAY_EVENT;
+                    SDL_PushEvent(&event);
+                    return 0U;
+                }, NULL);
+            }
+            else if (ev == CRP_EV_PLAYING)
+            {
+                printf("Playing stream\n");
+            }
+            else if (ev == CRP_EV_END)
+            {
+                printf("The stream has reached its end\n");
+                SDL_Event event = {};
+                event.type = SDL_QUIT;
+                SDL_PushEvent(&event);
+            }
+        });
 
     SDL_Event event;
     while (true)
@@ -206,8 +205,7 @@ int main(int argc, char* argv[])
         }
         else if (event.type == SDL_REPLAY_EVENT)
         {
-            crp_stop(player);
-            crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P, callback);
+            crp_replay(player);
             continue;
         }
         else if (event.type == SDL_QUIT)

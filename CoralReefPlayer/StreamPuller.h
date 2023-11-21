@@ -26,9 +26,11 @@ public:
     ~StreamPuller();
     void authenticate(const char* username, const char* password, bool useMD5 = false);
     bool start(const char* url, Transport transport, int width, int height, Format format, Callback callback);
+    bool restart();
     void stop();
 
 private:
+    void start();
     void runRTSP();
     void runHTTP();
     void shutdownStream(RTSPClient* rtspClient);

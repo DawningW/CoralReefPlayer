@@ -26,11 +26,17 @@ void crp_auth(crp_handle handle, const char* username, const char* password, boo
     player->authenticate(username, password, is_md5);
 }
 
-void crp_play(crp_handle handle, const char* url, int transport,
+bool crp_play(crp_handle handle, const char* url, int transport,
     int width, int height, int format, crp_callback callback)
 {
     StreamPuller* player = (StreamPuller*) handle;
-    player->start(url, (Transport) transport, width, height, (Format) format, callback);
+    return player->start(url, (Transport) transport, width, height, (Format) format, callback);
+}
+
+bool crp_replay(crp_handle handle)
+{
+    StreamPuller* player = (StreamPuller*) handle;
+    return player->restart();
 }
 
 void crp_stop(crp_handle handle)

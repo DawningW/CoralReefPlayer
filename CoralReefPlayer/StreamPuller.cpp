@@ -52,13 +52,17 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
     this->format = format;
     this->callback = callback;
 
-    videoDecoder = nullptr;
-    exit = 0;
-    if (protocol == CRP_RTSP)
-        thread = std::thread(&StreamPuller::runRTSP, this);
-    else if (protocol == CRP_HTTP)
-        thread = std::thread(&StreamPuller::runHTTP, this);
+    start();
+    return true;
+}
 
+bool StreamPuller::restart()
+{
+    if (exit || protocol == CRP_UNKNOWN)
+        return false;
+
+    stop();
+    start();
     return true;
 }
 
@@ -69,9 +73,18 @@ void StreamPuller::stop()
 
     exit = 1;
     thread.join();
-    callback = Callback();
     if (videoDecoder != nullptr)
         delete videoDecoder;
+}
+
+void StreamPuller::start()
+{
+    videoDecoder = nullptr;
+    exit = 0;
+    if (protocol == CRP_RTSP)
+        thread = std::thread(&StreamPuller::runRTSP, this);
+    else if (protocol == CRP_HTTP)
+        thread = std::thread(&StreamPuller::runHTTP, this);
 }
 
 void StreamPuller::runRTSP()
@@ -203,7 +216,7 @@ void StreamPuller::shutdownStream(RTSPClient* rtspClient)
         }
     }
 
-    env << "Closing the stream.\n";
+    env << "Closing the stream\n";
     Medium::close(rtspClient);
     this->rtspClient = NULL;
 }
@@ -286,7 +299,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
                     videoDecoder->addExtraData(startCode4, sizeof(startCode4));
                     videoDecoder->addExtraData(record.sPropBytes, record.sPropLength);
                 }
-                env << "Get H264 SPropRecords.\n";
+                env << "Get H264 SPropRecords\n";
             }
             if (spropRecords)
                 delete[] spropRecords;
@@ -305,7 +318,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
                         videoDecoder->addExtraData(startCode4, sizeof(startCode4));
                         videoDecoder->addExtraData(record.sPropBytes, record.sPropLength);
                     }
-                    env << "Get H265 SPropRecords.\n";
+                    env << "Get H265 SPropRecords\n";
                 }
                 if (spropRecords)
                     delete[] spropRecords;
@@ -327,7 +340,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
                         delete[] spropRecords[i];
                     }
                 }
-                env << "Get H265 SPropRecords.\n";
+                env << "Get H265 SPropRecords\n";
             }
         }
     }
