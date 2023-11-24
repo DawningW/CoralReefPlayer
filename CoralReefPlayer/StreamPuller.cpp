@@ -4,7 +4,7 @@
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "StreamSink.h"
 
-#define DEFAULT_TIMEOUT_MS 5000
+#define DEFAULT_TIMEOUT_MS 1000
 
 class OurRTSPClient : public RTSPClient
 {
