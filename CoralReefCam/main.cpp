@@ -3,7 +3,7 @@
 #include "SDL.h"
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer.h"
+#include "imgui_impl_sdlrenderer2.h"
 #include "implot.h"
 #if ENABLE_OPENCV
 #include "opencv2/core.hpp"
@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
     io.Fonts->AddFontFromFileTTF("./unifont-15.0.06.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
     ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-    ImGui_ImplSDLRenderer_Init(renderer);
+    ImGui_ImplSDLRenderer2_Init(renderer);
 
     player = crp_create();
     crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P,
@@ -276,19 +276,19 @@ int main(int argc, char* argv[])
             break;
         }
 
-        ImGui_ImplSDLRenderer_NewFrame();
+        ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         loop();
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         SDL_RenderClear(renderer);
         if (has_frame)
             SDL_RenderCopy(renderer, texture, NULL, NULL);
-        ImGui_ImplSDLRenderer_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
         SDL_RenderPresent(renderer);
     }
 
     crp_destroy(player);
-    ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDLRenderer2_Shutdown();
     ImGui_ImplSDL2_Shutdown();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();

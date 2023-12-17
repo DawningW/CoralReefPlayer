@@ -8,4 +8,4 @@
 CMakeSettings.json
 # Other
 thirdparty/opencv/**
-!opencv/thirdparty/.gitkeep
+!thirdparty/opencv/.gitkeep

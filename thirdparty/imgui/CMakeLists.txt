@@ -10,7 +10,7 @@ add_library(${PROJECT_NAME} STATIC
     imgui_tables.cpp
     imgui_widgets.cpp
     backends/imgui_impl_sdl2.cpp
-    backends/imgui_impl_sdlrenderer.cpp
+    backends/imgui_impl_sdlrenderer2.cpp
 )
 
 target_include_directories(${PROJECT_NAME}
