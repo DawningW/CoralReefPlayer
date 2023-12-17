@@ -68,6 +68,8 @@ CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, int transport,
     int width, int height, int format, crp_callback callback);
 CRP_DLL_EXPORT void crp_replay(crp_handle handle);
 CRP_DLL_EXPORT void crp_stop(crp_handle handle);
+CRP_DLL_EXPORT int crp_version_code();
+CRP_DLL_EXPORT const char* crp_version_str();
 
 #ifdef __cplusplus
 }

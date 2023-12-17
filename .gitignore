@@ -7,5 +7,5 @@
 /install
 CMakeSettings.json
 # Other
-/opencv/**
-!opencv/.gitkeep
+thirdparty/opencv/**
+!opencv/thirdparty/.gitkeep

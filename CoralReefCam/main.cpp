@@ -45,7 +45,7 @@ bool BeginOverlay(const char* name, OverlayLocation location, bool* p_open = nul
         ImVec2 work_size = viewport->WorkSize;
         ImVec2 window_pos, window_pos_pivot;
         window_pos.x = (location & 1) ? (work_pos.x + work_size.x - MARGIN) : (work_pos.x + MARGIN);
-        window_pos.y = (location & 2) ? (work_pos.y + work_size.y - MARGIN) : (work_pos.y + MARGIN);
+        window_pos.y = (location & 2) ? (work_pos.y + work_size.y - MARGIN) : (work_pos.y + 24 + MARGIN);
         window_pos_pivot.x = (location & 1) ? 1.0f : 0.0f;
         window_pos_pivot.y = (location & 2) ? 1.0f : 0.0f;
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Once, window_pos_pivot);
@@ -59,33 +59,96 @@ bool BeginOverlay(const char* name, OverlayLocation location, bool* p_open = nul
 
 void loop()
 {
-    static bool show_demo_window = true;
+    static bool show_imgui_demo_window = false;
+    static bool show_implot_demo_window = false;
+    static bool show_fps_window = true;
+    bool open_about_window = false;
     ImGuiIO& io = ImGui::GetIO();
 
     ImGui::NewFrame();
 
-    //ImGui::ShowDemoWindow(&show_demo_window);
-
-    // ImGuiWindowFlags_NoMove
-    if (BeginOverlay("Top-Left Overlay", TopLeft))
+    if (ImGui::BeginMainMenuBar())
     {
-        ImGui::Text("Frame Info");
-        ImGui::Separator();
-        ImGui::Text("FPS: %.1f", io.Framerate);
-        ImGui::Text("PTS: %lu", pts);
+        if (ImGui::BeginMenu("Media"))
+        {
+            if (ImGui::MenuItem("Open", "Ctrl+O")) {}
+            ImGui::Separator();
+            if (ImGui::MenuItem("Quit", "Alt+F4"))
+            {
+                SDL_Event event = {};
+                event.type = SDL_QUIT;
+                SDL_PushEvent(&event);
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Advance"))
+        {
+            if (ImGui::MenuItem("Options")) {}
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("View"))
+        {
+            ImGui::MenuItem("Panels", NULL, false, false);
+            if (ImGui::Checkbox("ImGui Demo", &show_imgui_demo_window)) {}
+            if (ImGui::Checkbox("ImPlot Demo", &show_implot_demo_window)) {}
+            if (ImGui::Checkbox("FPS", &show_fps_window)) {}
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Help"))
+        {
+            if (ImGui::MenuItem("Help", "F1")) {}
+            if (ImGui::MenuItem("About"))
+            {
+                open_about_window = true;
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
     }
-    ImGui::End();
 
-    //if (ImGui::Begin("Charts Window"))
-    //{
-    //    if (ImPlot::BeginPlot("Example Plot"))
-    //    {
-    //        static double values[] = { 1., 3., 5., 3., 1. };
-    //        ImPlot::PlotLine("Values", values, 5);
-    //        ImPlot::EndPlot();
-    //    }
-    //}
-    //ImGui::End();
+    if (show_imgui_demo_window)
+    {
+        ImGui::ShowDemoWindow(&show_imgui_demo_window);
+    }
+
+    if (show_implot_demo_window)
+    {
+        if (ImGui::Begin("Charts", &show_implot_demo_window))
+        {
+            if (ImPlot::BeginPlot("Example Plot"))
+            {
+                static double values[] = { 1., 3., 5., 3., 1. };
+                ImPlot::PlotLine("Values", values, 5);
+                ImPlot::EndPlot();
+            }
+        }
+        ImGui::End();
+    }
+
+    if (show_fps_window)
+    {
+        // ImGuiWindowFlags_NoMove
+        if (BeginOverlay("Top-Left Overlay", TopLeft, &show_fps_window))
+        {
+            ImGui::Text("Frame Info");
+            ImGui::Separator();
+            ImGui::Text("FPS: %.1f", io.Framerate);
+            ImGui::Text("PTS: %lu", pts);
+        }
+        ImGui::End();
+    }
+
+    if (open_about_window)
+        ImGui::OpenPopup("About");
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopup("About", ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("CoralReefCam");
+        ImGui::Text("Powered by CoralReefPlayer %s", crp_version_str());
+        ImGui::Text("Copyright (c) 2023 OurEDA");
+        ImGui::EndPopup();
+    }
 
     ImGui::Render();
 }
@@ -116,7 +179,7 @@ int main(int argc, char* argv[])
     }
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
     SDL_WindowFlags window_flags = (SDL_WindowFlags) (SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
-    SDL_Window* window = SDL_CreateWindow("CoralReefCamCpp", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, window_flags);
+    SDL_Window* window = SDL_CreateWindow("CoralReefCam", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, window_flags);
     if (!window)
     {
         printf("Could not create window: %s\n", SDL_GetError());

@@ -1,4 +1,7 @@
-// resource.h
+#include "version.h"
+#define RC_CRP_VERSION CRP_VER ".0.0"
+
+// resources.h
 
 #if defined(__MINGW64__) || defined(__MINGW32__)
 	// MinGW-w64, MinGW
@@ -19,8 +22,8 @@ LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
 
 // Version
 VS_VERSION_INFO VERSIONINFO
-    FILEVERSION 1,0,0,0
-    PRODUCTVERSION 1,0,0,0
+    FILEVERSION CRP_VER_MAJOR,CRP_VER_MINOR,0,0
+    PRODUCTVERSION CRP_VER_MAJOR,CRP_VER_MINOR,0,0
     FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
     FILEFLAGS 0x1L
@@ -37,12 +40,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "OurEDA"
             VALUE "FileDescription", "Éºº÷½¸²¥·ÅÆ÷"
-            VALUE "FileVersion", "1.0.0.0"
+            VALUE "FileVersion", RC_CRP_VERSION
             VALUE "InternalName", "CoralReefPlayer.dll"
             VALUE "LegalCopyright", "Copyright (C) 2023 OurEDA"
             VALUE "OriginalFilename", "CoralReefPlayer.dll"
             VALUE "ProductName", "CoralReefPlayer"
-            VALUE "ProductVersion", "1.0.0.0"
+            VALUE "ProductVersion", RC_CRP_VERSION
         END
     END
     BLOCK "VarFileInfo"

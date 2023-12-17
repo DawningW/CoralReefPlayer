@@ -1,7 +1,7 @@
 project(CoralReefCam)
 
 if(WIN32)
-    set(SDL2_DIR "${CMAKE_SOURCE_DIR}/SDL2/cmake" CACHE PATH "")
+    set(SDL2_DIR "${THIRD_PARTY_DIR}/SDL2/cmake" CACHE PATH "")
     find_package(SDL2 2.28.0 REQUIRED)
     install(IMPORTED_RUNTIME_ARTIFACTS SDL2::SDL2
         LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
@@ -24,8 +24,8 @@ if(WIN32 AND ENABLE_OPENCV)
     )
 endif()
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/imgui imgui)
-add_subdirectory(${CMAKE_SOURCE_DIR}/implot implot)
+add_subdirectory(${THIRD_PARTY_DIR}/imgui imgui)
+add_subdirectory(${THIRD_PARTY_DIR}/implot implot)
 
 add_executable(${PROJECT_NAME}
     main.cpp

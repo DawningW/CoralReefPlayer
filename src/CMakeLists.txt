@@ -1,6 +1,25 @@
-project(CoralReefPlayer)
-
 set(CMAKE_CXX_STANDARD 20)
+
+configure_file(
+    version.h.in
+    generated/version.h
+    @ONLY
+)
+
+add_custom_command(
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/git_hash.h
+        ALL
+    COMMAND
+        ${CMAKE_COMMAND} -D TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/git-hash.cmake
+    WORKING_DIRECTORY
+        ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_target(git_hash ALL
+    DEPENDS
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/git_hash.h
+)
 
 add_library(${PROJECT_NAME} SHARED
     dllmain.cpp
@@ -15,6 +34,8 @@ add_library(${PROJECT_NAME} SHARED
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/.
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
 target_compile_definitions(${PROJECT_NAME}
@@ -32,6 +53,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_dependencies(${PROJECT_NAME}
+    git_hash
     ${CURL_LIBS}
     live555
     avcodec

@@ -6,6 +6,7 @@
 #include <Windows.h>
 #endif
 
+#include "version.h"
 #include "coralreefplayer.h"
 #include "StreamPuller.h"
 
@@ -43,6 +44,16 @@ void crp_stop(crp_handle handle)
 {
     StreamPuller* player = (StreamPuller*) handle;
     player->stop();
+}
+
+int crp_version_code()
+{
+    return CRP_VER_MAJOR * 1000 + CRP_VER_MINOR;
+}
+
+const char* crp_version_str()
+{
+    return CRP_VER_STR;
 }
 
 #ifdef WIN32
