@@ -55,6 +55,14 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作
 4. 执行 `make install` 安装至指定目录
 5. 享受 CoralReefCamCpp 吧
 
+### MacOS
+
+前置条件:
+- apple-clang 13.1.6 或更高版本
+- 其余依赖同 Linux
+
+编译步骤: 同 Linux
+
 ### Other
 
 其他系统正在适配中，欢迎提交 PR

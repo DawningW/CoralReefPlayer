@@ -221,6 +221,7 @@ target_compile_definitions(${PROJECT_NAME}
     PRIVATE
         $<$<BOOL:${MSVC}>:_CRT_SECURE_NO_WARNINGS>
         $<$<BOOL:${WIN32}>:NO_GETIFADDRS>
+        $<$<BOOL:${APPLE}>:NEWLOCALE_NOT_USED>
         $<$<BOOL:${UNIX}>:SOCKLEN_T=socklen_t>
         $<$<BOOL:${UNIX}>:_LARGEFILE_SOURCE=1>
         $<$<BOOL:${UNIX}>:_FILE_OFFSET_BITS=64>

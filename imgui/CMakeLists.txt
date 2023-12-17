@@ -1,5 +1,8 @@
 project(imgui)
 
+# Must set c++11 on MacOS
+set(CMAKE_CXX_STANDARD 11)
+
 add_library(${PROJECT_NAME} STATIC
     imgui.cpp
     imgui_demo.cpp
