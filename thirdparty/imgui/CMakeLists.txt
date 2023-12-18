@@ -9,6 +9,7 @@ add_library(${PROJECT_NAME} STATIC
     imgui_draw.cpp
     imgui_tables.cpp
     imgui_widgets.cpp
+    misc/cpp/imgui_stdlib.cpp
     backends/imgui_impl_sdl2.cpp
     backends/imgui_impl_sdlrenderer2.cpp
 )
@@ -16,6 +17,7 @@ add_library(${PROJECT_NAME} STATIC
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/misc/cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/backends
 )
 

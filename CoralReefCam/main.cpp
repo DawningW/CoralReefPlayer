@@ -1,7 +1,8 @@
-#include <iostream>
+#include <string>
 #include <stdio.h>
 #include "SDL.h"
 #include "imgui.h"
+#include "imgui_stdlib.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
 #include "implot.h"
@@ -16,11 +17,14 @@
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
 #define SDL_REPLAY_EVENT (SDL_USEREVENT + 2)
 
+std::string url;
+Transport transport = CRP_UDP;
 crp_handle player;
+bool playing;
 bool has_frame;
 uint64_t pts;
 
-enum OverlayLocation
+enum WindowLocation
 {
     Center = -1,
     TopLeft = 0,
@@ -29,15 +33,14 @@ enum OverlayLocation
     BottomRight = 3
 };
 
-bool BeginOverlay(const char* name, OverlayLocation location, bool* p_open = nullptr, ImGuiWindowFlags flags = 0)
+void SetNextWindowLoc(WindowLocation location, ImGuiCond cond)
 {
-    const float MARGIN = 8.0f;
-    const float ALPHA = 0.35f;
+    static const float MARGIN = 8.0f;
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
     if (location == -1)
     {
-        ImGui::SetNextWindowPos(viewport->GetCenter(), ImGuiCond_Once, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowPos(viewport->GetCenter(), cond, ImVec2(0.5f, 0.5f));
     }
     else
     {
@@ -48,8 +51,15 @@ bool BeginOverlay(const char* name, OverlayLocation location, bool* p_open = nul
         window_pos.y = (location & 2) ? (work_pos.y + work_size.y - MARGIN) : (work_pos.y + 24 + MARGIN);
         window_pos_pivot.x = (location & 1) ? 1.0f : 0.0f;
         window_pos_pivot.y = (location & 2) ? 1.0f : 0.0f;
-        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Once, window_pos_pivot);
+        ImGui::SetNextWindowPos(window_pos, cond, window_pos_pivot);
     }
+}
+
+bool BeginOverlay(const char* name, WindowLocation location, bool* p_open = nullptr, ImGuiWindowFlags flags = 0)
+{
+    static const float ALPHA = 0.35f;
+
+    SetNextWindowLoc(location, ImGuiCond_Once);
     ImGui::SetNextWindowBgAlpha(ALPHA);
 
     ImGuiWindowFlags window_flags = flags | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
@@ -57,21 +67,80 @@ bool BeginOverlay(const char* name, OverlayLocation location, bool* p_open = nul
     return ImGui::Begin(name, p_open, window_flags);
 }
 
+void play()
+{
+    if (playing)
+        crp_stop(player);
+    SDL_FlushEvent(SDL_REFRESH_EVENT);
+    crp_play(player, url.c_str(), transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P,
+        [](int ev, void* data)
+        {
+            if (ev == CRP_EV_NEW_FRAME)
+            {
+                SDL_Event event = {};
+                event.type = SDL_REFRESH_EVENT;
+                event.user.data1 = data;
+                SDL_PushEvent(&event);
+            }
+            else if (ev == CRP_EV_ERROR)
+            {
+                printf("An error has occurred, will reconnect after 5 seconds\n");
+                SDL_AddTimer(5000, [](Uint32 interval, void* param)
+                    {
+                        SDL_Event event = {};
+                        event.type = SDL_REPLAY_EVENT;
+                        SDL_PushEvent(&event);
+                        return 0U;
+                    }, NULL);
+            }
+            else if (ev == CRP_EV_START)
+            {
+                playing = true;
+            }
+            else if (ev == CRP_EV_PLAYING)
+            {
+                printf("Playing stream\n");
+            }
+            else if (ev == CRP_EV_END)
+            {
+                printf("The stream has reached its end\n");
+                SDL_Event event = {};
+                event.type = SDL_QUIT;
+                SDL_PushEvent(&event);
+            }
+            else if (ev == CRP_EV_STOP)
+            {
+                playing = false;
+            }
+        });
+}
+
 void loop()
 {
     static bool show_imgui_demo_window = false;
     static bool show_implot_demo_window = false;
     static bool show_fps_window = true;
+    bool open_play_window = false;
     bool open_about_window = false;
     ImGuiIO& io = ImGui::GetIO();
+    ImVec4 color;
 
     ImGui::NewFrame();
 
+    color = ImGui::GetStyle().Colors[ImGuiCol_WindowBg];
+    color.w = 0.35f;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, color);
+    color = ImGui::GetStyle().Colors[ImGuiCol_MenuBarBg];
+    color.w = 0.0f;
+    ImGui::PushStyleColor(ImGuiCol_MenuBarBg, color);
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("Media"))
         {
-            if (ImGui::MenuItem("Open", "Ctrl+O")) {}
+            if (ImGui::MenuItem("Play", "Ctrl+O"))
+                open_play_window = true;
+            if (ImGui::MenuItem("Stop", NULL, false, playing))
+                crp_stop(player);
             ImGui::Separator();
             if (ImGui::MenuItem("Quit", "Alt+F4"))
             {
@@ -88,28 +157,43 @@ void loop()
         }
         if (ImGui::BeginMenu("View"))
         {
-            ImGui::MenuItem("Panels", NULL, false, false);
-            if (ImGui::Checkbox("ImGui Demo", &show_imgui_demo_window)) {}
-            if (ImGui::Checkbox("ImPlot Demo", &show_implot_demo_window)) {}
-            if (ImGui::Checkbox("FPS", &show_fps_window)) {}
+            ImGui::SeparatorText("Panels");
+            ImGui::MenuItem("ImGui Demo", NULL, &show_imgui_demo_window);
+            ImGui::MenuItem("ImPlot Demo", NULL, &show_implot_demo_window);
+            ImGui::MenuItem("Frame Info", NULL, &show_fps_window);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help"))
         {
             if (ImGui::MenuItem("Help", "F1")) {}
             if (ImGui::MenuItem("About"))
-            {
                 open_about_window = true;
-            }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
     }
+    ImGui::PopStyleColor(2);
+
+    if (open_play_window)
+        ImGui::OpenPopup("Play");
+    SetNextWindowLoc(Center, ImGuiCond_Appearing);
+    if (ImGui::BeginPopupModal("Play", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::InputText("Stream URL", &url);
+        if (ImGui::Button("Play", ImVec2(120, 0)))
+        {
+            play();
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SetItemDefaultFocus();
+        ImGui::SameLine();
+        if (ImGui::Button("Cancel", ImVec2(120, 0)))
+            ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
 
     if (show_imgui_demo_window)
-    {
         ImGui::ShowDemoWindow(&show_imgui_demo_window);
-    }
 
     if (show_implot_demo_window)
     {
@@ -140,8 +224,7 @@ void loop()
 
     if (open_about_window)
         ImGui::OpenPopup("About");
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    SetNextWindowLoc(Center, ImGuiCond_Appearing);
     if (ImGui::BeginPopup("About", ImGuiWindowFlags_AlwaysAutoResize))
     {
         ImGui::Text("CoralReefCam");
@@ -165,8 +248,6 @@ void process(cv::Mat &mat)
 extern "C"
 int main(int argc, char* argv[])
 {
-    const char* url = "rtsp://172.6.2.10/main";
-    Transport transport = CRP_UDP;
     if (argc > 1)
         url = argv[1];
     if (argc > 2)
@@ -212,39 +293,8 @@ int main(int argc, char* argv[])
     ImGui_ImplSDLRenderer2_Init(renderer);
 
     player = crp_create();
-    crp_play(player, url, transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P,
-        [](int ev, void* data)
-        {
-            if (ev == CRP_EV_NEW_FRAME)
-            {
-                SDL_Event event = {};
-                event.type = SDL_REFRESH_EVENT;
-                event.user.data1 = data;
-                SDL_PushEvent(&event);
-            }
-            else if (ev == CRP_EV_ERROR)
-            {
-                printf("An error has occurred, will reconnect after 5 seconds\n");
-                SDL_AddTimer(5000, [](Uint32 interval, void* param)
-                {
-                    SDL_Event event = {};
-                    event.type = SDL_REPLAY_EVENT;
-                    SDL_PushEvent(&event);
-                    return 0U;
-                }, NULL);
-            }
-            else if (ev == CRP_EV_PLAYING)
-            {
-                printf("Playing stream\n");
-            }
-            else if (ev == CRP_EV_END)
-            {
-                printf("The stream has reached its end\n");
-                SDL_Event event = {};
-                event.type = SDL_QUIT;
-                SDL_PushEvent(&event);
-            }
-        });
+    if (!url.empty())
+        play();
 
     SDL_Event event;
     while (true)
@@ -253,6 +303,9 @@ int main(int argc, char* argv[])
         ImGui_ImplSDL2_ProcessEvent(&event);
         if (event.type == SDL_REFRESH_EVENT)
         {
+            if (!playing)
+                continue;
+
             Frame* frame = (Frame*) event.user.data1;
 #if ENABLE_OPENCV
             cv::Mat mat(cv::Size(frame->width, frame->height), CV_8UC3);
