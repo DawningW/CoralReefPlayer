@@ -27,6 +27,11 @@ endif()
 add_subdirectory(${THIRD_PARTY_DIR}/imgui imgui)
 add_subdirectory(${THIRD_PARTY_DIR}/implot implot)
 
+if(APPLE)
+    set(CMAKE_MACOSX_RPATH 1)
+endif()
+list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+
 add_executable(${PROJECT_NAME}
     main.cpp
     $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefCam.rc>
