@@ -180,11 +180,18 @@ void loop()
     if (ImGui::BeginPopupModal("Play", NULL, ImGuiWindowFlags_AlwaysAutoResize))
     {
         ImGui::InputText("Stream URL", &url);
+        ImGui::Text("Transport: ");
+        ImGui::SameLine();
+        ImGui::RadioButton("UDP", (int*) &transport, CRP_UDP);
+        ImGui::SameLine();
+        ImGui::RadioButton("TCP", (int*) &transport, CRP_TCP);
+        ImGui::BeginDisabled(url.empty());
         if (ImGui::Button("Play", ImVec2(120, 0)))
         {
             play();
             ImGui::CloseCurrentPopup();
         }
+        ImGui::EndDisabled();
         ImGui::SetItemDefaultFocus();
         ImGui::SameLine();
         if (ImGui::Button("Cancel", ImVec2(120, 0)))
