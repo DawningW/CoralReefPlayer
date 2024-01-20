@@ -228,16 +228,9 @@ NetAddressList::NetAddressList(char const* hostname, int addressFamily)
   addrinfoHints.ai_flags = AI_ADDRCONFIG; // We only care about addresses that we can handle
   struct addrinfo* addrinfoResultPtr = NULL;
   int result = -1;
-  if (addressFamily != AF_INET6) {
-    // First, look up an IPv4 address for the name
-    addrinfoHints.ai_family = AF_INET; // First, look up an IPv4 address for the name
-    result = getaddrinfo(hostname, NULL, &addrinfoHints, &addrinfoResultPtr);
-  }
-  if (addressFamily != AF_INET && (result != 0 || addrinfoResultPtr == NULL)) {
-    // Try again, looking up an IPv6 address for the name instead:
-    addrinfoHints.ai_family = AF_INET6;
-    result = getaddrinfo(hostname, NULL, &addrinfoHints, &addrinfoResultPtr);
-  }
+  // look up an IPv4 or IPv6 address for the name
+  addrinfoHints.ai_family = AF_UNSPEC;
+  result = getaddrinfo(hostname, NULL, &addrinfoHints, &addrinfoResultPtr);
   if (result != 0 || addrinfoResultPtr == NULL) return; // no luck
 
   // First, count the number of addresses:
