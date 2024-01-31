@@ -73,7 +73,7 @@ void play()
         crp_stop(player);
     SDL_FlushEvent(SDL_REFRESH_EVENT);
     crp_play(player, url.c_str(), transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P,
-        [](int ev, void* data)
+        [](int ev, void* data, void* userdata)
         {
             if (ev == CRP_EV_NEW_FRAME)
             {
@@ -112,7 +112,7 @@ void play()
             {
                 playing = false;
             }
-        });
+        }, nullptr);
 }
 
 void loop()

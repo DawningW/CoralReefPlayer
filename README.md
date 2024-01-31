@@ -4,7 +4,7 @@ CoralReefPlayer 即珊瑚礁播放器，是一款使用 C++20 开发的跨平台
 
 CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作系统，并且提供 C#、Java 和 Python 等语言的 binding，方便使用各种语言和框架开发上位机。
 
-CoralReefCam, 中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
+CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
 
 ![v0.2](doc/snapshot-0.2.png)
 
@@ -112,10 +112,11 @@ void crp_auth(crp_handle handle, const char* username, const char* password, boo
  * @param height 解码图像高度，CRP_HEIGHT_AUTO 为从码流自动获取
  * @param format 解码图像格式
  * @param callback 图像帧回调函数
+ * @param user_data 用户自定义数据，会在调用回调时传入
  * @return 是否成功, 若参数不正确则返回 false, 其他错误会调用回调
  */
 bool crp_play(crp_handle handle, const char* url, Transport transport,
-    int width, int height, Format format, crp_callback callback);
+    int width, int height, Format format, crp_callback callback, void* user_data);
 
 /**
  * @brief 重新播放之前播放的 RTSP/HTTP 流

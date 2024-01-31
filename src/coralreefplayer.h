@@ -59,13 +59,13 @@ struct Frame
 };
 
 typedef void* crp_handle;
-typedef void (*crp_callback)(int /* event */, void* /* data */);
+typedef void (*crp_callback)(int /* event */, void* /* data */, void* /* user_data */);
 
 CRP_DLL_EXPORT crp_handle crp_create();
 CRP_DLL_EXPORT void crp_destroy(crp_handle handle);
 CRP_DLL_EXPORT void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
 CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, int transport,
-    int width, int height, int format, crp_callback callback);
+    int width, int height, int format, crp_callback callback, void* user_data);
 CRP_DLL_EXPORT void crp_replay(crp_handle handle);
 CRP_DLL_EXPORT void crp_stop(crp_handle handle);
 CRP_DLL_EXPORT int crp_version_code();

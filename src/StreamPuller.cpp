@@ -22,7 +22,7 @@ public:
     StreamPuller* parent;
 };
 
-StreamPuller::StreamPuller() : timeout(DEFAULT_TIMEOUT_MS), exit(1), authenticator(NULL) {}
+StreamPuller::StreamPuller() : userData(nullptr), timeout(DEFAULT_TIMEOUT_MS), exit(1), authenticator(NULL) {}
 
 StreamPuller::~StreamPuller()
 {
@@ -38,7 +38,7 @@ void StreamPuller::authenticate(const char* username, const char* password, bool
     authenticator = new Authenticator(username, password, useMD5);
 }
 
-bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, Callback callback)
+bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, Callback callback, void* userData)
 {
     if (!exit)
         return false;
@@ -53,6 +53,7 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
     this->height = height;
     this->format = format;
     this->callback = callback;
+    this->userData = userData;
 
     start();
     return true;
@@ -97,7 +98,7 @@ void StreamPuller::runRTSP()
     session = NULL;
     livenessCheckTask = NULL;
     
-    callback.invokeSync(CRP_EV_START, nullptr);
+    callback.invokeSync(CRP_EV_START, nullptr, userData);
     ((OurRTSPClient*) rtspClient)->parent = this;
     rtspClient->sendDescribeCommand([](RTSPClient * rtspClient, int resultCode, char* resultString)
         {
@@ -109,7 +110,7 @@ void StreamPuller::runRTSP()
     if (rtspClient != NULL)
         shutdownStream(rtspClient);
     delete scheduler;
-    callback.invokeSync(CRP_EV_STOP, nullptr);
+    callback.invokeSync(CRP_EV_STOP, nullptr, userData);
 }
 
 void StreamPuller::runHTTP()
@@ -118,7 +119,7 @@ void StreamPuller::runHTTP()
         {
             if (videoDecoder->processPacket(packet))
             {
-                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
+                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
             }
         });
     curl = curl_easy_init();
@@ -126,11 +127,11 @@ void StreamPuller::runHTTP()
     videoDecoder = VideoDecoder::createNew("JPEG", format, width, height);
     if (curl == NULL)
     {
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         return;
     }
 
-    callback.invokeSync(CRP_EV_START, nullptr);
+    callback.invokeSync(CRP_EV_START, nullptr, userData);
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
@@ -165,22 +166,22 @@ void StreamPuller::runHTTP()
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
         if (response_code == 0 || response_code == 200)
         {
-            callback.invokeSync(CRP_EV_END, nullptr);
+            callback.invokeSync(CRP_EV_END, nullptr, userData);
         }
         else
         {
             fprintf(stderr, "Invalid response with status code %ld\n", response_code);
-            callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+            callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         }
     }
     else if (res != CURLE_ABORTED_BY_CALLBACK)
     {
         fprintf(stderr, "curl_easy_perform failed: %s\n", curl_easy_strerror(res));
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
     }
 
     curl_easy_cleanup(curl);
-    callback.invokeSync(CRP_EV_STOP, nullptr);
+    callback.invokeSync(CRP_EV_STOP, nullptr, userData);
 }
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
@@ -225,7 +226,7 @@ void StreamPuller::continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode,
     if (resultCode != 0)
     {
         env << "Failed to get a SDP description: " << resultString << "\n";
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         return;
     }
     const char* sdpDescription = resultString;
@@ -235,13 +236,13 @@ void StreamPuller::continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode,
     if (session == NULL)
     {
         env << "Failed to create a MediaSession object from the SDP description: " << env.getResultMsg() << "\n";
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         goto end;
     }
     else if (!session->hasSubsessions())
     {
         env << "This session has no media subsessions (i.e., no \"m=\" lines)\n";
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         goto end;
     }
 
@@ -262,7 +263,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
     if (resultCode != 0)
     {
         env << "Failed to set up the subsession: " << resultString << "\n";
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         goto end;
     }
 
@@ -353,7 +354,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
             noteLiveness();
             if (videoDecoder->processPacket(packet))
             {
-                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame());
+                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
             }
         });
     subsession->miscPtr = rtspClient;
@@ -383,12 +384,12 @@ void StreamPuller::continueAfterPLAY(RTSPClient* rtspClient, int resultCode, cha
     if (resultCode != 0)
     {
         env << "Failed to start playing session: " << resultString << "\n";
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         goto end;
     }
 
     env << "Started playing session...\n";
-    callback.invokeSync(CRP_EV_PLAYING, nullptr);
+    callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
     noteLiveness();
     return;
 
@@ -406,7 +407,7 @@ void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
         if (!subsession->initiate())
         {
             env << "Failed to initiate the subsession: " << env.getResultMsg() << "\n";
-            callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+            callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
             setupNextSubsession(rtspClient);
         }
         else
@@ -447,7 +448,7 @@ void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession)
     }
 
     shutdownStream(rtspClient);
-    callback.invokeSync(CRP_EV_END, nullptr);
+    callback.invokeSync(CRP_EV_END, nullptr, userData);
 }
 
 void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const* reason)
@@ -467,7 +468,7 @@ void StreamPuller::timeoutHandler()
     UsageEnvironment& env = rtspClient->envir();
 
     env << "Receive stream timeout after " << (int) timeout << " ms\n";
-    callback.invokeSync(CRP_EV_ERROR, (void*) 0);
+    callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
 }
 
 void StreamPuller::noteLiveness()
@@ -491,7 +492,7 @@ size_t StreamPuller::curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, 
         if (response_code == 0 || response_code == 200)
         {
             downloading = true;
-            callback.invokeSync(CRP_EV_PLAYING, nullptr);
+            callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
         }
     }
 

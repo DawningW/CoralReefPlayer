@@ -20,12 +20,12 @@ public:
         CRP_RTSP,
         CRP_HTTP,
     };
-    using Callback = std::function<void(int, void*)>;
+    using Callback = std::function<void(int, void*, void*)>;
 
     StreamPuller();
     ~StreamPuller();
     void authenticate(const char* username, const char* password, bool useMD5 = false);
-    bool start(const char* url, Transport transport, int width, int height, Format format, Callback callback);
+    bool start(const char* url, Transport transport, int width, int height, Format format, Callback callback, void* userData);
     bool restart();
     void stop();
 
@@ -52,7 +52,8 @@ private:
     int width;
     int height;
     Format format;
-    AsyncCallback<int, void*> callback;
+    AsyncCallback<int, void*, void*> callback;
+    void *userData;
     int64_t timeout;
 
     volatile char exit;
