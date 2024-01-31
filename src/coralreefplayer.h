@@ -52,7 +52,7 @@ struct Frame
 {
     int width;
     int height;
-    enum Format format;
+    int format;
     uint8_t* data[4];
     int linesize[4];
     uint64_t pts;

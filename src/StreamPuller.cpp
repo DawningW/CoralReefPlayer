@@ -76,6 +76,7 @@ void StreamPuller::stop()
 
     exit = 1;
     thread.join();
+    callback.invokeSync(CRP_EV_STOP, nullptr, userData);
     if (videoDecoder != nullptr)
         delete videoDecoder;
 }
@@ -110,7 +111,6 @@ void StreamPuller::runRTSP()
     if (rtspClient != NULL)
         shutdownStream(rtspClient);
     delete scheduler;
-    callback.invokeSync(CRP_EV_STOP, nullptr, userData);
 }
 
 void StreamPuller::runHTTP()
@@ -181,7 +181,6 @@ void StreamPuller::runHTTP()
     }
 
     curl_easy_cleanup(curl);
-    callback.invokeSync(CRP_EV_STOP, nullptr, userData);
 }
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)

@@ -137,7 +137,7 @@ bool VideoDecoder::processPacket(AVPacket* packet)
                 outFrame.height = codecCtx->height;
             }
             av_image_alloc(outFrame.data, outFrame.linesize, outFrame.width, outFrame.height,
-                to_av_format(outFrame.format), 1);
+                to_av_format((enum Format) outFrame.format), 1);
         }
 
         AVPixelFormat pixFmt;
@@ -149,7 +149,8 @@ bool VideoDecoder::processPacket(AVPacket* packet)
             default: pixFmt = codecCtx->pix_fmt; break;
         }
         struct SwsContext* swsCxt = sws_getContext(codecCtx->width, codecCtx->height, pixFmt,
-            outFrame.width, outFrame.height, to_av_format(outFrame.format), SWS_FAST_BILINEAR, NULL, NULL, NULL);
+            outFrame.width, outFrame.height, to_av_format((enum Format) outFrame.format),
+            SWS_FAST_BILINEAR, NULL, NULL, NULL);
         sws_scale(swsCxt, frame->data, frame->linesize, 0, codecCtx->height, outFrame.data, outFrame.linesize);
         sws_freeContext(swsCxt);
         outFrame.pts = frame->pts;
