@@ -50,6 +50,7 @@ target_link_libraries(${PROJECT_NAME}
         avcodec
         avutil
         swscale
+        swresample
 )
 
 add_dependencies(${PROJECT_NAME}
@@ -59,6 +60,7 @@ add_dependencies(${PROJECT_NAME}
     avcodec
     avutil
     swscale
+    swresample
 )
 
 install(TARGETS ${PROJECT_NAME}
