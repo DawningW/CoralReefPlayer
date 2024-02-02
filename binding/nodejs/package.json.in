@@ -1,0 +1,28 @@
+{
+  "name": "coralreefplayer-js",
+  "version": "@PROJECT_VERSION@",
+  "description": "Node.js binding for CoralReefPlayer",
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "src",
+    "prebuilds",
+    "binding.gyp"
+  ],
+  "scripts": {
+    "install": "node-gyp-build",
+    "test": "node ./test/run_tests.js",
+    "prebuild": "prebuildify --napi --strip",
+    "package": "npm pack"
+  },
+  "author": "Wu Chen",
+  "license": "ISC",
+  "dependencies": {
+    "node-addon-api": "^7.1.0",
+    "node-gyp-build": "^4.8.0"
+  },
+  "devDependencies": {
+    "prebuildify": "^6.0.0"
+  },
+  "gypfile": true
+}

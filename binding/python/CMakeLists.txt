@@ -1,5 +1,7 @@
 project(pyCoralReefPlayer VERSION ${CoralReefPlayer_VERSION})
 
+include(${CMAKE_SOURCE_DIR}/cmake/copy_libs.cmake)
+
 find_package(Python3 3.7 COMPONENTS Interpreter Development)
 if(NOT Python3_FOUND)
     message(FATAL_ERROR "Python binding needs Python >= 3.7 to build!")
@@ -26,21 +28,7 @@ add_custom_target(python-prepare
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS CoralReefPlayer
 )
-add_custom_command(
-    TARGET python-prepare POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:CoralReefPlayer> coralreefplayer/
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-)
-if(WIN32 OR CYGWIN)
-    get_target_property(CRP_DEPENDENCIES CoralReefPlayer LINK_LIBRARIES)
-    foreach(DEP IN LISTS CRP_DEPENDENCIES)
-        add_custom_command(
-            TARGET python-prepare POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${DEP}> coralreefplayer/
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        )
-    endforeach()
-endif()
+add_copy_libs_command(python-prepare coralreefplayer/)
 
 add_custom_target(python-package
     COMMAND ${Python3_EXECUTABLE} setup.py bdist_wheel --dist-dir ${CMAKE_INSTALL_PREFIX}

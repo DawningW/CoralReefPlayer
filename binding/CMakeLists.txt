@@ -1,0 +1,8 @@
+set(BUILD_PYTHON_BINDING OFF CACHE BOOL "Build Python binding")
+if(BUILD_PYTHON_BINDING)
+    add_subdirectory(python)
+endif()
+set(BUILD_JS_BINDING OFF CACHE BOOL "Build Node.js binding")
+if(BUILD_JS_BINDING)
+    add_subdirectory(nodejs)
+endif()

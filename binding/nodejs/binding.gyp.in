@@ -1,0 +1,39 @@
+{
+  'targets': [
+    {
+      'target_name': 'addon',
+      'sources': [ 'src/main.cc' ],
+      'include_dirs': [
+        "<!@(node -p \"require('node-addon-api').include\")",
+        '@CRP_INCLUDE_DIR@'
+      ],
+      'libraries': [
+        '-l@CRP_LIBRARY@'
+      ],
+      'defines': [
+        'NAPI_VERSION=<(napi_build_version)'
+      ],
+      'dependencies': [
+        "<!(node -p \"require('node-addon-api').targets\"):node_addon_api"
+      ],
+      'conditions': [
+        ['OS == "win"', {
+            'msvs_settings': {
+              'VCLinkerTool': {
+                'AdditionalLibraryDirectories': [ '@CRP_LIBRARY_DIR@' ]
+              }
+            }
+        }],
+        ['OS != "win"', {
+            'libraries+': [ '-L@CRP_LIBRARY_DIR@' ]
+        }],
+        ['OS == "mac"', {
+            'cflags+': [ '-fvisibility=hidden' ],
+            'xcode_settings': {
+              'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
+            }
+        }]
+      ]
+    }
+  ]
+}
