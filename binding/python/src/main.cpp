@@ -1,7 +1,6 @@
 #include <unordered_map>
 #include <pybind11/pybind11.h>
 #include <pybind11/functional.h>
-#include <pybind11/numpy.h>
 #include "coralreefplayer.h"
 
 namespace py = pybind11;
@@ -40,7 +39,7 @@ PYBIND11_MODULE(cwrapper, m) {
     m.def("destroy", [](crp_handle handle) {
         crp_destroy(handle);
         g_callbacks.erase(handle);
-    });
+    }, py::call_guard<py::gil_scoped_release>());
 
     m.def("auth", &crp_auth);
 
@@ -50,9 +49,9 @@ PYBIND11_MODULE(cwrapper, m) {
         crp_play(handle, url, transport, width, height, format, py_callback, handle);
     });
 
-    m.def("replay", &crp_replay);
+    m.def("replay", &crp_replay, py::call_guard<py::gil_scoped_release>());
 
-    m.def("stop", &crp_stop);
+    m.def("stop", &crp_stop, py::call_guard<py::gil_scoped_release>());
 
     m.def("version_code", &crp_version_code);
 
