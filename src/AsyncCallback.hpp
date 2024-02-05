@@ -58,6 +58,13 @@ public:
         invoke(std::forward<T>(args)...);
     }
 
+    void wait()
+    {
+        if (stop)
+            return;
+        signal.wait(true);
+    }
+
 private:
     void loop()
     {
@@ -68,6 +75,7 @@ private:
             if (!stop)
                 next();
             signal.clear();
+            signal.notify_all();
         }
     }
 

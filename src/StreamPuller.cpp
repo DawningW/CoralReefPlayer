@@ -76,6 +76,7 @@ void StreamPuller::stop()
 
     exit = 1;
     thread.join();
+    callback.wait();
     callback.invokeSync(CRP_EV_STOP, nullptr, userData);
     if (videoDecoder != nullptr)
         delete videoDecoder;

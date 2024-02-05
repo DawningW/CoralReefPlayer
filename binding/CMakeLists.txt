@@ -1,3 +1,7 @@
+set(BUILD_JAVA_BINDING OFF CACHE BOOL "Build Java binding")
+if(BUILD_JAVA_BINDING)
+    add_subdirectory(java)
+endif()
 set(BUILD_PYTHON_BINDING OFF CACHE BOOL "Build Python binding")
 if(BUILD_PYTHON_BINDING)
     add_subdirectory(python)

@@ -1,0 +1,53 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+def os = System.getProperty('os.name').toLowerCase()
+if (os.contains('windows')) {
+    os = 'win'
+} else if (os.contains('linux')) {
+    os = 'linux'
+} else if (os.contains('mac')) {
+    os = 'mac'
+} else {
+    os = 'unknown'
+}
+def arch = System.getProperty('os.arch')
+
+group = 'cn.oureda'
+archivesBaseName = "crp4j-${os}-${arch}"
+version = project.CRP_VERSION
+
+[compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF-8'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {}
+
+task makeJar(dependsOn: jar) {}
+build.finalizedBy makeJar
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifact jar
+            artifactId = archivesBaseName
+        }
+    }
+    repositories {
+        maven {
+            url = file("${project.PUBLISH_PATH}")
+        }
+    }
+}
