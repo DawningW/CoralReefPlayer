@@ -1,6 +1,6 @@
 project(pyCoralReefPlayer VERSION ${CoralReefPlayer_VERSION})
 
-include(${CMAKE_SOURCE_DIR}/cmake/copy_libs.cmake)
+include(copy_libs)
 
 find_package(Python3 3.7 COMPONENTS Interpreter Development)
 if(NOT Python3_FOUND)

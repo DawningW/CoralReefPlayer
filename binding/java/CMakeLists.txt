@@ -1,6 +1,6 @@
 project(coralreefplayer4j VERSION ${CoralReefPlayer_VERSION})
 
-include(${CMAKE_SOURCE_DIR}/cmake/copy_libs.cmake)
+include(copy_libs)
 
 find_package(Java 1.8 COMPONENTS Runtime Development)
 if(NOT Java_FOUND)

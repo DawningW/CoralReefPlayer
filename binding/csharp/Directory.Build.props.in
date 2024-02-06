@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- These settings are applied to all projects recursive from here (unless overridden). -->
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Nuget Properties -->
+    <MinClientVersion>4.1.0</MinClientVersion>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <Authors>Wu Chen</Authors>
+    <Company>OurEDA</Company>
+    <Copyright>Copyright 2023-2024 OurEDA</Copyright>
+
+    <!-- Pack Option -->
+    <PackageTags>video;stream;native</PackageTags>
+    <!-- <PackageIcon>content/logo.png</PackageIcon> -->
+    <PackageProjectUrl>http://nas.oureda.cn:8418/ROV/CoralReefPlayer</PackageProjectUrl>
+    <PackageOutputPath>@CMAKE_INSTALL_PREFIX@</PackageOutputPath>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <!--Disable CS1591 "Missing XML comment for publicly visible type or member" -->
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <PropertyGroup Label="BasePath">
+    <SolutionDir Condition="'$(SolutionDir)'==''">$(MSBuildThisFileDirectory)</SolutionDir>
+  </PropertyGroup>
+</Project>

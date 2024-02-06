@@ -1,6 +1,6 @@
 project(coralreefplayer-js VERSION ${CoralReefPlayer_VERSION})
 
-include(${CMAKE_SOURCE_DIR}/cmake/copy_libs.cmake)
+include(copy_libs)
 
 find_program(NodeJS_EXECUTABLE NAMES node)
 if(NOT NodeJS_EXECUTABLE)
