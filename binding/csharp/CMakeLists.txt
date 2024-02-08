@@ -137,7 +137,7 @@ configure_file(
 )
 
 add_custom_target(csharp-prepare
-    COMMAND echo "Build C# binding"
+    COMMAND echo "Build c# binding"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS CoralReefPlayer
 )

@@ -1,0 +1,9 @@
+[package]
+name = "coralreefplayer-rs"
+version = "@PROJECT_VERSION@.0"
+authors = ["Wu Chen"]
+edition = "2021"
+description = "Rust binding for CoralReefPlayer"
+build = "build.rs"
+
+[dependencies]

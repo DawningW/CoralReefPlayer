@@ -1,0 +1,24 @@
+use std::env;
+use std::path::Path;
+use std::path::PathBuf;
+use std::fs;
+
+fn main() {
+    let lib_path = Path::new("./lib");
+    let out_dir = env::var("OUT_DIR").unwrap();
+    let out_path = Path::new(&out_dir);
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
+    let deps_path = PathBuf::from(manifest_dir).join("target/debug/deps");
+    for entry in fs::read_dir(&lib_path).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        let file_name = path.file_name().unwrap();
+        let out_file1 = out_path.join(file_name);
+        fs::copy(&path, &out_file).unwrap();
+        let out_file2 = deps_path.join(file_name);
+        fs::copy(&path, &out_file2).unwrap();
+    }
+
+    println!("cargo:rustc-link-search=native=D:/rouring/CoralReefPlayer/build/x64-Debug/src");
+    println!("cargo:rustc-link-lib=CoralReefPlayer");
+}
