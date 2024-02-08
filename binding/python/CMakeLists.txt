@@ -18,8 +18,8 @@ file(
 )
 
 configure_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/build_config.py.in
-    ${CMAKE_CURRENT_BINARY_DIR}/build_config.py
+    ${CMAKE_CURRENT_BINARY_DIR}/setup.py.in
+    ${CMAKE_CURRENT_BINARY_DIR}/setup.py
     @ONLY
 )
 

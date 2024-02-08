@@ -15,11 +15,11 @@ def on_event(event, data):
 
 if __name__ == "__main__":
     hasFrame = False
-    player = crp.create()
-    crp.play(player, url, crp.TRANS_UDP, 0, 0, crp.FORMAT_BGR24, on_event)
+    player = crp.Player()
+    player.play(url, crp.TRANS_UDP, 0, 0, crp.FORMAT_BGR24, on_event)
     for i in range(10):
         time.sleep(1)
         if hasFrame:
             break
-    crp.destroy(player)
+    player.release()
     assert hasFrame

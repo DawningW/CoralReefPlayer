@@ -17,7 +17,7 @@ void py_callback(int event, void* data, void* user_data) {
     }
 }
 
-PYBIND11_MODULE(cwrapper, m) {
+PYBIND11_MODULE(extension, m) {
     py::class_<Frame>(m, "Frame", py::buffer_protocol())
         .def_readonly("width", &Frame::width)
         .def_readonly("height", &Frame::height)

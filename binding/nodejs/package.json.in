@@ -3,6 +3,7 @@
   "version": "@PROJECT_VERSION@",
   "description": "Node.js binding for CoralReefPlayer",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "files": [
     "lib",
     "src",

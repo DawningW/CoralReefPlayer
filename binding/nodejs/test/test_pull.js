@@ -9,8 +9,8 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function testPull() {
     let hasFrame = false;
-    let player = crp.create();
-    crp.play(player, url, crp.Transport.UDP, 0, 0, crp.Format.RGBA32,
+    let player = new crp.Player();
+    player.play(url, crp.Transport.UDP, 0, 0, crp.Format.RGBA32,
         (event, data) => {
             console.log(`event: ${event}`);
             if (event == crp.Event.NEW_FRAME) {
@@ -25,7 +25,7 @@ async function testPull() {
             break;
         }
     }
-    crp.destroy(player);
+    player.release();
     assert(hasFrame);
 }
 
