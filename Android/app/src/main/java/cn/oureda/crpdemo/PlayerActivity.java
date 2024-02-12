@@ -95,7 +95,7 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     }
 
     @Override
-    public void onFrame(int width, int height, int format, byte[] data, long pts) {
+    public void onFrame(int width, int height, int format, ByteBuffer data, long pts) {
         runOnUiThread(() -> {
             if (!played) {
                 int viewWidth = binding.getRoot().getWidth();
@@ -114,7 +114,7 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
             }
 
             Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-            bitmap.copyPixelsFromBuffer(ByteBuffer.wrap(data));
+            bitmap.copyPixelsFromBuffer(data);
             binding.imagePlayer.setImageBitmap(bitmap);
         });
     }

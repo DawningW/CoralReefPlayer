@@ -30,12 +30,9 @@ void java_callback(int event, void *data, void *user_data) {
     jclass cls = jenv->GetObjectClass(callback);
     if (event == CRP_EV_NEW_FRAME) {
         Frame *frame = (Frame *) data;
-        jmethodID method = jenv->GetMethodID(cls, "onFrame", "(III[BJ)V");
-        int size = frame->linesize[0] * frame->height;
-        jbyteArray array = jenv->NewByteArray(size);
-        jenv->SetByteArrayRegion(array, 0, size, (jbyte *) frame->data[0]);
-        jenv->CallVoidMethod(callback, method, frame->width, frame->height, frame->format, array, (jlong) frame->pts);
-        jenv->DeleteLocalRef(array);
+        jmethodID method = jenv->GetMethodID(cls, "onFrame", "(IIILjava/nio/ByteBuffer;J)V");
+        jobject buffer = jenv->NewDirectByteBuffer(frame->data[0], frame->linesize[0] * frame->height);
+        jenv->CallVoidMethod(callback, method, frame->width, frame->height, frame->linesize[0], buffer);
     } else {
         jmethodID method = jenv->GetMethodID(cls, "onEvent", "(IJ)V");
         jenv->CallVoidMethod(callback, method, event, (jlong) data);

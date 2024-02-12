@@ -1,5 +1,7 @@
 package cn.oureda.coralreefplayer;
 
+import java.nio.ByteBuffer;
+
 public class CoralReefPlayer {
     public static final int TRANSPORT_UDP = 0;
     public static final int TRANSPORT_TCP = 1;
@@ -56,6 +58,6 @@ public class CoralReefPlayer {
 
     public interface Callback {
         void onEvent(int event, long data);
-        void onFrame(int width, int height, int format, byte[] data, long pts);
+        void onFrame(int width, int height, int format, ByteBuffer data, long pts);
     }
 }

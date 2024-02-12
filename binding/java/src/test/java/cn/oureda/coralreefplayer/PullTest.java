@@ -1,10 +1,11 @@
 package cn.oureda.coralreefplayer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PullTest {
     private static final String URL = "rtsp://127.0.0.1/main.sdp";
@@ -26,7 +27,7 @@ public class PullTest {
                     }
 
                     @Override
-                    public void onFrame(int width, int height, int format, byte[] data, long pts) {
+                    public void onFrame(int width, int height, int format, ByteBuffer data, long pts) {
                         System.out.println("frame: " + width + "x" + height + ", format: " + format + ", pts: " + pts);
                         hasFrame[0] = true;
                     }
