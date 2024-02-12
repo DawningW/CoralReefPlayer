@@ -41,6 +41,7 @@ target_include_directories(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
         CORALREEFPLAYER_EXPORTS
+        ENABLE_MJPEG_OVER_HTTP=$<BOOL:${ENABLE_MJPEG_OVER_HTTP}>
 )
 
 target_link_libraries(${PROJECT_NAME}

@@ -38,22 +38,29 @@ foreach(dir LIB BIN INCLUDE)
     message(STATUS "Installing ${dir} components to ${CMAKE_INSTALL_FULL_${dir}DIR}")
 endforeach()
 
-set(CURL_USE_STATIC_LIBS OFF CACHE BOOL "")
-if(WIN32)
-    set(CURL_DIR "${THIRD_PARTY_DIR}/libcurl/lib/cmake/CURL" CACHE PATH "")
-    find_package(CURL REQUIRED)
-    if(NOT CURL_USE_STATIC_LIBS)
-        set(CURL_LIBS CURL::libcurl_shared)
+set(ENABLE_MJPEG_OVER_HTTP ON CACHE BOOL "")
+if(CMAKE_SYSTEM_NAME MATCHES "Android")
+    set(ENABLE_MJPEG_OVER_HTTP OFF CACHE BOOL "" FORCE)
+    message(STATUS "MJPEG over HTTP is not supported on Android")
+endif()
+if(ENABLE_MJPEG_OVER_HTTP)
+    set(CURL_USE_STATIC_LIBS OFF CACHE BOOL "")
+    if(WIN32)
+        set(CURL_DIR "${THIRD_PARTY_DIR}/libcurl/lib/cmake/CURL" CACHE PATH "")
+        find_package(CURL REQUIRED)
+        if(NOT CURL_USE_STATIC_LIBS)
+            set(CURL_LIBS CURL::libcurl_shared)
+        else()
+            set(CURL_LIBS CURL::libcurl_static)
+        endif()
+        install(IMPORTED_RUNTIME_ARTIFACTS ${CURL_LIBS}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+        )
     else()
-        set(CURL_LIBS CURL::libcurl_static)
+        find_package(CURL REQUIRED)
+        set(CURL_LIBS CURL::libcurl)
     endif()
-    install(IMPORTED_RUNTIME_ARTIFACTS ${CURL_LIBS}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
-    )
-else()
-    find_package(CURL REQUIRED)
-    set(CURL_LIBS CURL::libcurl)
 endif()
 
 add_subdirectory(${THIRD_PARTY_DIR}/live555)

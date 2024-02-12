@@ -2,6 +2,12 @@
 #include "cn_oureda_coralreefplayer_NativeMethods.h"
 #include "coralreefplayer.h"
 
+#ifdef ANDROID
+#define JENV_TYPE JNIEnv
+#else
+#define JENV_TYPE void
+#endif
+
 JavaVM *g_jvm = NULL;
 std::unordered_map<crp_handle, jobject> g_callbacks;
 
@@ -17,7 +23,7 @@ void java_callback(int event, void *data, void *user_data) {
     JNIEnv *jenv;
     jint result = g_jvm->GetEnv((void **) &jenv, JNI_VERSION_1_6);
     if (result == JNI_EDETACHED) {
-        if (g_jvm->AttachCurrentThread((void **) &jenv, NULL) != JNI_OK) {
+        if (g_jvm->AttachCurrentThread((JENV_TYPE **) &jenv, NULL) != JNI_OK) {
             return;
         }
     }

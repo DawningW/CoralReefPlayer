@@ -50,6 +50,35 @@ if(WIN32 OR CYGWIN)
         LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     )
+elseif(ANDROID)
+    add_library(avfilter SHARED IMPORTED GLOBAL)
+    set_target_properties(avfilter PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavfilter.so
+    )
+    add_library(avformat SHARED IMPORTED GLOBAL)
+    set_target_properties(avformat PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavformat.so
+    )
+    add_library(avcodec SHARED IMPORTED GLOBAL)
+    set_target_properties(avcodec PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavcodec.so
+    )
+    add_library(avutil SHARED IMPORTED GLOBAL)
+    set_target_properties(avutil PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavutil.so
+    )
+    add_library(swresample SHARED IMPORTED GLOBAL)
+    set_target_properties(swresample PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libswresample.so
+    )
+    add_library(swscale SHARED IMPORTED GLOBAL)
+    set_target_properties(swscale PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libswscale.so
+    )
+
+    set_target_properties(avfilter avformat avcodec avutil swresample swscale PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/Android/include
+    )
 else()
     add_library(avdevice SHARED IMPORTED GLOBAL)
     find_library(AVDEVICE_DIR avdevice)

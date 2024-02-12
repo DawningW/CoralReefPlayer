@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.library'
+}
+
+android {
+    namespace 'cn.oureda.coralreefplayer'
+    compileSdk 33
+
+    defaultConfig {
+        minSdk 24
+
+        consumerProguardFiles "consumer-rules.pro"
+        externalNativeBuild {
+            cmake {
+                arguments "-DBUILD_JAVA_BINDING=ON", "-DBUILD_DEMO=OFF"
+                cppFlags "-std=c++20"
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            java.srcDirs = ['../../binding/java/src/main/java']
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path "../../CMakeLists.txt"
+            version "3.22.1"
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {}

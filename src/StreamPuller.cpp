@@ -88,8 +88,10 @@ void StreamPuller::start()
     exit = 0;
     if (protocol == CRP_RTSP)
         thread = std::thread(&StreamPuller::runRTSP, this);
+#if ENABLE_MJPEG_OVER_HTTP
     else if (protocol == CRP_HTTP)
         thread = std::thread(&StreamPuller::runHTTP, this);
+#endif
 }
 
 void StreamPuller::runRTSP()
@@ -114,6 +116,7 @@ void StreamPuller::runRTSP()
     delete scheduler;
 }
 
+#if ENABLE_MJPEG_OVER_HTTP
 void StreamPuller::runHTTP()
 {
     HTTPSink sink([this](AVPacket* packet)
@@ -183,6 +186,7 @@ void StreamPuller::runHTTP()
 
     curl_easy_cleanup(curl);
 }
+#endif
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
 {
@@ -483,6 +487,7 @@ void StreamPuller::noteLiveness()
     }
 }
 
+#if ENABLE_MJPEG_OVER_HTTP
 size_t StreamPuller::curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
 {
     if (!downloading && dlnow > 0)
@@ -502,12 +507,15 @@ size_t StreamPuller::curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, 
 #endif
     return exit;
 }
+#endif
 
 StreamPuller::Protocol StreamPuller::parseUrl(const std::string& url)
 {
     if (url.starts_with("rtsp"))
         return CRP_RTSP;
+#if ENABLE_MJPEG_OVER_HTTP
     else if (url.starts_with("http") || url.starts_with("file"))
         return CRP_HTTP;
+#endif
     return CRP_UNKNOWN;
 }

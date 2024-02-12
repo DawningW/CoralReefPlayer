@@ -6,7 +6,9 @@
 #include "GroupsockHelper.hh"
 #include "BasicUsageEnvironment.hh"
 #include "RTSPClient.hh"
+#if ENABLE_MJPEG_OVER_HTTP
 #include "curl/curl.h"
+#endif
 #include "coralreefplayer.h"
 #include "AsyncCallback.hpp"
 #include "VideoDecoder.h"
@@ -18,7 +20,9 @@ public:
     {
         CRP_UNKNOWN,
         CRP_RTSP,
+#if ENABLE_MJPEG_OVER_HTTP
         CRP_HTTP,
+#endif
     };
     using Callback = std::function<void(int, void*, void*)>;
 
@@ -32,7 +36,9 @@ public:
 private:
     void start();
     void runRTSP();
+#if ENABLE_MJPEG_OVER_HTTP
     void runHTTP();
+#endif
     void shutdownStream(RTSPClient* rtspClient);
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
@@ -42,7 +48,9 @@ private:
     void subsessionByeHandler(MediaSubsession* subsession, char const* reason);
     void timeoutHandler();
     void noteLiveness();
+#if ENABLE_MJPEG_OVER_HTTP
     size_t curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
+#endif
     static Protocol parseUrl(const std::string& url);
 
 private:
@@ -66,7 +74,9 @@ private:
     MediaSubsession* subsession;
     MediaSubsessionIterator* iter;
     TaskToken livenessCheckTask;
+#if ENABLE_MJPEG_OVER_HTTP
     CURL* curl;
     bool downloading;
+#endif
     VideoDecoder* videoDecoder;
 };

@@ -7,8 +7,10 @@
 #define SINK_RECEIVE_BUFFER_SIZE 1000000
 #define HTTP_RECEIVE_BUFFER_SIZE 1500000
 
+#if ENABLE_MJPEG_OVER_HTTP
 const char* contentTypeStr = "Content-Type:";
 const std::regex boundaryRegex{ R"===(boundary="?(?:--)?(\S+)"?\n?)===" };
+#endif
 
 StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, Callback callback)
 {
@@ -82,6 +84,7 @@ Boolean StreamSink::continuePlaying()
     return True;
 }
 
+#if ENABLE_MJPEG_OVER_HTTP
 HTTPSink::HTTPSink(Callback onFrame) : onFrame(onFrame) {}
 
 HTTPSink::~HTTPSink() {}
@@ -179,3 +182,4 @@ bool HTTPSink::writeData(const uint8_t* data, size_t size)
 
     return true;
 }
+#endif

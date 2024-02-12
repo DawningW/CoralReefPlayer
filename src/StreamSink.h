@@ -32,6 +32,7 @@ private:
     Boolean fH264OrH265;
 };
 
+#if ENABLE_MJPEG_OVER_HTTP
 class HTTPSink
 {
 public:
@@ -51,3 +52,4 @@ private:
     Matcher<uint8_t> startMatcher{ std::vector(jpegStartCode, jpegStartCode + sizeof(jpegStartCode)) };
     Matcher<uint8_t> endMatcher{ std::vector(jpegEndCode, jpegEndCode + sizeof(jpegEndCode)) };
 };
+#endif
