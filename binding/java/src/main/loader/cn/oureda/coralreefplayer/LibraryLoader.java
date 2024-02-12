@@ -1,4 +1,4 @@
-package cn.oureda.coralreefplayer.util;
+package cn.oureda.coralreefplayer;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -9,6 +9,29 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Map;
 
 public class LibraryLoader {
+    static {
+        try {
+            // TODO 需要配合自定义 ClassLoader.findLibrary() 方法使用
+            // Path tempDir = Files.createTempDirectory("CoralReefPlayer");
+            // tempDir.toFile().deleteOnExit();
+            // LibraryLoader.addPath(tempDir.toString());
+            // LibraryLoader.extractFromJar("/native", tempDir);
+            // System.loadLibrary("crp_native");
+
+            if (isWindows()) {
+                load("avutil-56");
+                load("swscale-5");
+                load("swresample-3");
+                load("avcodec-58");
+                load("libcurl");
+            }
+            load("CoralReefPlayer");
+            load("crp_native");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void extractFromJar(String src, Path dst) throws URISyntaxException, IOException {
         URL resource = LibraryLoader.class.getResource(src);
         FileSystem fileSystem = null;
@@ -82,14 +105,5 @@ public class LibraryLoader {
 
     public static boolean isWindows() {
         return System.getProperty("os.name").toLowerCase().contains("win");
-    }
-
-    public static boolean isAndroid() {
-        try {
-            Class.forName("android.os.Build");
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
     }
 }

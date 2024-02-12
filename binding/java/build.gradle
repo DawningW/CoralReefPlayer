@@ -21,6 +21,14 @@ version = project.CRP_VERSION
 
 [compileJava, compileTestJava, javadoc]*.options*.encoding = 'UTF-8'
 
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', 'src/main/loader']
+        }
+    }
+}
+
 repositories {
     mavenCentral()
 }
@@ -34,9 +42,6 @@ test {
 }
 
 jar {}
-
-task makeJar(dependsOn: jar) {}
-build.finalizedBy makeJar
 
 publishing {
     publications {
