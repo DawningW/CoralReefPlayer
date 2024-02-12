@@ -8,6 +8,8 @@ if(NOT GO_EXECUTABLE)
     return()
 endif()
 
+get_target_property(CRP_INCLUDE_DIR CoralReefPlayer INTERFACE_INCLUDE_DIRECTORIES)
+
 file(
     COPY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
@@ -20,7 +22,7 @@ add_custom_target(go-prepare
 )
 add_custom_command(
     TARGET go-prepare POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_SOURCE_DIR}/src/coralreefplayer.h gcrp/
+    COMMAND ${CMAKE_COMMAND} -E copy ${CRP_INCLUDE_DIR}/coralreefplayer.h gcrp/
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 add_copy_libs_command(go-prepare gcrp/)

@@ -11,9 +11,9 @@ add_custom_command(
         ${CMAKE_CURRENT_BINARY_DIR}/generated/git_hash.h
         ALL
     COMMAND
-        ${CMAKE_COMMAND} -D TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_SOURCE_DIR}/cmake/git-hash.cmake
+        ${CMAKE_COMMAND} -D TARGET_DIR=${CMAKE_CURRENT_BINARY_DIR} -P ${CMAKE_MODULE_DIR}/git-hash.cmake
     WORKING_DIRECTORY
-        ${CMAKE_SOURCE_DIR}
+        ${CoralReefPlayer_SOURCE_DIR}
 )
 
 add_custom_target(git_hash ALL
