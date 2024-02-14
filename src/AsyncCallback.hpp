@@ -95,6 +95,6 @@ private:
 
     volatile bool stop;
     std::thread thread;
-    std::atomic_flag signal;
+    std::atomic_flag signal = ATOMIC_FLAG_INIT; // For Android compatibility
     std::function<void()> next;
 };

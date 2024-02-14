@@ -27,6 +27,7 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i(TAG, "onCreate");
         binding = ActivityPlayerBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -56,6 +57,7 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     @Override
     protected void onStart() {
         super.onStart();
+        Log.i(TAG, "onStart");
         Intent intent = getIntent();
         String url = intent.getStringExtra("url");
         int transport = intent.getBooleanExtra("is_tcp", false) ? 0 : 1;
@@ -65,20 +67,22 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     @Override
     protected void onStop() {
         super.onStop();
+        Log.i(TAG, "onStop");
         player.stop();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.i(TAG, "onDestroy");
         player.release();
         player = null;
     }
 
     @Override
     public void onEvent(int event, long data) {
+        Log.i(TAG, "onEvent: " + event);
         runOnUiThread(() -> {
-            Log.i(TAG, "event: " + event);
             if (event == CoralReefPlayer.EVENT_ERROR) {
                 toast("错误!");
             } else if (event == CoralReefPlayer.EVENT_START) {
@@ -96,6 +100,11 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
 
     @Override
     public void onFrame(int width, int height, int format, ByteBuffer data, long pts) {
+        // Log.i(TAG, "onFrame");
+        // 在拉流线程上创建位图, 避免 Player 释放后访问空指针
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        bitmap.copyPixelsFromBuffer(data);
+
         runOnUiThread(() -> {
             if (!played) {
                 int viewWidth = binding.getRoot().getWidth();
@@ -113,8 +122,6 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
                 played = true;
             }
 
-            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-            bitmap.copyPixelsFromBuffer(data);
             binding.imagePlayer.setImageBitmap(bitmap);
         });
     }

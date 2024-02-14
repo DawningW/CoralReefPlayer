@@ -32,7 +32,6 @@ private:
     Boolean fH264OrH265;
 };
 
-#if ENABLE_MJPEG_OVER_HTTP
 class HTTPSink
 {
 public:
@@ -40,16 +39,13 @@ public:
 
     HTTPSink(Callback callback);
     ~HTTPSink();
-    bool writeHeader(const uint8_t* data, size_t size);
+    void setBoundary(const std::string& boundary);
     bool writeData(const uint8_t* data, size_t size);
 
 private:
     Callback onFrame;
-
-    std::string boundary;
     std::vector<uint8_t> buffer;
     Matcher<uint8_t> boundaryMatcher;
-    Matcher<uint8_t> startMatcher{ std::vector(jpegStartCode, jpegStartCode + sizeof(jpegStartCode)) };
-    Matcher<uint8_t> endMatcher{ std::vector(jpegEndCode, jpegEndCode + sizeof(jpegEndCode)) };
+    Matcher<uint8_t> startMatcher;
+    Matcher<uint8_t> endMatcher;
 };
-#endif

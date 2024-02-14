@@ -1,16 +1,10 @@
 #include "StreamSink.h"
 #include <cstdio>
 #include <cstring>
-#include <regex>
 #include "VideoDecoder.h"
 
 #define SINK_RECEIVE_BUFFER_SIZE 1000000
 #define HTTP_RECEIVE_BUFFER_SIZE 1500000
-
-#if ENABLE_MJPEG_OVER_HTTP
-const char* contentTypeStr = "Content-Type:";
-const std::regex boundaryRegex{ R"===(boundary="?(?:--)?(\S+)"?\n?)===" };
-#endif
 
 StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, Callback callback)
 {
@@ -84,41 +78,26 @@ Boolean StreamSink::continuePlaying()
     return True;
 }
 
-#if ENABLE_MJPEG_OVER_HTTP
-HTTPSink::HTTPSink(Callback onFrame) : onFrame(onFrame) {}
+HTTPSink::HTTPSink(Callback onFrame) : onFrame(onFrame),
+    startMatcher{ std::vector(jpegStartCode, jpegStartCode + sizeof(jpegStartCode)) },
+    endMatcher{ std::vector(jpegEndCode, jpegEndCode + sizeof(jpegEndCode)) } {}
 
 HTTPSink::~HTTPSink() {}
 
-bool HTTPSink::writeHeader(const uint8_t* data, size_t size)
+void HTTPSink::setBoundary(const std::string& boundary)
 {
-    size_t contentTypeLen = strlen(contentTypeStr);
-    if (size < contentTypeLen || memcmp(data, contentTypeStr, contentTypeLen) != 0)
-        return false;
-
-    /*
-     * 在标准实现中，header 条目为 Content-Type: multipart/x-mixed-replace; boundary="boundaryValue"
-     * 但在某些实现中，会有以下情况：
-     * 1. 双引号消失：boundary=boundaryValue
-     * 2. 多出分隔符：boundary="--boundaryValue"
-     * 3. 其他
-     * 此处提取的是最纯粹的 boundaryValue 部分
-     * 
-     * JPEG 图片间标准实现的分隔符为 --boundaryValue
-     * 为了防止某些实现中，--消失，本实现仅匹配 boundaryValue
-     */
-    std::cmatch m;
-    if (std::regex_search((const char*) data, (const char*) data + size, m, boundaryRegex))
-    {
-        boundary = m[1].str();
-        boundaryMatcher = Matcher<uint8_t>(std::vector<uint8_t>(boundary.data(), boundary.data() + boundary.size()));
-        return true;
-    }
-
-    return false;
+#ifdef _DEBUG
+    printf("MJPEG stream boundary: %s\n", boundary.c_str());
+#endif
+    boundaryMatcher = Matcher<uint8_t>(std::vector<uint8_t>(boundary.data(), boundary.data() + boundary.size()));
 }
 
 bool HTTPSink::writeData(const uint8_t* data, size_t size)
 {
+#ifdef _DEBUG
+    printf("video/mjpeg:\tReceived %llu bytes.\n", size);
+#endif
+
     if (size == 0)
         return false;
 
@@ -182,4 +161,3 @@ bool HTTPSink::writeData(const uint8_t* data, size_t size)
 
     return true;
 }
-#endif

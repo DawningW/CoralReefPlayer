@@ -23,7 +23,6 @@ public class LibraryLoader {
                 load("swscale-5");
                 load("swresample-3");
                 load("avcodec-58");
-                load("libcurl");
             }
             load("CoralReefPlayer");
             load("crp_native");

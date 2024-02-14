@@ -15,8 +15,8 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 - CoralReefCam
     - CoralReefPlayer
         - [live555](http://www.live555.com/liveMedia/) 2023.11.30
+        - [cpp-httplib](https://github.com/yhirose/cpp-httplib) 0.15.3
         - [FFmpeg](https://ffmpeg.org/) 4.4 (4.4+)
-        - [libcurl](https://curl.se/libcurl/) 8.4.0 (7.32.0+)
     - [SDL2](https://libsdl.org/) 2.28.5 (2.26.0+)
     - [imgui](https://github.com/ocornut/imgui) 1.90
     - [implot](https://github.com/epezent/implot) 0.16
@@ -48,7 +48,6 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 - gcc 11 或更高版本
 - 使用包管理器或源码编译安装下列库或它们的更高版本：
     - FFmpeg 4.4+
-    - libcurl 7.32.0+
     - SDL2 2.26.0+
     - （可选）OpenCV 4.4.0+
 

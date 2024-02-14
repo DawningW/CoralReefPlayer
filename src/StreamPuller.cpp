@@ -1,10 +1,18 @@
 #include "StreamPuller.h"
 #include <cstdio>
 #include <cstring>
+#include <regex>
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "StreamSink.h"
 
+#ifdef _DEBUG
+#define LOG_LEVEL 1
+#else
+#define LOG_LEVEL 0
+#endif
 #define DEFAULT_TIMEOUT_MS 1000
+
+static const std::string USER_AGENT = std::string("CoralReefPlayer/") + crp_version_str();
 
 class OurRTSPClient : public RTSPClient
 {
@@ -27,14 +35,12 @@ StreamPuller::StreamPuller() : userData(nullptr), timeout(DEFAULT_TIMEOUT_MS), e
 StreamPuller::~StreamPuller()
 {
     stop();
-    if (authenticator != NULL)
-        delete authenticator;
+    delete authenticator;
 }
 
 void StreamPuller::authenticate(const char* username, const char* password, bool useMD5)
 {
-    if (authenticator != NULL)
-        delete authenticator;
+    delete authenticator;
     authenticator = new Authenticator(username, password, useMD5);
 }
 
@@ -78,8 +84,7 @@ void StreamPuller::stop()
     thread.join();
     callback.wait();
     callback.invokeSync(CRP_EV_STOP, nullptr, userData);
-    if (videoDecoder != nullptr)
-        delete videoDecoder;
+    delete videoDecoder;
 }
 
 void StreamPuller::start()
@@ -88,17 +93,15 @@ void StreamPuller::start()
     exit = 0;
     if (protocol == CRP_RTSP)
         thread = std::thread(&StreamPuller::runRTSP, this);
-#if ENABLE_MJPEG_OVER_HTTP
     else if (protocol == CRP_HTTP)
         thread = std::thread(&StreamPuller::runHTTP, this);
-#endif
 }
 
 void StreamPuller::runRTSP()
 {
     scheduler = BasicTaskScheduler::createNew();
     environment = BasicUsageEnvironment::createNew(*scheduler);
-    rtspClient = OurRTSPClient::createNew(*environment, url.c_str(), 1, "CoralReefPlayer");
+    rtspClient = OurRTSPClient::createNew(*environment, url.c_str(), LOG_LEVEL, USER_AGENT.c_str());
     session = NULL;
     livenessCheckTask = NULL;
     
@@ -116,9 +119,39 @@ void StreamPuller::runRTSP()
     delete scheduler;
 }
 
-#if ENABLE_MJPEG_OVER_HTTP
 void StreamPuller::runHTTP()
 {
+    static const std::regex urlRegex(R"(([a-z]+:\/\/[^/]*)(\/?.*))");
+
+    std::string host, path;
+    try
+    {
+        std::smatch m;
+        if (std::regex_match(url, m, urlRegex))
+        {
+            host = m[1].str();
+            path = m[2].str();
+            if (path.empty()) path = "/";
+        }
+        httpClient = new httplib::Client(host);
+    }
+    catch (const std::exception& e)
+    {
+        fprintf(stderr, "Failed to create HTTP client: %s\n", e.what());
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
+        return;
+    }
+
+    callback.invokeSync(CRP_EV_START, nullptr, userData);
+    httpClient->set_default_headers({
+        {"User-Agent", USER_AGENT}
+    });
+    httpClient->set_follow_location(true);
+    if (authenticator != NULL)
+    {
+        httpClient->set_basic_auth(authenticator->username(), authenticator->password());
+    }
+    std::string* body = nullptr;
     HTTPSink sink([this](AVPacket* packet)
         {
             if (videoDecoder->processPacket(packet))
@@ -126,67 +159,83 @@ void StreamPuller::runHTTP()
                 callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
             }
         });
-    curl = curl_easy_init();
-    downloading = false;
-    videoDecoder = VideoDecoder::createNew("JPEG", format, width, height);
-    if (curl == NULL)
-    {
-        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
-        return;
-    }
+#ifdef _DEBUG
+    printf("> GET %s\n", url.c_str());
+#endif
+    httplib::Result res = httpClient->Get(path,
+        [&](const httplib::Response& rep)
+        {
+            /*
+             * 在标准实现中，header 条目为 Content-Type: multipart/x-mixed-replace; boundary="boundaryValue"
+             * 但在某些实现中，会有以下情况：
+             * 1. 双引号消失：boundary=boundaryValue
+             * 2. 多出分隔符：boundary="--boundaryValue"
+             * 3. 其他
+             * 此处提取的是最纯粹的 boundaryValue 部分
+             *
+             * JPEG 图片间标准实现的分隔符为 --boundaryValue
+             * 为了防止某些实现中，--消失，本实现仅匹配 boundaryValue
+             */
+            static const std::regex boundaryRegex(R"===(boundary="?(?:--)?(\S+)"?\n?)===");
 
-    callback.invokeSync(CRP_EV_START, nullptr, userData);
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "CoralReefPlayer");
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
-    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION,
-        +[](void* userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
+#ifdef _DEBUG
+            printf("< %d %s\n", rep.status, rep.reason.c_str());
+            for (auto& header : rep.headers)
+            {
+                printf("< %s: %s\n", header.first.c_str(), header.second.c_str());
+            }
+#endif
+            body = const_cast<std::string*>(&rep.body);
+            std::string boundary;
+            if (rep.has_header("Content-Type"))
+            {
+                std::string contentType = rep.get_header_value("Content-Type");
+                std::cmatch m;
+                if (std::regex_search(contentType.c_str(), m, boundaryRegex))
+                {
+                    boundary = m[1].str();
+                }
+            }
+            if (!boundary.empty()) {
+                sink.setBoundary(boundary);
+                videoDecoder = VideoDecoder::createNew("JPEG", format, width, height);
+                callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
+            }
+            return true;
+        },
+        [&](const char* data, size_t length)
         {
-            return ((StreamPuller*) userdata)->curlProgressCallback(dltotal, dlnow, ultotal, ulnow);
+            if (videoDecoder == nullptr)
+            {
+                body->append(data, length);
+                return true;
+            }
+            sink.writeData((const uint8_t*) data, length);
+            return !exit;
         });
-    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, this);
-    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sink);
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION,
-        +[](void* contents, size_t size, size_t nmemb, void* userdata)
-        {
-            size_t realsize = size * nmemb;
-            ((HTTPSink*) userdata)->writeHeader((const uint8_t*) contents, realsize);
-            return realsize;
-        });
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION,
-        +[](void* contents, size_t size, size_t nmemb, void* userdata)
-        {
-            size_t realsize = size * nmemb;
-            ((HTTPSink*) userdata)->writeData((const uint8_t*) contents, realsize);
-            return realsize;
-        });
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &sink);
-    CURLcode res = curl_easy_perform(curl);
-    if (res == CURLE_OK)
+    if (res.error() == httplib::Error::Success)
     {
-        long response_code;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-        if (response_code == 0 || response_code == 200)
+        if (videoDecoder != nullptr)
         {
             callback.invokeSync(CRP_EV_END, nullptr, userData);
         }
         else
         {
-            fprintf(stderr, "Invalid response with status code %ld\n", response_code);
+            fprintf(stderr, "Invalid response with status %d %s:\n",
+                res.value().status, res.value().reason.c_str());
+            fputs(res.value().body.c_str(), stderr);
+            fputc('\n', stderr);
             callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
         }
     }
-    else if (res != CURLE_ABORTED_BY_CALLBACK)
+    else if (res.error() != httplib::Error::Canceled)
     {
-        fprintf(stderr, "curl_easy_perform failed: %s\n", curl_easy_strerror(res));
+        fprintf(stderr, "Request failed: %s\n", httplib::to_string(res.error()).c_str());
         callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
     }
 
-    curl_easy_cleanup(curl);
+    delete httpClient;
 }
-#endif
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
 {
@@ -303,8 +352,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
                 }
                 env << "Get H264 SPropRecords\n";
             }
-            if (spropRecords)
-                delete[] spropRecords;
+            delete[] spropRecords;
         }
         else if (strcmp(codecName, "H265") == 0)
         {
@@ -322,8 +370,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
                     }
                     env << "Get H265 SPropRecords\n";
                 }
-                if (spropRecords)
-                    delete[] spropRecords;
+                delete[] spropRecords;
             }
             else if (strcmp(subsession->fmtp_spropvps(), "") != 0)
             {
@@ -487,35 +534,11 @@ void StreamPuller::noteLiveness()
     }
 }
 
-#if ENABLE_MJPEG_OVER_HTTP
-size_t StreamPuller::curlProgressCallback(curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
-{
-    if (!downloading && dlnow > 0)
-    {
-        long response_code;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-        if (response_code == 0 || response_code == 200)
-        {
-            downloading = true;
-            callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
-        }
-    }
-
-#ifdef _DEBUG
-    if (!exit)
-        return CURL_PROGRESSFUNC_CONTINUE;
-#endif
-    return exit;
-}
-#endif
-
 StreamPuller::Protocol StreamPuller::parseUrl(const std::string& url)
 {
     if (url.starts_with("rtsp"))
         return CRP_RTSP;
-#if ENABLE_MJPEG_OVER_HTTP
-    else if (url.starts_with("http") || url.starts_with("file"))
+    else if (url.starts_with("http"))
         return CRP_HTTP;
-#endif
     return CRP_UNKNOWN;
 }

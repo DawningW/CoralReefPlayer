@@ -41,13 +41,12 @@ target_include_directories(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME}
     PRIVATE
         CORALREEFPLAYER_EXPORTS
-        ENABLE_MJPEG_OVER_HTTP=$<BOOL:${ENABLE_MJPEG_OVER_HTTP}>
 )
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        ${CURL_LIBS}
         live555
+        httplib
         avcodec
         avutil
         swscale
@@ -56,8 +55,8 @@ target_link_libraries(${PROJECT_NAME}
 
 add_dependencies(${PROJECT_NAME}
     git_hash
-    ${CURL_LIBS}
     live555
+    httplib
     avcodec
     avutil
     swscale
