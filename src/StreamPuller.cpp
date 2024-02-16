@@ -143,10 +143,13 @@ void StreamPuller::runHTTP()
     }
 
     callback.invokeSync(CRP_EV_START, nullptr, userData);
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
+    httpClient->enable_server_certificate_verification(false);
+#endif
+    httpClient->set_follow_location(true);
     httpClient->set_default_headers({
         {"User-Agent", USER_AGENT}
     });
-    httpClient->set_follow_location(true);
     if (authenticator != NULL)
     {
         httpClient->set_basic_auth(authenticator->username(), authenticator->password());
