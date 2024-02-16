@@ -1,5 +1,7 @@
 project(CoralReefCam)
 
+set(CMAKE_CXX_STANDARD 20)
+
 if(WIN32)
     set(SDL2_DIR "${THIRD_PARTY_DIR}/SDL2/cmake" CACHE PATH "")
     find_package(SDL2 2.28.0 REQUIRED)

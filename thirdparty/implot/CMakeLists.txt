@@ -1,5 +1,8 @@
 project(implot)
 
+# Same as imgui
+set(CMAKE_CXX_STANDARD 11)
+
 add_library(${PROJECT_NAME} STATIC
     implot.cpp
     implot_demo.cpp

@@ -23,6 +23,10 @@ if(MSVC)
     endif()
     
     add_compile_options("/utf-8")
+else()
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_compile_options("-D_DEBUG")
+    endif()
 endif()
 
 set(CMAKE_MODULE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
