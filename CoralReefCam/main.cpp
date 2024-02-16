@@ -236,7 +236,7 @@ void loop()
     {
         ImGui::Text("CoralReefCam");
         ImGui::Text("Powered by CoralReefPlayer %s", crp_version_str());
-        ImGui::Text("Copyright (c) 2023 OurEDA");
+        ImGui::Text("Copyright (c) 2023-2024 OurEDA");
         ImGui::EndPopup();
     }
 

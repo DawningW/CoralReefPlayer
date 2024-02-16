@@ -42,7 +42,7 @@ BEGIN
             VALUE "FileDescription", "Éºº÷½¸²¥·ÅÆ÷"
             VALUE "FileVersion", RC_CRP_VERSION
             VALUE "InternalName", "CoralReefPlayer.dll"
-            VALUE "LegalCopyright", "Copyright (C) 2023 OurEDA"
+            VALUE "LegalCopyright", "Copyright (C) 2023-2024 OurEDA"
             VALUE "OriginalFilename", "CoralReefPlayer.dll"
             VALUE "ProductName", "CoralReefPlayer"
             VALUE "ProductVersion", RC_CRP_VERSION

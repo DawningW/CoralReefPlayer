@@ -40,7 +40,7 @@ BEGIN
             VALUE "FileDescription", "Éºº÷½¸cpp¸ßÐÔÄÜ°æ"
             VALUE "FileVersion", "1.0.0.0"
             VALUE "InternalName", "CoralReefCam.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2023 OurEDA"
+            VALUE "LegalCopyright", "Copyright (C) 2023-2024 OurEDA"
             VALUE "OriginalFilename", "CoralReefCam.exe"
             VALUE "ProductName", "CoralReefCam"
             VALUE "ProductVersion", "1.0.0.0"
