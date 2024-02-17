@@ -1,0 +1,4 @@
+module CoralReefPlayerIOS {
+    header "include/coralreefplayer.h"
+    export *
+}

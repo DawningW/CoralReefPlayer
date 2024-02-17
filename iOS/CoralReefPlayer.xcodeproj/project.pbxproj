@@ -1,0 +1,738 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		7752F6552B7F8F6C00B4C39E /* CoralReefPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7752F64C2B7F8F6C00B4C39E /* CoralReefPlayer.framework */; };
+		7752F65A2B7F8F6C00B4C39E /* Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7752F6592B7F8F6C00B4C39E /* Tests.swift */; };
+		77B881BC2B7FD6F4005725A2 /* CoralReefPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B881BB2B7FD6F4005725A2 /* CoralReefPlayer.swift */; };
+		77B881C42B808650005725A2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B881C32B808650005725A2 /* AppDelegate.swift */; };
+		77B881C62B808650005725A2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B881C52B808650005725A2 /* SceneDelegate.swift */; };
+		77B881C82B808650005725A2 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77B881C72B808650005725A2 /* ViewController.swift */; };
+		77B881CB2B808650005725A2 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 77B881C92B808650005725A2 /* Main.storyboard */; };
+		77B881CD2B808655005725A2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 77B881CC2B808655005725A2 /* Assets.xcassets */; };
+		77B881D02B808655005725A2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 77B881CE2B808655005725A2 /* LaunchScreen.storyboard */; };
+		77B881D52B8086CA005725A2 /* CoralReefPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7752F64C2B7F8F6C00B4C39E /* CoralReefPlayer.framework */; };
+		77B881D62B8086CA005725A2 /* CoralReefPlayer.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7752F64C2B7F8F6C00B4C39E /* CoralReefPlayer.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		77B881DA2B8087C9005725A2 /* libCoralReefPlayer.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 77B881B02B7FC897005725A2 /* libCoralReefPlayer.dylib */; };
+		77B881DB2B8087D7005725A2 /* libCoralReefPlayer.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 77B881B02B7FC897005725A2 /* libCoralReefPlayer.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7752F6562B7F8F6C00B4C39E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7752F6432B7F8F6C00B4C39E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7752F64B2B7F8F6C00B4C39E;
+			remoteInfo = CoralReefPlayer;
+		};
+		77B881D72B8086CA005725A2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7752F6432B7F8F6C00B4C39E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7752F64B2B7F8F6C00B4C39E;
+			remoteInfo = CoralReefPlayer;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		77B881D92B8086CA005725A2 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				77B881D62B8086CA005725A2 /* CoralReefPlayer.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77B881DC2B8087D7005725A2 /* Embed Libraries */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				77B881DB2B8087D7005725A2 /* libCoralReefPlayer.dylib in Embed Libraries */,
+			);
+			name = "Embed Libraries";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		7752F64C2B7F8F6C00B4C39E /* CoralReefPlayer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CoralReefPlayer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		7752F6542B7F8F6C00B4C39E /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7752F6592B7F8F6C00B4C39E /* Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests.swift; sourceTree = "<group>"; };
+		775A9ED62B7F946A007E3FF6 /* module.modulemap */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
+		77B881A42B7FC834005725A2 /* lib */ = {isa = PBXFileReference; lastKnownFileType = folder; path = lib; sourceTree = "<group>"; };
+		77B881A62B7FC83E005725A2 /* include */ = {isa = PBXFileReference; lastKnownFileType = folder; path = include; sourceTree = "<group>"; };
+		77B881B02B7FC897005725A2 /* libCoralReefPlayer.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libCoralReefPlayer.dylib; path = CoralReefPlayer/Library/lib/libCoralReefPlayer.dylib; sourceTree = "<group>"; };
+		77B881BB2B7FD6F4005725A2 /* CoralReefPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoralReefPlayer.swift; sourceTree = "<group>"; };
+		77B881C12B808650005725A2 /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77B881C32B808650005725A2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		77B881C52B808650005725A2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		77B881C72B808650005725A2 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		77B881CA2B808650005725A2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		77B881CC2B808655005725A2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		77B881CF2B808655005725A2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		77B881D12B808655005725A2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		7752F6492B7F8F6C00B4C39E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77B881DA2B8087C9005725A2 /* libCoralReefPlayer.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7752F6512B7F8F6C00B4C39E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7752F6552B7F8F6C00B4C39E /* CoralReefPlayer.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77B881BE2B808650005725A2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77B881D52B8086CA005725A2 /* CoralReefPlayer.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7752F6422B7F8F6C00B4C39E = {
+			isa = PBXGroup;
+			children = (
+				7752F64E2B7F8F6C00B4C39E /* CoralReefPlayer */,
+				7752F6582B7F8F6C00B4C39E /* Tests */,
+				77B881C22B808650005725A2 /* Example */,
+				7752F64D2B7F8F6C00B4C39E /* Products */,
+				77B881A82B7FC88A005725A2 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		7752F64D2B7F8F6C00B4C39E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7752F64C2B7F8F6C00B4C39E /* CoralReefPlayer.framework */,
+				7752F6542B7F8F6C00B4C39E /* Tests.xctest */,
+				77B881C12B808650005725A2 /* Example.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7752F64E2B7F8F6C00B4C39E /* CoralReefPlayer */ = {
+			isa = PBXGroup;
+			children = (
+				775A9ED52B7F9427007E3FF6 /* Library */,
+				77B881BB2B7FD6F4005725A2 /* CoralReefPlayer.swift */,
+			);
+			path = CoralReefPlayer;
+			sourceTree = "<group>";
+		};
+		7752F6582B7F8F6C00B4C39E /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				7752F6592B7F8F6C00B4C39E /* Tests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		775A9ED52B7F9427007E3FF6 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				77B881A62B7FC83E005725A2 /* include */,
+				77B881A42B7FC834005725A2 /* lib */,
+				775A9ED62B7F946A007E3FF6 /* module.modulemap */,
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		77B881A82B7FC88A005725A2 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				77B881B02B7FC897005725A2 /* libCoralReefPlayer.dylib */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		77B881C22B808650005725A2 /* Example */ = {
+			isa = PBXGroup;
+			children = (
+				77B881C32B808650005725A2 /* AppDelegate.swift */,
+				77B881C52B808650005725A2 /* SceneDelegate.swift */,
+				77B881C72B808650005725A2 /* ViewController.swift */,
+				77B881C92B808650005725A2 /* Main.storyboard */,
+				77B881CC2B808655005725A2 /* Assets.xcassets */,
+				77B881CE2B808655005725A2 /* LaunchScreen.storyboard */,
+				77B881D12B808655005725A2 /* Info.plist */,
+			);
+			path = Example;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		7752F6472B7F8F6C00B4C39E /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		7752F64B2B7F8F6C00B4C39E /* CoralReefPlayer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7752F65E2B7F8F6C00B4C39E /* Build configuration list for PBXNativeTarget "CoralReefPlayer" */;
+			buildPhases = (
+				7752F6472B7F8F6C00B4C39E /* Headers */,
+				7752F6482B7F8F6C00B4C39E /* Sources */,
+				7752F6492B7F8F6C00B4C39E /* Frameworks */,
+				7752F64A2B7F8F6C00B4C39E /* Resources */,
+				77B881DC2B8087D7005725A2 /* Embed Libraries */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CoralReefPlayer;
+			productName = CoralReefPlayer;
+			productReference = 7752F64C2B7F8F6C00B4C39E /* CoralReefPlayer.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		7752F6532B7F8F6C00B4C39E /* Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7752F6612B7F8F6C00B4C39E /* Build configuration list for PBXNativeTarget "Tests" */;
+			buildPhases = (
+				7752F6502B7F8F6C00B4C39E /* Sources */,
+				7752F6512B7F8F6C00B4C39E /* Frameworks */,
+				7752F6522B7F8F6C00B4C39E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7752F6572B7F8F6C00B4C39E /* PBXTargetDependency */,
+			);
+			name = Tests;
+			productName = CoralReefPlayerTests;
+			productReference = 7752F6542B7F8F6C00B4C39E /* Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		77B881C02B808650005725A2 /* Example */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 77B881D22B808655005725A2 /* Build configuration list for PBXNativeTarget "Example" */;
+			buildPhases = (
+				77B881BD2B808650005725A2 /* Sources */,
+				77B881BE2B808650005725A2 /* Frameworks */,
+				77B881BF2B808650005725A2 /* Resources */,
+				77B881D92B8086CA005725A2 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				77B881D82B8086CA005725A2 /* PBXTargetDependency */,
+			);
+			name = Example;
+			productName = crpdemo;
+			productReference = 77B881C12B808650005725A2 /* Example.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7752F6432B7F8F6C00B4C39E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1520;
+				LastUpgradeCheck = 1520;
+				TargetAttributes = {
+					7752F64B2B7F8F6C00B4C39E = {
+						CreatedOnToolsVersion = 15.2;
+						LastSwiftMigration = 1520;
+					};
+					7752F6532B7F8F6C00B4C39E = {
+						CreatedOnToolsVersion = 15.2;
+					};
+					77B881C02B808650005725A2 = {
+						CreatedOnToolsVersion = 15.2;
+					};
+				};
+			};
+			buildConfigurationList = 7752F6462B7F8F6C00B4C39E /* Build configuration list for PBXProject "CoralReefPlayer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 7752F6422B7F8F6C00B4C39E;
+			productRefGroup = 7752F64D2B7F8F6C00B4C39E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7752F64B2B7F8F6C00B4C39E /* CoralReefPlayer */,
+				7752F6532B7F8F6C00B4C39E /* Tests */,
+				77B881C02B808650005725A2 /* Example */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		7752F64A2B7F8F6C00B4C39E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7752F6522B7F8F6C00B4C39E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77B881BF2B808650005725A2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77B881D02B808655005725A2 /* LaunchScreen.storyboard in Resources */,
+				77B881CD2B808655005725A2 /* Assets.xcassets in Resources */,
+				77B881CB2B808650005725A2 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		7752F6482B7F8F6C00B4C39E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77B881BC2B7FD6F4005725A2 /* CoralReefPlayer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7752F6502B7F8F6C00B4C39E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7752F65A2B7F8F6C00B4C39E /* Tests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		77B881BD2B808650005725A2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				77B881C82B808650005725A2 /* ViewController.swift in Sources */,
+				77B881C42B808650005725A2 /* AppDelegate.swift in Sources */,
+				77B881C62B808650005725A2 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7752F6572B7F8F6C00B4C39E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7752F64B2B7F8F6C00B4C39E /* CoralReefPlayer */;
+			targetProxy = 7752F6562B7F8F6C00B4C39E /* PBXContainerItemProxy */;
+		};
+		77B881D82B8086CA005725A2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7752F64B2B7F8F6C00B4C39E /* CoralReefPlayer */;
+			targetProxy = 77B881D72B8086CA005725A2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		77B881C92B808650005725A2 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				77B881CA2B808650005725A2 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		77B881CE2B808655005725A2 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				77B881CF2B808655005725A2 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		7752F65C2B7F8F6C00B4C39E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		7752F65D2B7F8F6C00B4C39E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		7752F65F2B7F8F6C00B4C39E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = HW88SQR7HC;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				EXCLUDED_ARCHS = "";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/CoralReefPlayer/Library/lib",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = cn.oureda.CoralReefPlayer;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/CoralReefPlayer/Library";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7752F6602B7F8F6C00B4C39E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = HW88SQR7HC;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				EXCLUDED_ARCHS = "";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/CoralReefPlayer/Library/lib",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = cn.oureda.CoralReefPlayer;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/CoralReefPlayer/Library";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		7752F6622B7F8F6C00B4C39E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.oureda.CoralReefPlayerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		7752F6632B7F8F6C00B4C39E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.oureda.CoralReefPlayerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		77B881D32B808655005725A2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HW88SQR7HC;
+				EXCLUDED_ARCHS = "";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Example/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CoralReefPlayerDemo;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.oureda.crpdemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		77B881D42B808655005725A2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HW88SQR7HC;
+				EXCLUDED_ARCHS = "";
+				"EXCLUDED_ARCHS[sdk=iphonesimulator*]" = arm64;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Example/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CoralReefPlayerDemo;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen.storyboard;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.oureda.crpdemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7752F6462B7F8F6C00B4C39E /* Build configuration list for PBXProject "CoralReefPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7752F65C2B7F8F6C00B4C39E /* Debug */,
+				7752F65D2B7F8F6C00B4C39E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7752F65E2B7F8F6C00B4C39E /* Build configuration list for PBXNativeTarget "CoralReefPlayer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7752F65F2B7F8F6C00B4C39E /* Debug */,
+				7752F6602B7F8F6C00B4C39E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7752F6612B7F8F6C00B4C39E /* Build configuration list for PBXNativeTarget "Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7752F6622B7F8F6C00B4C39E /* Debug */,
+				7752F6632B7F8F6C00B4C39E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		77B881D22B808655005725A2 /* Build configuration list for PBXNativeTarget "Example" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				77B881D32B808655005725A2 /* Debug */,
+				77B881D42B808655005725A2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7752F6432B7F8F6C00B4C39E /* Project object */;
+}
