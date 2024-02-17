@@ -27,6 +27,7 @@ export interface Frame {
     height: number;
     format: Format;
     data: Buffer;
+    linesize: number;
     pts: number;
 }
 

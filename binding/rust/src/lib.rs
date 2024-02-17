@@ -1,11 +1,5 @@
-use ::std::os::raw::c_char;
-use ::std::os::raw::c_int;
-use ::std::os::raw::c_uchar;
-use ::std::os::raw::c_uint;
-use ::std::os::raw::c_ulonglong;
-use ::std::os::raw::c_void;
-use ::std::ffi::CStr;
-use ::std::ffi::CString;
+use ::std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ulonglong, c_void};
+use ::std::ffi::{CStr, CString};
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -75,6 +69,7 @@ pub struct Frame {
     pub height: i32,
     pub format: Format,
     pub data: [Box<[u8]>; 4],
+    pub linesize: [i32; 4],
     pub pts: u64,
 }
 
@@ -103,6 +98,7 @@ extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_v
                 unsafe { ::std::slice::from_raw_parts(cframe.data[2], (cframe.linesize[2] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
                 unsafe { ::std::slice::from_raw_parts(cframe.data[3], (cframe.linesize[3] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
             ],
+            linesize: cframe.linesize,
             pts: cframe.pts,
         };
         (*player.callback)(ee, Data::Frame(frame));

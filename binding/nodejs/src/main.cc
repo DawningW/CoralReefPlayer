@@ -19,6 +19,7 @@ void js_callback(int event, void* data, void* user_data) {
                 // Electron 21+ not allow to use external buffer, must copy. See https://github.com/nodejs/node-addon-api/blob/main/doc/external_buffer.md
                 PropertyDescriptor::Value("data", Napi::Buffer<uint8_t>::NewOrCopy(
                     env, frame->data[0], frame->linesize[0] * frame->height), napi_enumerable),
+                PropertyDescriptor::Value("linesize", Napi::Number::New(env, frame->linesize[0]), napi_enumerable),
                 PropertyDescriptor::Value("pts", Napi::Number::New(env, frame->pts), napi_enumerable)
             });
             callback.Call({

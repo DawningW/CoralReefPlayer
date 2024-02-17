@@ -14,11 +14,11 @@ fn main() {
         let path = entry.path();
         let file_name = path.file_name().unwrap();
         let out_file1 = out_path.join(file_name);
-        fs::copy(&path, &out_file).unwrap();
+        fs::copy(&path, &out_file1).unwrap();
         let out_file2 = deps_path.join(file_name);
         fs::copy(&path, &out_file2).unwrap();
     }
 
-    println!("cargo:rustc-link-search=native=D:/rouring/CoralReefPlayer/build/x64-Debug/src");
-    println!("cargo:rustc-link-lib=CoralReefPlayer");
+    println!("cargo:rustc-link-search=native=@CRP_LIBRARY_DIR@");
+    println!("cargo:rustc-link-lib=@CRP_LIBRARY@");
 }
