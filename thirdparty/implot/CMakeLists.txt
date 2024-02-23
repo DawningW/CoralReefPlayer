@@ -15,15 +15,10 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-    PUBLIC
+    PRIVATE
         imgui
 )
 
 add_dependencies(${PROJECT_NAME}
     imgui
 )
-
-# install(TARGETS ${PROJECT_NAME}
-#     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
-#     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
-# )

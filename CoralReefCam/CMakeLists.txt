@@ -32,11 +32,16 @@ add_subdirectory(${THIRD_PARTY_DIR}/implot implot)
 if(APPLE)
     set(CMAKE_MACOSX_RPATH 1)
 endif()
-list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+if(APPLE AND BUILD_MACOS_FRAMEWORK AND BUILD_MACOS_BUNDLE)
+    list(APPEND CMAKE_INSTALL_RPATH "@executable_path/../Frameworks")
+else()
+    list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_FULL_LIBDIR})
+endif()
 
 add_executable(${PROJECT_NAME}
     main.cpp
     $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefCam.rc>
+    $<$<BOOL:${APPLE}>:icon.icns>
 )
 
 target_include_directories(${PROJECT_NAME}
@@ -67,6 +72,14 @@ add_dependencies(${PROJECT_NAME}
 if(ENABLE_OPENCV)
     add_dependencies(${PROJECT_NAME}
         ${OpenCV_LIBS}
+    )
+endif()
+
+if(APPLE AND BUILD_MACOS_BUNDLE)
+    set_target_properties(${PROJECT_NAME}
+        PROPERTIES
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
     )
 endif()
 

@@ -3,7 +3,7 @@ project(live555)
 # Add NO_STD_LIB macro if can't use c++20
 set(CMAKE_CXX_STANDARD 20)
 
-add_library(${PROJECT_NAME} STATIC
+add_library(${PROJECT_NAME} OBJECT
     BasicUsageEnvironment/BasicHashTable.cpp
     BasicUsageEnvironment/BasicTaskScheduler.cpp
     BasicUsageEnvironment/BasicTaskScheduler0.cpp
@@ -213,8 +213,6 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/WindowsAudioInputDevice
 )
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
-
 target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         NO_OPENSSL
@@ -232,8 +230,3 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         $<$<BOOL:${WIN32}>:ws2_32>
 )
-
-# install(TARGETS ${PROJECT_NAME}
-#     LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
-#     ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
-# )
