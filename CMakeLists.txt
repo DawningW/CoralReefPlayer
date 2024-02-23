@@ -30,7 +30,7 @@ else()
 
     if(APPLE)
         set(MACOSX_BUNDLE OFF CACHE BOOL "" FORCE) # Disable default behavior
-        if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
+        if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
             set(BUILD_MACOS_FRAMEWORK ON CACHE BOOL "Build library as Framework on macOS")
             set(BUILD_MACOS_BUNDLE ON CACHE BOOL "Build executable as App Bundle on macOS")
         endif()
