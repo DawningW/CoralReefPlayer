@@ -80,6 +80,7 @@ if(APPLE AND BUILD_MACOS_BUNDLE)
         PROPERTIES
             MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+            RESOURCE ${CMAKE_CURRENT_SOURCE_DIR}/icon.icns
     )
 endif()
 
