@@ -64,7 +64,7 @@ if(NOT ANDROID)
     )
 
     add_custom_target(java-package
-        COMMAND gradlew publish
+        COMMAND gradlew -Dorg.gradle.daemon=false publish
         DEPENDS java-prepare
     )
 endif()
