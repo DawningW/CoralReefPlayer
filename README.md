@@ -26,12 +26,12 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 
 ### Windows
 
-前置条件:
+前置条件：
 
 - Visual Studio 2019 或以上版本，需要启用 `使用 C++ 的桌面开发`
 - （可选）下载预编译的 OpenCV 库至 opencv 或任意目录中
 
-编译步骤:
+编译步骤：
 
 1. 直接使用 VS 打开本仓库
 2. 右键根目录下的 CMakeLists.txt，选择 `CMake 设置` 打开设置界面
@@ -42,7 +42,7 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 
 ### Linux
 
-前置条件:
+前置条件：
 
 - CMake 3.21.0 或更高版本
 - gcc 11 或更高版本
@@ -51,7 +51,7 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
     - SDL2 2.26.0+
     - （可选）OpenCV 4.4.0+
 
-编译步骤:
+编译步骤：
 
 1. 使用终端进入本仓库根目录
 2. 使用 `cmake-gui` 或 `ccmake` 配置项目，然后进行生成
@@ -61,12 +61,40 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 
 ### MacOS
 
-前置条件:
+前置条件：
 
 - apple-clang 13.1.6 或更高版本
 - 其余依赖同 Linux
 
-编译步骤: 同 Linux
+编译步骤：同 Linux
+
+### Android
+
+前置条件：
+
+- Android Studio
+- SDK 33（最低要求 24）
+- NDK 25.1.8937393
+- CMake 3.22.1 或更高版本
+
+编译步骤：
+
+1. 使用 Android Studio 打开 Android 目录
+2. 编译并运行 `app` 项目
+
+### iOS
+
+前置条件：
+
+- Xcode 14.0 或更高版本
+- iOS SDK 17.0（最低要求 14.0）
+- CMake 3.21.0 或更高版本
+
+编译步骤：
+
+1. 进入 iOS 目录，执行 `build.sh` 脚本
+2. 使用 Xcode 打开 `CoralReefPlayer.xcodeproj`
+3. 编译并运行 `Example` 目标
 
 ### Other
 
