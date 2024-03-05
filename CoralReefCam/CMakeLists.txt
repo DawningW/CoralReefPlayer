@@ -10,7 +10,7 @@ if(WIN32)
         RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     )
 else()
-    find_package(SDL2 2.28.0 REQUIRED)
+    find_package(SDL2 2.26.0 REQUIRED)
 endif()
 
 find_package(OpenCV 4.4.0 QUIET)

@@ -204,6 +204,9 @@ add_library(${PROJECT_NAME} OBJECT
     UsageEnvironment/UsageEnvironment.cpp
 )
 
+# Need -fPIC to be compiled in a shared library
+set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/BasicUsageEnvironment/include
