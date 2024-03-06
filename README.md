@@ -92,9 +92,15 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 
 编译步骤：
 
-1. 进入 iOS 目录，执行 `build.sh` 脚本
+1. 进入 iOS 目录，执行 `prebuild.sh` 脚本
 2. 使用 Xcode 打开 `CoralReefPlayer.xcodeproj`
 3. 编译并运行 `Example` 目标
+
+### 交叉编译
+
+CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交叉编译，工具链文件的编写请参考 `cmake/toolchains/aarch64-linux-gnu.toolchain.cmake`。
+
+可使用 `-DCMAKE_TOOLCHAIN_FILE=<工具链文件路径>` 参数或 `cmake-gui` 工具指定工具链文件，其余编译步骤同 Linux。
 
 ### Other
 
@@ -122,11 +128,11 @@ crp_handle crp_create();
 void crp_destroy(crp_handle handle);
 
 /**
- * @brief 设置 RTSP 认证
+ * @brief 设置 RTSP/HTTP 认证
  * @param handle 播放器句柄
  * @param username 用户名
  * @param password 密码
- * @param is_md5 密码是否为 MD5
+ * @param is_md5 密码是否为 MD5，HTTP 认证时此参数无效
  */
 void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
 
@@ -134,13 +140,13 @@ void crp_auth(crp_handle handle, const char* username, const char* password, boo
  * @brief 开始播放指定 RTSP/HTTP 流，仅支持 H264/H265/MJPEG 码流，暂不支持音频
  * @param handle 播放器句柄
  * @param url RTSP/HTTP 流地址
- * @param transport 传输协议 (仅 RTSP 有效)
+ * @param transport 传输协议（仅 RTSP 有效）
  * @param width 解码图像宽度，CRP_WIDTH_AUTO 为从码流自动获取
  * @param height 解码图像高度，CRP_HEIGHT_AUTO 为从码流自动获取
  * @param format 解码图像格式
  * @param callback 图像帧回调函数
  * @param user_data 用户自定义数据，会在调用回调时传入
- * @return 是否成功, 若参数不正确则返回 false, 其他错误会调用回调
+ * @return 是否成功，若参数不正确则返回 false，其他错误会调用回调
  */
 bool crp_play(crp_handle handle, const char* url, Transport transport,
     int width, int height, Format format, crp_callback callback, void* user_data);
@@ -148,12 +154,12 @@ bool crp_play(crp_handle handle, const char* url, Transport transport,
 /**
  * @brief 重新播放之前播放的 RTSP/HTTP 流
  * @param handle 播放器句柄
- * @return 是否成功, 若之前未播放过则返回 false, 其他错误会调用回调
+ * @return 是否成功，若之前未播放过则返回 false，其他错误会调用回调
  */
 bool crp_replay(crp_handle handle);
 
 /**
- * @brief 停止播放指定 RTSP 流
+ * @brief 停止播放指定 RTSP/HTTP 流
  * @param handle 播放器句柄
  */
 void crp_stop(crp_handle handle);
