@@ -29,6 +29,7 @@ add_library(${PROJECT_NAME} SHARED
     StreamPuller.cpp
     StreamSink.cpp
     VideoDecoder.cpp
+    AudioDecoder.cpp
     $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefPlayer.rc>
 )
 

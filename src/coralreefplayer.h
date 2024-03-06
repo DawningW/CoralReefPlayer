@@ -36,6 +36,11 @@ enum Format
     CRP_RGBA32,  // AV_PIX_FMT_RGBA
     CRP_ABGR32,  // AV_PIX_FMT_ABGR
     CRP_BGRA32,  // AV_PIX_FMT_BGRA
+
+    CRP_U8 = 0,  // AV_SAMPLE_FMT_U8
+    CRP_S16,     // AV_SAMPLE_FMT_S16
+    CRP_S32,     // AV_SAMPLE_FMT_S32
+    CRP_F32,     // AV_SAMPLE_FMT_FLT
 };
 
 enum Event
@@ -46,12 +51,41 @@ enum Event
     CRP_EV_PLAYING,   // 开始播放事件
     CRP_EV_END,       // 播放结束事件
     CRP_EV_STOP,      // 停止拉流事件
+    CRP_EV_NEW_AUDIO, // 收到新音频数据事件
+};
+
+struct Option
+{
+    struct
+    {
+        int width;
+        int height;
+        enum Format format;
+    } video;
+    bool enable_audio;
+    struct
+    {
+        int sample_rate;
+        int channels;
+        enum Format format;
+    } audio;
 };
 
 struct Frame
 {
-    int width;
-    int height;
+    union
+    {
+        struct
+        {
+            int width;
+            int height;
+        };
+        struct
+        {
+            int sample_rate;
+            int channels;
+        };
+    };
     int format;
     uint8_t* data[4];
     int linesize[4];
@@ -64,8 +98,7 @@ typedef void (*crp_callback)(int /* event */, void* /* data */, void* /* user_da
 CRP_DLL_EXPORT crp_handle crp_create();
 CRP_DLL_EXPORT void crp_destroy(crp_handle handle);
 CRP_DLL_EXPORT void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
-CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, int transport,
-    int width, int height, int format, crp_callback callback, void* user_data);
+CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, int transport, Option* option, crp_callback callback, void* user_data);
 CRP_DLL_EXPORT void crp_replay(crp_handle handle);
 CRP_DLL_EXPORT void crp_stop(crp_handle handle);
 CRP_DLL_EXPORT int crp_version_code();

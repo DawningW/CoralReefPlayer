@@ -11,6 +11,7 @@
 #include "coralreefplayer.h"
 #include "AsyncCallback.hpp"
 #include "VideoDecoder.h"
+#include "AudioDecoder.h"
 
 class StreamPuller
 {
@@ -26,7 +27,7 @@ public:
     StreamPuller();
     ~StreamPuller();
     void authenticate(const char* username, const char* password, bool useMD5 = false);
-    bool start(const char* url, Transport transport, int width, int height, Format format, Callback callback, void* userData);
+    bool start(const char* url, Transport transport, Option* option, Callback callback, void* userData);
     bool restart();
     void stop();
 
@@ -49,9 +50,7 @@ private:
     std::string url;
     Protocol protocol;
     Transport transport;
-    int width;
-    int height;
-    Format format;
+    Option option;
     AsyncCallback<int, void*, void*> callback;
     void *userData;
     int64_t timeout;
@@ -68,4 +67,5 @@ private:
     TaskToken livenessCheckTask;
     httplib::Client* httpClient;
     VideoDecoder* videoDecoder;
+    AudioDecoder* audioDecoder;
 };

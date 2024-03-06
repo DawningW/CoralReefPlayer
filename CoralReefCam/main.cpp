@@ -14,6 +14,8 @@
 
 #define WIDTH 1280
 #define HEIGHT 720
+#define SAMPLE_RATE 44100
+#define CHANNEL 2
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
 #define SDL_REPLAY_EVENT (SDL_USEREVENT + 2)
 
@@ -72,14 +74,23 @@ void play()
     if (playing)
         crp_stop(player);
     SDL_FlushEvent(SDL_REFRESH_EVENT);
-    crp_play(player, url.c_str(), transport, WIDTH, HEIGHT, ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P,
-        [](int ev, void* data, void* userdata)
+    Option option;
+    memset(&option, 0, sizeof(option));
+    option.video.format = ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P;
+    option.video.width = WIDTH;
+    option.video.height = HEIGHT;
+    option.enable_audio = true;
+    option.audio.format = CRP_S16;
+    option.audio.sample_rate = SAMPLE_RATE;
+    option.audio.channels = CHANNEL;
+    crp_play(player, url.c_str(), transport, &option, [](int ev, void* data, void* userdata)
         {
-            if (ev == CRP_EV_NEW_FRAME)
+            if (ev == CRP_EV_NEW_FRAME || ev == CRP_EV_NEW_AUDIO)
             {
                 SDL_Event event = {};
                 event.type = SDL_REFRESH_EVENT;
-                event.user.data1 = data;
+                event.user.data1 = (void*) (ev == CRP_EV_NEW_AUDIO);
+                event.user.data2 = data;
                 SDL_PushEvent(&event);
             }
             else if (ev == CRP_EV_ERROR)
@@ -286,6 +297,20 @@ int main(int argc, char* argv[])
         printf("Could not create texture: %s\n", SDL_GetError());
         return -1;
     }
+    SDL_AudioSpec wanted_spec;
+    wanted_spec.freq = SAMPLE_RATE;
+    wanted_spec.format = AUDIO_S16SYS;
+    wanted_spec.channels = CHANNEL;
+    wanted_spec.silence = 0;
+    wanted_spec.samples = 1024;
+    wanted_spec.callback = NULL;
+    SDL_AudioDeviceID device_id = SDL_OpenAudioDevice(NULL, 0, &wanted_spec, NULL, 0);
+    if (device_id < 2)
+    {
+        printf("Could not open audio: %s\n", SDL_GetError());
+        return -1;
+    }
+    SDL_PauseAudioDevice(device_id, 0);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -315,18 +340,27 @@ int main(int argc, char* argv[])
             if (!playing)
                 continue;
 
-            Frame* frame = (Frame*) event.user.data1;
+            bool is_audio = (bool) event.user.data1;
+            Frame* frame = (Frame*) event.user.data2;
+            if (!is_audio)
+            {
 #if ENABLE_OPENCV
-            cv::Mat mat(cv::Size(frame->width, frame->height), CV_8UC3);
-            mat.data = (uchar*) frame->data[0];
-            process(mat);
-            SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
+                cv::Mat mat(cv::Size(frame->width, frame->height), CV_8UC3);
+                mat.data = (uchar*)frame->data[0];
+                process(mat);
+                SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
 #else
-            SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
-                frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
+                SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
+                    frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
 #endif
-            pts = frame->pts;
-            has_frame = true;
+                pts = frame->pts;
+                has_frame = true;
+            }
+            else
+            {
+                SDL_QueueAudio(device_id, frame->data[0], frame->linesize[0]);
+                continue;
+            }
         }
         else if (event.type == SDL_REPLAY_EVENT)
         {
@@ -355,6 +389,6 @@ int main(int argc, char* argv[])
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
     SDL_Quit();
-    
+
     return 0;
 }

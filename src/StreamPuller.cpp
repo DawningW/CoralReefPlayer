@@ -3,6 +3,7 @@
 #include <cstring>
 #include <regex>
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
+#include "MPEG4LATMAudioRTPSource.hh" // for parseGeneralConfigStr
 #include "StreamSink.h"
 
 #ifdef _DEBUG
@@ -44,7 +45,7 @@ void StreamPuller::authenticate(const char* username, const char* password, bool
     authenticator = new Authenticator(username, password, useMD5);
 }
 
-bool StreamPuller::start(const char* url, Transport transport, int width, int height, Format format, Callback callback, void* userData)
+bool StreamPuller::start(const char* url, Transport transport, Option* option, Callback callback, void* userData)
 {
     if (!exit)
         return false;
@@ -55,9 +56,8 @@ bool StreamPuller::start(const char* url, Transport transport, int width, int he
         return false;
 
     this->transport = transport;
-    this->width = width;
-    this->height = height;
-    this->format = format;
+    if (option != nullptr)
+        this->option = *option;
     this->callback = callback;
     this->userData = userData;
 
@@ -85,11 +85,13 @@ void StreamPuller::stop()
     callback.wait();
     callback.invokeSync(CRP_EV_STOP, nullptr, userData);
     delete videoDecoder;
+    delete audioDecoder;
 }
 
 void StreamPuller::start()
 {
     videoDecoder = nullptr;
+    audioDecoder = nullptr;
     exit = 0;
     if (protocol == CRP_RTSP)
         thread = std::thread(&StreamPuller::runRTSP, this);
@@ -201,7 +203,7 @@ void StreamPuller::runHTTP()
             }
             if (!boundary.empty()) {
                 sink.setBoundary(boundary);
-                videoDecoder = VideoDecoder::createNew("JPEG", format, width, height);
+                videoDecoder = VideoDecoder::createNew("JPEG", option.video.format, option.video.width, option.video.height);
                 callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
             }
             return true;
@@ -333,7 +335,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
     codecName = subsession->codecName();
     if (strcmp(mediumName, "video") == 0)
     {
-        videoDecoder = VideoDecoder::createNew(codecName, format, width, height);
+        videoDecoder = VideoDecoder::createNew(codecName, option.video.format, option.video.width, option.video.height);
         if (videoDecoder == nullptr)
         {
             env << "Not support video codec: " << codecName << "\n";
@@ -395,22 +397,66 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
                 env << "Get H265 SPropRecords\n";
             }
         }
+
+        subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
+            {
+                noteLiveness();
+                if (videoDecoder->processPacket(packet))
+                {
+                    callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
+                }
+            });
     }
     else if (strcmp(mediumName, "audio") == 0)
     {
-        env << "Not support audio codec: " << codecName << "\n";
+        if (!option.enable_audio)
+        {
+            env << "Audio decode is not enabled\n";
+            goto end;
+        }
+
+        audioDecoder = AudioDecoder::createNew(codecName, option.audio.format, option.audio.sample_rate, option.audio.channels);
+        if (audioDecoder == nullptr)
+        {
+            env << "Not support audio codec: " << codecName << "\n";
+            goto end;
+        }
+
+        if (strcmp(codecName, "MPEG4-GENERIC") == 0 || strcmp(codecName, "OPUS") == 0)
+        {
+            if (strcmp(subsession->fmtp_config(), "") != 0)
+            {
+                unsigned configSize = 0;
+                unsigned char* config = parseGeneralConfigStr(subsession->fmtp_config(), configSize);
+                audioDecoder->addExtraData(config, configSize);
+                env << "Get AAC or OPUS config\n";
+            }
+        }
+        else if (strcmp(codecName, "PCMA") == 0 || strcmp(codecName, "PCMU") == 0)
+        {
+            audioDecoder->initParameters(subsession->rtpTimestampFrequency(), subsession->numChannels());
+        }
+        else if (strcmp(codecName, "G726") == 0)
+        {
+            audioDecoder->initParameters(8000, 1);
+        }
+
+        subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
+            {
+                noteLiveness();
+                if (audioDecoder->processPacket(packet))
+                {
+                    callback(CRP_EV_NEW_AUDIO, audioDecoder->getFrame(), userData);
+                }
+            });
+    }
+    else
+    {
+        env << "Not support medium: " << mediumName << "\n";
         goto end;
     }
 
-    env << "Created a data sink for the subsession\n";
-    subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
-        {
-            noteLiveness();
-            if (videoDecoder->processPacket(packet))
-            {
-                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
-            }
-        });
+    env << "Created a " << mediumName << " data sink for the subsession\n";
     subsession->miscPtr = rtspClient;
     subsession->sink->startPlaying(*(subsession->readSource()), [](void* clientData)
         {
