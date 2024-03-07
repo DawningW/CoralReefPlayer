@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Runtime.InteropServices;
 using static CoralReefPlayer.NativeMethods;
 
@@ -36,7 +37,7 @@ namespace CoralReefPlayer
         public int Width;
         public int Height;
         public Format Format;
-        public byte[] Data;
+        public UnmanagedMemoryStream Data;
         public int LineSize;
         public ulong PTS;
     }
@@ -98,24 +99,21 @@ namespace CoralReefPlayer
                 if (ev2 == Event.NEW_FRAME)
                 {
                     CFrame cFrame = Marshal.PtrToStructure<CFrame>(data);
-                    int length = cFrame.linesize[0] * cFrame.height;
-                    byte[] buffer = new byte[length];
-                    unsafe
-                    {
-                        fixed (byte* p = buffer)
-                        {
-                            Buffer.MemoryCopy((void*)cFrame.data[0], p, length, length);
-                        }
-                    }
                     Frame frame = new Frame
                     {
                         Width = cFrame.width,
                         Height = cFrame.height,
                         Format = (Format)cFrame.format,
-                        Data = buffer,
+                        Data = null,
                         LineSize = cFrame.linesize[0],
                         PTS = cFrame.pts,
                     };
+                    unsafe
+                    {
+                        byte* pData = (byte*)cFrame.data[0].ToPointer();
+                        int length = cFrame.linesize[0] * cFrame.height;
+                        frame.Data = new UnmanagedMemoryStream(pData, length);
+                    }
                     callback.OnFrame(frame);
                 }
                 else
