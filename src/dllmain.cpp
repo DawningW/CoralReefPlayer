@@ -27,10 +27,10 @@ void crp_auth(crp_handle handle, const char* username, const char* password, boo
     player->authenticate(username, password, is_md5);
 }
 
-void crp_play(crp_handle handle, const char* url, int transport, Option* option, crp_callback callback, void* user_data)
+void crp_play(crp_handle handle, const char* url, Option* option, crp_callback callback, void* user_data)
 {
     StreamPuller* player = (StreamPuller*) handle;
-    player->start(url, (Transport) transport, option, callback, user_data);
+    player->start(url, option, callback, user_data);
 }
 
 void crp_replay(crp_handle handle)

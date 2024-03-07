@@ -56,19 +56,21 @@ enum Event
 
 struct Option
 {
+    int transport;
     struct
     {
         int width;
         int height;
-        enum Format format;
+        int format;
     } video;
     bool enable_audio;
     struct
     {
         int sample_rate;
         int channels;
-        enum Format format;
+        int format;
     } audio;
+    int64_t timeout;
 };
 
 struct Frame
@@ -98,7 +100,7 @@ typedef void (*crp_callback)(int /* event */, void* /* data */, void* /* user_da
 CRP_DLL_EXPORT crp_handle crp_create();
 CRP_DLL_EXPORT void crp_destroy(crp_handle handle);
 CRP_DLL_EXPORT void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
-CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, int transport, Option* option, crp_callback callback, void* user_data);
+CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, Option* option, crp_callback callback, void* user_data);
 CRP_DLL_EXPORT void crp_replay(crp_handle handle);
 CRP_DLL_EXPORT void crp_stop(crp_handle handle);
 CRP_DLL_EXPORT int crp_version_code();

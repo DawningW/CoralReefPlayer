@@ -93,6 +93,11 @@ bool AudioDecoder::processPacket(AVPacket* packet)
     {
         if (outFrame.data[0] == nullptr)
         {
+            if (outFrame.sample_rate == 0 && outFrame.channels == 0)
+            {
+                outFrame.sample_rate = codecCtx->sample_rate;
+                outFrame.channels = codecCtx->channels;
+            }
             av_samples_alloc(outFrame.data, outFrame.linesize, outFrame.channels, 1024, to_av_format((Format) outFrame.format), 0);
         }
 

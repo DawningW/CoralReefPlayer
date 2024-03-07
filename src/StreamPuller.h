@@ -27,7 +27,7 @@ public:
     StreamPuller();
     ~StreamPuller();
     void authenticate(const char* username, const char* password, bool useMD5 = false);
-    bool start(const char* url, Transport transport, Option* option, Callback callback, void* userData);
+    bool start(const char* url, Option* option, Callback callback, void* userData);
     bool restart();
     void stop();
 
@@ -49,11 +49,9 @@ private:
 private:
     std::string url;
     Protocol protocol;
-    Transport transport;
     Option option;
     AsyncCallback<int, void*, void*> callback;
     void *userData;
-    int64_t timeout;
 
     volatile char exit;
     std::thread thread;

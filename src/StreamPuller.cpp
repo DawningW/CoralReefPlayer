@@ -31,7 +31,7 @@ public:
     StreamPuller* parent;
 };
 
-StreamPuller::StreamPuller() : userData(nullptr), timeout(DEFAULT_TIMEOUT_MS), exit(1), authenticator(NULL) {}
+StreamPuller::StreamPuller() : exit(1), authenticator(NULL) {}
 
 StreamPuller::~StreamPuller()
 {
@@ -45,7 +45,7 @@ void StreamPuller::authenticate(const char* username, const char* password, bool
     authenticator = new Authenticator(username, password, useMD5);
 }
 
-bool StreamPuller::start(const char* url, Transport transport, Option* option, Callback callback, void* userData)
+bool StreamPuller::start(const char* url, Option* option, Callback callback, void* userData)
 {
     if (!exit)
         return false;
@@ -55,9 +55,10 @@ bool StreamPuller::start(const char* url, Transport transport, Option* option, C
     if (protocol == CRP_UNKNOWN)
         return false;
 
-    this->transport = transport;
     if (option != nullptr)
         this->option = *option;
+    if (option->timeout == 0)
+        this->option.timeout = DEFAULT_TIMEOUT_MS;
     this->callback = callback;
     this->userData = userData;
 
@@ -201,9 +202,11 @@ void StreamPuller::runHTTP()
                     boundary = m[1].str();
                 }
             }
-            if (!boundary.empty()) {
+            if (!boundary.empty())
+            {
                 sink.setBoundary(boundary);
-                videoDecoder = VideoDecoder::createNew("JPEG", option.video.format, option.video.width, option.video.height);
+                videoDecoder = VideoDecoder::createNew("JPEG",
+                    (Format) option.video.format, option.video.width, option.video.height);
                 callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
             }
             return true;
@@ -226,8 +229,7 @@ void StreamPuller::runHTTP()
         }
         else
         {
-            fprintf(stderr, "Invalid response with status %d %s:\n",
-                res.value().status, res.value().reason.c_str());
+            fprintf(stderr, "Invalid response with status %d %s:\n", res.value().status, res.value().reason.c_str());
             fputs(res.value().body.c_str(), stderr);
             fputc('\n', stderr);
             callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
@@ -335,7 +337,8 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
     codecName = subsession->codecName();
     if (strcmp(mediumName, "video") == 0)
     {
-        videoDecoder = VideoDecoder::createNew(codecName, option.video.format, option.video.width, option.video.height);
+        videoDecoder = VideoDecoder::createNew(codecName,
+            (Format) option.video.format, option.video.width, option.video.height);
         if (videoDecoder == nullptr)
         {
             env << "Not support video codec: " << codecName << "\n";
@@ -415,7 +418,8 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
             goto end;
         }
 
-        audioDecoder = AudioDecoder::createNew(codecName, option.audio.format, option.audio.sample_rate, option.audio.channels);
+        audioDecoder = AudioDecoder::createNew(codecName,
+            (Format) option.audio.format, option.audio.sample_rate, option.audio.channels);
         if (audioDecoder == nullptr)
         {
             env << "Not support audio codec: " << codecName << "\n";
@@ -522,7 +526,7 @@ void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
                 {
                     ((OurRTSPClient*) rtspClient)->parent->continueAfterSETUP(rtspClient, resultCode, resultString);
                     delete[] resultString;
-                }, False, transport == CRP_TCP);
+                }, False, option.transport == CRP_TCP);
         }
         return;
     }
@@ -567,15 +571,15 @@ void StreamPuller::timeoutHandler()
 {
     UsageEnvironment& env = rtspClient->envir();
 
-    env << "Receive stream timeout after " << (int) timeout << " ms\n";
+    env << "Receive stream timeout after " << (int) option.timeout << " ms\n";
     callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
 }
 
 void StreamPuller::noteLiveness()
 {
-    if (timeout > 0)
+    if (option.timeout > 0)
     {
-        rtspClient->envir().taskScheduler().rescheduleDelayedTask(livenessCheckTask, timeout * 1000,
+        rtspClient->envir().taskScheduler().rescheduleDelayedTask(livenessCheckTask, option.timeout * 1000,
             [](void* clientData)
             {
                 ((StreamPuller*) clientData)->timeoutHandler();

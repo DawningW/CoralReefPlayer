@@ -76,6 +76,7 @@ void play()
     SDL_FlushEvent(SDL_REFRESH_EVENT);
     Option option;
     memset(&option, 0, sizeof(option));
+    option.transport = transport;
     option.video.format = ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P;
     option.video.width = WIDTH;
     option.video.height = HEIGHT;
@@ -83,7 +84,7 @@ void play()
     option.audio.format = CRP_S16;
     option.audio.sample_rate = SAMPLE_RATE;
     option.audio.channels = CHANNEL;
-    crp_play(player, url.c_str(), transport, &option, [](int ev, void* data, void* userdata)
+    crp_play(player, url.c_str(), &option, [](int ev, void* data, void* userdata)
         {
             if (ev == CRP_EV_NEW_FRAME || ev == CRP_EV_NEW_AUDIO)
             {
