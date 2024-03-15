@@ -57,6 +57,7 @@ foreach(dir LIB BIN INCLUDE)
     message(STATUS "Installing ${dir} components to ${CMAKE_INSTALL_FULL_${dir}DIR}")
 endforeach()
 
+set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries instead of static")
 set(HTTPLIB_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(${THIRD_PARTY_DIR}/live555)
 add_subdirectory(${THIRD_PARTY_DIR}/cpp-httplib)

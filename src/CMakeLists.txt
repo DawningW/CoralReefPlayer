@@ -1,8 +1,20 @@
 set(CMAKE_CXX_STANDARD 20)
 
+if(BUILD_SHARED_LIBS)
+    set(CRP_SHARED_LIB 1)
+else()
+    set(CRP_SHARED_LIB 0)
+endif()
+
 configure_file(
     version.h.in
     generated/version.h
+    @ONLY
+)
+
+configure_file(
+    coralreefplayer.h.in
+    generated/coralreefplayer.h
     @ONLY
 )
 
@@ -21,8 +33,8 @@ add_custom_target(git_hash ALL
         ${CMAKE_CURRENT_BINARY_DIR}/generated/git_hash.h
 )
 
-add_library(${PROJECT_NAME} SHARED
-    coralreefplayer.h
+add_library(${PROJECT_NAME}
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/coralreefplayer.h
     dllmain.cpp
     AsyncCallback.hpp
     Matcher.hpp
@@ -30,13 +42,13 @@ add_library(${PROJECT_NAME} SHARED
     StreamSink.cpp
     VideoDecoder.cpp
     AudioDecoder.cpp
-    $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefPlayer.rc>
+    $<$<STREQUAL:$<TARGET_PROPERTY:${PROJECT_NAME},TYPE>,SHARED_LIBRARY>:
+        $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefPlayer.rc>>
 )
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/.
-    PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
@@ -93,7 +105,7 @@ else()
         RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     )
 
-    install(FILES coralreefplayer.h
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/generated/coralreefplayer.h
         DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR}
     )
 endif()

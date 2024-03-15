@@ -8,6 +8,9 @@ extern "C"
 #include <stdint.h>
 #include <stdbool.h>
 
+#define CRP_SHARED_LIB @CRP_SHARED_LIB@
+
+#if CRP_SHARED_LIB == 1
 #ifdef WIN32
 #ifdef CORALREEFPLAYER_EXPORTS
 #define CRP_DLL_EXPORT __declspec(dllexport)
@@ -15,6 +18,9 @@ extern "C"
 #define CRP_DLL_EXPORT __declspec(dllimport)
 #endif
 #else // UNIX
+#define CRP_DLL_EXPORT
+#endif
+#else // CRP_STATIC_LIB
 #define CRP_DLL_EXPORT
 #endif
 
