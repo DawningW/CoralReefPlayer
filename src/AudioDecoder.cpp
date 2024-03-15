@@ -19,7 +19,7 @@ static AVSampleFormat to_av_format(Format format)
     return AV_SAMPLE_FMT_NONE;
 }
 
-AudioDecoder* AudioDecoder::createNew(const std::string codecName, Format format, int sampleRate, int channels)
+AudioDecoder* AudioDecoder::createNew(const std::string& codecName, Format format, int sampleRate, int channels)
 {
     const AVCodec* codec = nullptr;
     if (codecName == "MPEG4-GENERIC") // AAC
@@ -55,6 +55,7 @@ AudioDecoder::AudioDecoder(const AVCodec* codec, Format format, int sampleRate, 
     codecCtx = avcodec_alloc_context3(codec);
     codecCtx->extradata = (uint8_t*) av_malloc(EXTRADATA_MAX_SIZE);
     codecCtx->extradata_size = 0;
+
     frame = av_frame_alloc();
 
     outFrame.sample_rate = sampleRate;

@@ -62,6 +62,7 @@ struct Option
         int width;
         int height;
         int format;
+        char hw_device[16];
     } video;
     bool enable_audio;
     struct

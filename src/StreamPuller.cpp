@@ -206,7 +206,7 @@ void StreamPuller::runHTTP()
             {
                 sink.setBoundary(boundary);
                 videoDecoder = VideoDecoder::createNew("JPEG",
-                    (Format) option.video.format, option.video.width, option.video.height);
+                    (Format) option.video.format, option.video.width, option.video.height, option.video.hw_device);
                 callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
             }
             return true;
@@ -338,7 +338,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
     if (strcmp(mediumName, "video") == 0)
     {
         videoDecoder = VideoDecoder::createNew(codecName,
-            (Format) option.video.format, option.video.width, option.video.height);
+            (Format) option.video.format, option.video.width, option.video.height, option.video.hw_device);
         if (videoDecoder == nullptr)
         {
             env << "Not support video codec: " << codecName << "\n";

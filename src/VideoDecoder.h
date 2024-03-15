@@ -16,15 +16,20 @@ extern const uint8_t jpegEndCode[2];
 class VideoDecoder
 {
 public:
-    VideoDecoder(const AVCodec* codec, Format format, int width, int height);
+    VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height);
     virtual ~VideoDecoder();
     virtual bool processPacket(AVPacket* packet);
     void addExtraData(const uint8_t* data, int size);
+    AVPixelFormat getHwPixFormat() { return hwPixFmt; }
     Frame* getFrame();
-    static VideoDecoder* createNew(const std::string codecName, Format format, int width, int height);
+    static VideoDecoder* createNew(const std::string& codecName, Format format, int width, int height,
+                                    const std::string& deviceName = "");
 
 protected:
     AVCodecContext* codecCtx;
+    AVBufferRef* hwDeviceCtx;
+    AVPixelFormat hwPixFmt;
+    AVFrame* hwFrame;
     AVFrame* frame;
 
     Frame outFrame;
@@ -53,5 +58,5 @@ private:
 class MJPEGVideoDecoder : public VideoDecoder
 {
 public:
-    MJPEGVideoDecoder(const AVCodec* codec, Format format, int width, int height);
+    MJPEGVideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height);
 };

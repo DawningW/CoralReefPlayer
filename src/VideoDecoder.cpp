@@ -29,6 +29,22 @@ static AVPixelFormat to_av_format(Format format)
     return AV_PIX_FMT_NONE;
 }
 
+static const AVCodec* find_hw_decoder(const std::string& codecName, const std::string& deviceName, AVHWDeviceType& deviceType)
+{
+    deviceType = av_hwdevice_find_type_by_name(deviceName.c_str());
+    if (deviceType == AV_HWDEVICE_TYPE_NONE)
+    {
+        fprintf(stderr, "Hardware accel device %s not found.\n", deviceName.c_str());
+    }
+    std::string decoderName = codecName + "_" + deviceName;
+    const AVCodec* codec = avcodec_find_decoder_by_name(decoderName.c_str());
+    if (codec == nullptr)
+    {
+        fprintf(stderr, "Hardware decoder %s not found, use software decoder instead.\n", decoderName.c_str());
+    }
+    return codec;
+}
+
 static bool extractH264Or5Frame(AVPacket* pkt, int& offset, int& size, int& markerSize)
 {
     offset += size;
@@ -71,36 +87,97 @@ static bool extractH264Or5Frame(AVPacket* pkt, int& offset, int& size, int& mark
     return false;
 }
 
-VideoDecoder* VideoDecoder::createNew(const std::string codecName, Format format, int width, int height)
+VideoDecoder* VideoDecoder::createNew(const std::string& codecName, Format format, int width, int height,
+                                        const std::string& deviceName)
 {
     const AVCodec* codec = nullptr;
+    AVHWDeviceType deviceType = AV_HWDEVICE_TYPE_NONE;
     if (codecName == "H264")
     {
-        codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-        // codec = avcodec_find_decoder_by_name("h264");
-        return new H264VideoDecoder(codec, format, width, height);
+        if (!deviceName.empty())
+            codec = find_hw_decoder("h264", deviceName, deviceType);
+        if (codec == nullptr)
+            codec = avcodec_find_decoder(AV_CODEC_ID_H264);
+        return new H264VideoDecoder(codec, deviceType, format, width, height);
     }
     else if (codecName == "H265")
     {
-        codec = avcodec_find_decoder(AV_CODEC_ID_H265);
-        return new H265VideoDecoder(codec, format, width, height);
+        if (!deviceName.empty())
+            codec = find_hw_decoder("hevc", deviceName, deviceType);
+        if (codec == nullptr)
+            codec = avcodec_find_decoder(AV_CODEC_ID_H265);
+        return new H265VideoDecoder(codec, deviceType, format, width, height);
     }
     else if (codecName == "JPEG")
     {
-        codec = avcodec_find_decoder(AV_CODEC_ID_MJPEG);
-        return new MJPEGVideoDecoder(codec, format, width, height);
+        if (!deviceName.empty())
+            codec = find_hw_decoder("mjpeg", deviceName, deviceType);
+        if (codec == nullptr)
+            codec = avcodec_find_decoder(AV_CODEC_ID_MJPEG);
+        return new MJPEGVideoDecoder(codec, deviceType, format, width, height);
     }
     return nullptr;
 }
 
-VideoDecoder::VideoDecoder(const AVCodec* codec, Format format, int width, int height)
-    : codecCtx(nullptr), frame(nullptr), outFrame{}
+VideoDecoder::VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height)
+    : codecCtx(nullptr), hwDeviceCtx(nullptr), hwPixFmt(AV_PIX_FMT_NONE), hwFrame(nullptr), frame(nullptr), outFrame{}
 {
+    if (deviceType != AV_HWDEVICE_TYPE_NONE)
+    {
+        if (av_hwdevice_ctx_create(&hwDeviceCtx, deviceType, "auto", NULL, 0) < 0)
+        {
+            fprintf(stderr, "Open hardware device failed.\n");
+            deviceType = AV_HWDEVICE_TYPE_NONE;
+        }
+        else
+        {
+            for (int i = 0; ; i++)
+            {
+                const AVCodecHWConfig* config = avcodec_get_hw_config(codec, i);
+                if (!config)
+                    break;
+                if (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX && config->device_type == deviceType)
+                {
+                    hwPixFmt = config->pix_fmt;
+                    break;
+                }
+            }
+            if (hwPixFmt == AV_PIX_FMT_NONE)
+            {
+                fprintf(stderr, "Decoder %s does not support device type %s.\n",
+                    codec->name, av_hwdevice_get_type_name(deviceType));
+                av_buffer_unref(&hwDeviceCtx);
+                deviceType = AV_HWDEVICE_TYPE_NONE;
+            }
+        }
+    }
+
     codecCtx = avcodec_alloc_context3(codec);
+    codecCtx->opaque = this;
     codecCtx->flags = AV_CODEC_FLAG_LOW_DELAY;
     codecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS;
     codecCtx->extradata = (uint8_t*) av_malloc(EXTRADATA_MAX_SIZE);
     codecCtx->extradata_size = 0;
+    if (deviceType != AV_HWDEVICE_TYPE_NONE)
+    {
+       codecCtx->hw_device_ctx = av_buffer_ref(hwDeviceCtx);
+       codecCtx->get_format = [](AVCodecContext* avctx, const AVPixelFormat* pix_fmts) -> AVPixelFormat
+       {
+           while (*pix_fmts != AV_PIX_FMT_NONE)
+           {
+               if (*pix_fmts == ((VideoDecoder*) avctx->opaque)->getHwPixFormat())
+               {
+                   return *pix_fmts;
+               }
+               pix_fmts++;
+           }
+           fprintf(stderr, "Failed to get hardware surface format.\n");
+           return AV_PIX_FMT_NONE;
+       };
+    }
+
+    if (deviceType != AV_HWDEVICE_TYPE_NONE)
+       hwFrame = av_frame_alloc();
     frame = av_frame_alloc();
 
     outFrame.width = width;
@@ -114,8 +191,12 @@ VideoDecoder::~VideoDecoder()
         av_freep(&outFrame.data[0]);
 
     av_frame_free(&frame);
+    if (hwFrame != nullptr)
+       av_frame_free(&hwFrame);
     // avcodec_free_context will delete extradata
     avcodec_free_context(&codecCtx);
+    if (hwDeviceCtx != nullptr)
+       av_buffer_unref(&hwDeviceCtx);
 }
 
 bool VideoDecoder::processPacket(AVPacket* packet)
@@ -127,7 +208,8 @@ bool VideoDecoder::processPacket(AVPacket* packet)
     }
 
     bool hasFrame = false;
-    while (avcodec_receive_frame(codecCtx, frame) >= 0)
+    AVFrame* receivedFrame = hwDeviceCtx == nullptr ? frame : hwFrame;
+    while (avcodec_receive_frame(codecCtx, receivedFrame) >= 0)
     {
         if (outFrame.data[0] == nullptr)
         {
@@ -140,6 +222,15 @@ bool VideoDecoder::processPacket(AVPacket* packet)
                 to_av_format((enum Format) outFrame.format), 1);
         }
 
+        if (hwDeviceCtx != nullptr)
+        {
+            if (av_hwframe_transfer_data(frame, hwFrame, 0) < 0)
+            {
+                fprintf(stderr, "Error transferring the data to system memory.\n");
+                continue;
+            }
+        }
+
         AVPixelFormat pixFmt;
         switch (codecCtx->pix_fmt)
         {
@@ -148,11 +239,11 @@ bool VideoDecoder::processPacket(AVPacket* packet)
             case AV_PIX_FMT_YUVJ444P: pixFmt = AV_PIX_FMT_YUV444P; break;
             default: pixFmt = codecCtx->pix_fmt; break;
         }
-        struct SwsContext* swsCxt = sws_getContext(codecCtx->width, codecCtx->height, pixFmt,
+        struct SwsContext* swsCtx = sws_getContext(codecCtx->width, codecCtx->height, pixFmt,
             outFrame.width, outFrame.height, to_av_format((enum Format) outFrame.format),
             SWS_FAST_BILINEAR, NULL, NULL, NULL);
-        sws_scale(swsCxt, frame->data, frame->linesize, 0, codecCtx->height, outFrame.data, outFrame.linesize);
-        sws_freeContext(swsCxt);
+        sws_scale(swsCtx, frame->data, frame->linesize, 0, codecCtx->height, outFrame.data, outFrame.linesize);
+        sws_freeContext(swsCtx);
         outFrame.pts = frame->pts;
         hasFrame = true;
     }
@@ -304,8 +395,8 @@ bool H265VideoDecoder::processPacket(AVPacket* packet)
     return VideoDecoder::processPacket(packet);
 }
 
-MJPEGVideoDecoder::MJPEGVideoDecoder(const AVCodec* codec, Format format, int width, int height)
-    : VideoDecoder(codec, format, width, height)
+MJPEGVideoDecoder::MJPEGVideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height)
+    : VideoDecoder(codec, deviceType, format, width, height)
 {
     avcodec_open2(codecCtx, NULL, NULL);
 }

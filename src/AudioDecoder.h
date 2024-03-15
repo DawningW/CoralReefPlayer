@@ -16,7 +16,7 @@ public:
     void initParameters(int sampleRate, int channels);
     void addExtraData(const uint8_t* data, int size);
     Frame* getFrame();
-    static AudioDecoder* createNew(const std::string codecName, Format format, int sampleRate, int channels);
+    static AudioDecoder* createNew(const std::string& codecName, Format format, int sampleRate, int channels);
 
 private:
     AVCodecContext* codecCtx;
