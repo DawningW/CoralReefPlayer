@@ -108,12 +108,63 @@ CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交
 
 ## 文档
 
-CoralReefPlayer 总体架构图：TODO
+CoralReefPlayer 总体架构图：
+
+![架构图](doc/architecture.png)
 
 CoralReefPlayer API 文档：
 
 ```c
 // coralreefplayer.h
+
+struct Option
+{
+    int transport;          // 传输协议（仅 RTSP 有效），见 Transport 枚举定义
+    struct
+    {
+        int width;          // 解码图像宽度，CRP_WIDTH_AUTO 为从码流自动获取
+        int height;         // 解码图像高度，CRP_HEIGHT_AUTO 为从码流自动获取
+        int format;         // 解码图像格式，见 Format 枚举定义
+        char hw_device[16]; // 硬解码器名称，可取值请参考 ffmpeg 文档，为空则使用软解码器
+    } video;
+    bool enable_audio;      // 是否启用音频
+    struct
+    {
+        int sample_rate;    // 解码音频采样率
+        int channels;       // 解码音频声道数
+        int format;         // 解码音频格式，见 Format 枚举定义
+    } audio;
+    int64_t timeout;        // 超时时间，单位为毫秒
+};
+
+struct Frame
+{
+    union
+    {
+        struct
+        {
+            int width;       // 图像宽度
+            int height;      // 图像高度
+        };
+        struct
+        {
+            int sample_rate; // 采样率
+            int channels;    // 声道数
+        };
+    };
+    int format;              // 数据格式，见 Format 枚举定义
+    uint8_t* data[4];        // 数据指针
+    int linesize[4];         // 数据跨度，即一行数据的字节数（由于内存对齐，可能大于图像宽度）
+    uint64_t pts;            // 展示时间戳
+};
+
+/**
+ * @brief 事件回调函数类型
+ * @param event 事件类型，见 Event 枚举定义
+ * @param data 事件数据，收到视频和音频数据时为 Frame 结构体指针，其他事件为 NULL
+ * @param user_data crp_play 函数中传入的用户自定义数据
+ */
+typedef void (*crp_callback)(int event, void* data, void* user_data);
 
 /**
  * @brief 创建播放器
@@ -137,19 +188,15 @@ void crp_destroy(crp_handle handle);
 void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
 
 /**
- * @brief 开始播放指定 RTSP/HTTP 流，仅支持 H264/H265/MJPEG 码流，暂不支持音频
+ * @brief 开始播放指定 RTSP/HTTP 流，支持 H264/H265/MJPEG 和 AAC/OPUS/PCM 码流
  * @param handle 播放器句柄
  * @param url RTSP/HTTP 流地址
- * @param transport 传输协议（仅 RTSP 有效）
- * @param width 解码图像宽度，CRP_WIDTH_AUTO 为从码流自动获取
- * @param height 解码图像高度，CRP_HEIGHT_AUTO 为从码流自动获取
- * @param format 解码图像格式
- * @param callback 图像帧回调函数
+ * @param option 播放选项结构体指针，见 Option 结构体定义
+ * @param callback 事件回调函数，函数签名见 crp_callback
  * @param user_data 用户自定义数据，会在调用回调时传入
  * @return 是否成功，若参数不正确则返回 false，其他错误会调用回调
  */
-bool crp_play(crp_handle handle, const char* url, Transport transport,
-    int width, int height, Format format, crp_callback callback, void* user_data);
+void crp_play(crp_handle handle, const char* url, const Option* option, crp_callback callback, void* user_data);
 
 /**
  * @brief 重新播放之前播放的 RTSP/HTTP 流

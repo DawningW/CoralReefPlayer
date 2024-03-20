@@ -45,7 +45,7 @@ void StreamPuller::authenticate(const char* username, const char* password, bool
     authenticator = new Authenticator(username, password, useMD5);
 }
 
-bool StreamPuller::start(const char* url, Option* option, Callback callback, void* userData)
+bool StreamPuller::start(const char* url, const Option* option, Callback callback, void* userData)
 {
     if (!exit)
         return false;

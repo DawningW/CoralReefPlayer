@@ -27,7 +27,7 @@ public:
     StreamPuller();
     ~StreamPuller();
     void authenticate(const char* username, const char* password, bool useMD5 = false);
-    bool start(const char* url, Option* option, Callback callback, void* userData);
+    bool start(const char* url, const Option* option, Callback callback, void* userData);
     bool restart();
     void stop();
 
