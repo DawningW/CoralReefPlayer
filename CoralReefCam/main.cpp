@@ -12,6 +12,7 @@
 #endif
 #include "coralreefplayer.h"
 
+#define IDLE_FPS 25
 #define WIDTH 1280
 #define HEIGHT 720
 #define SAMPLE_RATE 44100
@@ -23,7 +24,6 @@ std::string url;
 Transport transport = CRP_UDP;
 crp_handle player;
 bool playing;
-bool has_frame;
 uint64_t pts;
 
 enum WindowLocation
@@ -80,7 +80,7 @@ void play()
     option.video.format = ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P;
     option.video.width = WIDTH;
     option.video.height = HEIGHT;
-    strcpy(option.video.hw_device, "cuvid"); // qsv/cuvid/videotoolbox/mediacodec
+    strcpy(option.video.hw_device, ""); // qsv/cuvid/videotoolbox/mediacodec
     option.enable_audio = true;
     option.audio.format = CRP_S16;
     option.audio.sample_rate = SAMPLE_RATE;
@@ -128,7 +128,7 @@ void play()
         }, nullptr);
 }
 
-void loop()
+void loop(SDL_Window* window)
 {
     static bool show_imgui_demo_window = false;
     static bool show_implot_demo_window = false;
@@ -174,6 +174,12 @@ void loop()
             ImGui::MenuItem("ImGui Demo", NULL, &show_imgui_demo_window);
             ImGui::MenuItem("ImPlot Demo", NULL, &show_implot_demo_window);
             ImGui::MenuItem("Frame Info", NULL, &show_fps_window);
+            ImGui::Separator();
+            bool isFullscreen = SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
+            if (ImGui::MenuItem("Fullscreen", "F11", isFullscreen))
+            {
+                SDL_SetWindowFullscreen(window, isFullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Help"))
@@ -292,7 +298,7 @@ int main(int argc, char* argv[])
         printf("Could not create renderer: %s\n", SDL_GetError());
         return -1;
     }
-    Uint32 format = ENABLE_OPENCV ? SDL_PIXELFORMAT_BGR24 : SDL_PIXELFORMAT_IYUV;
+    constexpr Uint32 format = ENABLE_OPENCV ? SDL_PIXELFORMAT_BGR24 : SDL_PIXELFORMAT_IYUV;
     SDL_Texture* texture = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
     if (!texture)
     {
@@ -332,51 +338,74 @@ int main(int argc, char* argv[])
     if (!url.empty())
         play();
 
-    SDL_Event event;
-    while (true)
+    bool is_running = true;
+    bool has_frame = false;
+    Uint64 last_time = SDL_GetTicks64();
+    while (is_running)
     {
-        SDL_WaitEvent(&event);
-        ImGui_ImplSDL2_ProcessEvent(&event);
-        if (event.type == SDL_REFRESH_EVENT)
+        bool force_update = false;
+        SDL_Event event;
+        while (SDL_PollEvent(&event))
         {
-            if (!playing)
-                continue;
+            ImGui_ImplSDL2_ProcessEvent(&event);
+            if (event.type == SDL_REFRESH_EVENT)
+            {
+                if (!playing)
+                    continue;
 
-            bool is_audio = (bool) event.user.data1;
-            Frame* frame = (Frame*) event.user.data2;
-            if (!is_audio)
-            {
+                bool is_audio = (bool) event.user.data1;
+                Frame* frame = (Frame*) event.user.data2;
+                if (!is_audio)
+                {
+                    if (format == SDL_PIXELFORMAT_IYUV)
+                    {
+                        SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
+                            frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
+                    }
+                    else if (format == SDL_PIXELFORMAT_NV12 || format == SDL_PIXELFORMAT_NV21)
+                    {
+                        SDL_UpdateNVTexture(texture, NULL, frame->data[0], frame->linesize[0],
+                            frame->data[1], frame->linesize[1]);
+                    }
+                    else
+                    {
 #if ENABLE_OPENCV
-                cv::Mat mat(cv::Size(frame->width, frame->height), CV_8UC3);
-                mat.data = (uchar*)frame->data[0];
-                process(mat);
-                SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
-#else
-                SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
-                    frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
+                        cv::Mat mat(cv::Size(frame->width, frame->height), CV_8UC3);
+                        mat.data = (uchar*)frame->data[0];
+                        process(mat);
 #endif
-                pts = frame->pts;
-                has_frame = true;
+                        SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
+                    }
+                    pts = frame->pts;
+                    has_frame = true;
+                    force_update = true;
+                }
+                else
+                {
+                    SDL_QueueAudio(device_id, frame->data[0], frame->linesize[0]);
+                }
             }
-            else
+            else if (event.type == SDL_REPLAY_EVENT)
             {
-                SDL_QueueAudio(device_id, frame->data[0], frame->linesize[0]);
-                continue;
+                crp_replay(player);
+            }
+            else if (event.type == SDL_QUIT)
+            {
+                is_running = false;
+                break;
             }
         }
-        else if (event.type == SDL_REPLAY_EVENT)
+
+        Uint64 current_time = SDL_GetTicks64();
+        if (!force_update && current_time - last_time < 1000 / IDLE_FPS)
         {
-            crp_replay(player);
             continue;
         }
-        else if (event.type == SDL_QUIT)
-        {
-            break;
-        }
+        last_time = current_time;
 
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
-        loop();
+        loop(window);
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         SDL_RenderClear(renderer);
         if (has_frame)
