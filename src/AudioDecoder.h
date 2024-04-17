@@ -4,6 +4,7 @@
 extern "C"
 {
 #include "libavcodec/avcodec.h"
+#include "libswresample/swresample.h"
 }
 #include "coralreefplayer.h"
 
@@ -21,6 +22,7 @@ public:
 private:
     AVCodecContext* codecCtx;
     AVFrame* frame;
+    SwrContext* swrCtx;
     int state = 0;
 
     Frame outFrame;

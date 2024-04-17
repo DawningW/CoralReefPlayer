@@ -80,7 +80,9 @@ void play()
     option.video.format = ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P;
     option.video.width = WIDTH;
     option.video.height = HEIGHT;
-    strcpy(option.video.hw_device, ""); // qsv/cuvid/videotoolbox/mediacodec
+    // qsv/amf/cuvid/videotoolbox/mediacodec
+    // 全志 H6: drm:/dev/dri/renderD128
+    strcpy(option.video.hw_device, "");
     option.enable_audio = true;
     option.audio.format = CRP_S16;
     option.audio.sample_rate = SAMPLE_RATE;

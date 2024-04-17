@@ -1,9 +1,5 @@
 #include "AudioDecoder.h"
 #include <cstdio>
-extern "C"
-{
-#include "libswresample/swresample.h"
-}
 
 #define EXTRADATA_MAX_SIZE (AV_INPUT_BUFFER_PADDING_SIZE)
 
@@ -50,7 +46,7 @@ AudioDecoder* AudioDecoder::createNew(const std::string& codecName, Format forma
 }
 
 AudioDecoder::AudioDecoder(const AVCodec* codec, Format format, int sampleRate, int channels)
-    : codecCtx(nullptr), frame(nullptr), outFrame{}
+    : codecCtx(nullptr), frame(nullptr), swrCtx(nullptr), outFrame{}
 {
     codecCtx = avcodec_alloc_context3(codec);
     codecCtx->extradata = (uint8_t*) av_malloc(EXTRADATA_MAX_SIZE);
@@ -65,9 +61,11 @@ AudioDecoder::AudioDecoder(const AVCodec* codec, Format format, int sampleRate, 
 
 AudioDecoder::~AudioDecoder()
 {
-    if (outFrame.data[0] != nullptr)
+    if (swrCtx != nullptr && outFrame.data[0] != nullptr)
         av_freep(&outFrame.data[0]);
 
+    if (swrCtx != nullptr)
+        swr_free(&swrCtx);
     av_frame_free(&frame);
     avcodec_free_context(&codecCtx);
 }
@@ -96,20 +94,37 @@ bool AudioDecoder::processPacket(AVPacket* packet)
         {
             if (outFrame.sample_rate == 0 && outFrame.channels == 0)
             {
-                outFrame.sample_rate = codecCtx->sample_rate;
-                outFrame.channels = codecCtx->channels;
+                outFrame.sample_rate = frame->sample_rate;
+                outFrame.channels = frame->channels;
             }
-            av_samples_alloc(outFrame.data, outFrame.linesize, outFrame.channels, 1024, to_av_format((Format) outFrame.format), 0);
+            AVSampleFormat srcSampleFmt = (AVSampleFormat) frame->format;
+            AVSampleFormat dstSampleFmt = to_av_format((Format) outFrame.format);
+            bool needConvert = frame->sample_rate != outFrame.sample_rate || frame->channels != outFrame.channels ||
+                                srcSampleFmt != dstSampleFmt;
+            if (needConvert)
+            {
+                swrCtx = swr_alloc_set_opts(NULL,
+                    av_get_default_channel_layout(outFrame.channels), dstSampleFmt, outFrame.sample_rate,
+                    av_get_default_channel_layout(frame->channels), srcSampleFmt, frame->sample_rate,
+                    0, NULL);
+                swr_init(swrCtx);
+                av_samples_alloc(outFrame.data, outFrame.linesize, outFrame.channels, 1024, dstSampleFmt, 0);
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    outFrame.data[i] = frame->data[i];
+                    outFrame.linesize[i] = frame->linesize[i];
+                }
+            }
         }
 
-        SwrContext* swrCtx = swr_alloc_set_opts(nullptr,
-            av_get_default_channel_layout(outFrame.channels), to_av_format((Format) outFrame.format), outFrame.sample_rate,
-            av_get_default_channel_layout(frame->channels), (AVSampleFormat) frame->format, frame->sample_rate,
-            0, nullptr);
-        swr_init(swrCtx);
-        int outSamples = swr_convert(swrCtx, outFrame.data, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples);
-        swr_free(&swrCtx);
-        outFrame.linesize[0] = outSamples * av_get_bytes_per_sample(to_av_format((Format) outFrame.format)) * outFrame.channels;
+        if (swrCtx != nullptr)
+        {
+            int outSamples = swr_convert(swrCtx, outFrame.data, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples);
+            outFrame.linesize[0] = outSamples * av_get_bytes_per_sample(to_av_format((Format) outFrame.format)) * outFrame.channels;
+        }
         outFrame.pts = frame->pts;
         hasFrame = true;
     }

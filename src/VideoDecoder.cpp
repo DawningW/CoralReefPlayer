@@ -4,21 +4,22 @@ extern "C"
 {
 #include "libavutil/opt.h"
 #include "libavutil/imgutils.h"
-#include "libswscale/swscale.h"
 }
 
 #define EXTRADATA_MAX_SIZE (AV_INPUT_BUFFER_PADDING_SIZE * 2)
 
 const uint8_t startCode3[3] = { 0x00, 0x00, 0x01 };
 const uint8_t startCode4[4] = { 0x00, 0x00, 0x00, 0x01 };
-const uint8_t jpegStartCode[2] = {0xFF, 0xD8};
-const uint8_t jpegEndCode[2] = {0xFF, 0xD9};
+const uint8_t jpegStartCode[2] = { 0xFF, 0xD8 };
+const uint8_t jpegEndCode[2] = { 0xFF, 0xD9 };
 
 static AVPixelFormat to_av_format(Format format)
 {
     switch (format)
     {
         case CRP_YUV420P: return AV_PIX_FMT_YUV420P;
+        case CRP_NV12: return AV_PIX_FMT_NV12;
+        case CRP_NV21: return AV_PIX_FMT_NV21;
         case CRP_RGB24: return AV_PIX_FMT_RGB24;
         case CRP_BGR24: return AV_PIX_FMT_BGR24;
         case CRP_ARGB32: return AV_PIX_FMT_ARGB;
@@ -29,14 +30,18 @@ static AVPixelFormat to_av_format(Format format)
     return AV_PIX_FMT_NONE;
 }
 
-static const AVCodec* find_hw_decoder(const std::string& codecName, const std::string& deviceName, AVHWDeviceType& deviceType)
+static const AVCodec* find_hw_decoder(const std::string& codecName, const std::string& deviceName,
+                                        AVHWDeviceType& deviceType, std::string& device)
 {
-    deviceType = av_hwdevice_find_type_by_name(deviceName.c_str());
+    size_t sep = deviceName.find(':');
+    std::string deviceTypeName = sep == std::string::npos ? deviceName : deviceName.substr(0, sep);
+    device = sep == std::string::npos ? "auto" : deviceName.substr(sep + 1);
+    deviceType = av_hwdevice_find_type_by_name(deviceTypeName.c_str());
     if (deviceType == AV_HWDEVICE_TYPE_NONE)
     {
-        fprintf(stderr, "Hardware accel device %s not found.\n", deviceName.c_str());
+        fprintf(stderr, "Hardware accel device %s not found.\n", deviceTypeName.c_str());
     }
-    std::string decoderName = codecName + "_" + deviceName;
+    std::string decoderName = codecName + "_" + deviceTypeName;
     const AVCodec* codec = avcodec_find_decoder_by_name(decoderName.c_str());
     if (codec == nullptr)
     {
@@ -92,39 +97,42 @@ VideoDecoder* VideoDecoder::createNew(const std::string& codecName, Format forma
 {
     const AVCodec* codec = nullptr;
     AVHWDeviceType deviceType = AV_HWDEVICE_TYPE_NONE;
+    std::string device;
     if (codecName == "H264")
     {
         if (!deviceName.empty())
-            codec = find_hw_decoder("h264", deviceName, deviceType);
+            codec = find_hw_decoder("h264", deviceName, deviceType, device);
         if (codec == nullptr)
             codec = avcodec_find_decoder(AV_CODEC_ID_H264);
-        return new H264VideoDecoder(codec, deviceType, format, width, height);
+        return new H264VideoDecoder(codec, deviceType, device, format, width, height);
     }
     else if (codecName == "H265")
     {
         if (!deviceName.empty())
-            codec = find_hw_decoder("hevc", deviceName, deviceType);
+            codec = find_hw_decoder("hevc", deviceName, deviceType, device);
         if (codec == nullptr)
             codec = avcodec_find_decoder(AV_CODEC_ID_H265);
-        return new H265VideoDecoder(codec, deviceType, format, width, height);
+        return new H265VideoDecoder(codec, deviceType, device, format, width, height);
     }
     else if (codecName == "JPEG")
     {
         if (!deviceName.empty())
-            codec = find_hw_decoder("mjpeg", deviceName, deviceType);
+            codec = find_hw_decoder("mjpeg", deviceName, deviceType, device);
         if (codec == nullptr)
             codec = avcodec_find_decoder(AV_CODEC_ID_MJPEG);
-        return new MJPEGVideoDecoder(codec, deviceType, format, width, height);
+        return new MJPEGVideoDecoder(codec, deviceType, device, format, width, height);
     }
     return nullptr;
 }
 
-VideoDecoder::VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height)
-    : codecCtx(nullptr), hwDeviceCtx(nullptr), hwPixFmt(AV_PIX_FMT_NONE), hwFrame(nullptr), frame(nullptr), outFrame{}
+VideoDecoder::VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, const std::string& device,
+                            Format format, int width, int height)
+    : codecCtx(nullptr), hwDeviceCtx(nullptr), hwPixFmt(AV_PIX_FMT_NONE),
+        hwFrame(nullptr), frame(nullptr), swsCtx(nullptr), outFrame{}
 {
     if (deviceType != AV_HWDEVICE_TYPE_NONE)
     {
-        if (av_hwdevice_ctx_create(&hwDeviceCtx, deviceType, "auto", NULL, 0) < 0)
+        if (av_hwdevice_ctx_create(&hwDeviceCtx, deviceType, device.c_str(), NULL, 0) < 0)
         {
             fprintf(stderr, "Open hardware device failed.\n");
             deviceType = AV_HWDEVICE_TYPE_NONE;
@@ -155,7 +163,7 @@ VideoDecoder::VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Form
     codecCtx = avcodec_alloc_context3(codec);
     codecCtx->opaque = this;
     codecCtx->flags = AV_CODEC_FLAG_LOW_DELAY;
-    codecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS;
+    //codecCtx->flags2 = AV_CODEC_FLAG2_CHUNKS; // BUG have bug when using drm on linux
     codecCtx->extradata = (uint8_t*) av_malloc(EXTRADATA_MAX_SIZE);
     codecCtx->extradata_size = 0;
     if (deviceType != AV_HWDEVICE_TYPE_NONE)
@@ -174,6 +182,15 @@ VideoDecoder::VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Form
            fprintf(stderr, "Failed to get hardware surface format.\n");
            return AV_PIX_FMT_NONE;
        };
+       switch (deviceType)
+       {
+           case AV_HWDEVICE_TYPE_QSV:
+               av_opt_set(codecCtx->priv_data, "async_depth", "1", 0);
+               break;
+           case AV_HWDEVICE_TYPE_CUDA:
+               av_opt_set(codecCtx->priv_data, "delay", "0", 0);
+               break;
+       }
     }
 
     if (deviceType != AV_HWDEVICE_TYPE_NONE)
@@ -187,9 +204,11 @@ VideoDecoder::VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Form
 
 VideoDecoder::~VideoDecoder()
 {
-    if (outFrame.data[0] != nullptr)
+    if (swsCtx != nullptr && outFrame.data[0] != nullptr)
         av_freep(&outFrame.data[0]);
 
+    if (swsCtx != nullptr)
+        sws_freeContext(swsCtx);
     av_frame_free(&frame);
     if (hwFrame != nullptr)
        av_frame_free(&hwFrame);
@@ -211,17 +230,6 @@ bool VideoDecoder::processPacket(AVPacket* packet)
     AVFrame* receivedFrame = hwDeviceCtx == nullptr ? frame : hwFrame;
     while (avcodec_receive_frame(codecCtx, receivedFrame) >= 0)
     {
-        if (outFrame.data[0] == nullptr)
-        {
-            if (outFrame.width == CRP_WIDTH_AUTO && outFrame.height == CRP_HEIGHT_AUTO)
-            {
-                outFrame.width = codecCtx->width;
-                outFrame.height = codecCtx->height;
-            }
-            av_image_alloc(outFrame.data, outFrame.linesize, outFrame.width, outFrame.height,
-                to_av_format((enum Format) outFrame.format), 1);
-        }
-
         if (hwDeviceCtx != nullptr)
         {
             if (av_hwframe_transfer_data(frame, hwFrame, 0) < 0)
@@ -229,21 +237,51 @@ bool VideoDecoder::processPacket(AVPacket* packet)
                 fprintf(stderr, "Error transferring the data to system memory.\n");
                 continue;
             }
+            if (hwFrame->format == AV_PIX_FMT_DRM_PRIME)
+            {
+                frame->format = AV_PIX_FMT_NV12;
+            }
         }
 
-        AVPixelFormat pixFmt;
-        switch (codecCtx->pix_fmt)
+        if (outFrame.data[0] == nullptr)
         {
-            case AV_PIX_FMT_YUVJ420P: pixFmt = AV_PIX_FMT_YUV420P; break;
-            case AV_PIX_FMT_YUVJ422P: pixFmt = AV_PIX_FMT_YUV422P; break;
-            case AV_PIX_FMT_YUVJ444P: pixFmt = AV_PIX_FMT_YUV444P; break;
-            default: pixFmt = codecCtx->pix_fmt; break;
+            if (outFrame.width == CRP_WIDTH_AUTO && outFrame.height == CRP_HEIGHT_AUTO)
+            {
+                outFrame.width = frame->width;
+                outFrame.height = frame->height;
+            }
+            AVPixelFormat srcPixFmt;
+            switch (frame->format)
+            {
+                case AV_PIX_FMT_YUVJ420P: srcPixFmt = AV_PIX_FMT_YUV420P; break;
+                case AV_PIX_FMT_YUVJ422P: srcPixFmt = AV_PIX_FMT_YUV422P; break;
+                case AV_PIX_FMT_YUVJ444P: srcPixFmt = AV_PIX_FMT_YUV444P; break;
+                default: srcPixFmt = (enum AVPixelFormat) frame->format; break;
+            }
+            AVPixelFormat dstPixFmt = to_av_format((enum Format) outFrame.format);
+            bool needConvert = (codecCtx->codec->wrapper_name == NULL && hwDeviceCtx == nullptr) || // 软解增加一帧缓冲区
+                frame->width != outFrame.width || frame->height != outFrame.height || srcPixFmt != dstPixFmt;
+            if (needConvert)
+            {
+                swsCtx = sws_getContext(frame->width, frame->height, srcPixFmt,
+                                        outFrame.width, outFrame.height, dstPixFmt,
+                                        SWS_FAST_BILINEAR, NULL, NULL, NULL);
+                av_image_alloc(outFrame.data, outFrame.linesize, outFrame.width, outFrame.height, dstPixFmt, 1);
+            }
+            else
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    outFrame.data[i] = frame->data[i];
+                    outFrame.linesize[i] = frame->linesize[i];
+                }
+            }
         }
-        struct SwsContext* swsCtx = sws_getContext(codecCtx->width, codecCtx->height, pixFmt,
-            outFrame.width, outFrame.height, to_av_format((enum Format) outFrame.format),
-            SWS_FAST_BILINEAR, NULL, NULL, NULL);
-        sws_scale(swsCtx, frame->data, frame->linesize, 0, codecCtx->height, outFrame.data, outFrame.linesize);
-        sws_freeContext(swsCtx);
+
+        if (swsCtx != nullptr)
+        {
+            sws_scale(swsCtx, frame->data, frame->linesize, 0, frame->height, outFrame.data, outFrame.linesize);
+        }
         outFrame.pts = frame->pts;
         hasFrame = true;
     }
@@ -395,8 +433,9 @@ bool H265VideoDecoder::processPacket(AVPacket* packet)
     return VideoDecoder::processPacket(packet);
 }
 
-MJPEGVideoDecoder::MJPEGVideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height)
-    : VideoDecoder(codec, deviceType, format, width, height)
+MJPEGVideoDecoder::MJPEGVideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, const std::string& device,
+                                        Format format, int width, int height)
+    : VideoDecoder(codec, deviceType, device, format, width, height)
 {
     avcodec_open2(codecCtx, NULL, NULL);
 }

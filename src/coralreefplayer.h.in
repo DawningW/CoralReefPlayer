@@ -36,6 +36,8 @@ enum Transport
 enum Format
 {
     CRP_YUV420P, // AV_PIX_FMT_YUV420P
+    CRP_NV12,    // AV_PIX_FMT_NV12
+    CRP_NV21,    // AV_PIX_FMT_NV21
     CRP_RGB24,   // AV_PIX_FMT_RGB24
     CRP_BGR24,   // AV_PIX_FMT_BGR24
     CRP_ARGB32,  // AV_PIX_FMT_ARGB
@@ -68,7 +70,7 @@ struct Option
         int width;
         int height;
         int format;
-        char hw_device[16];
+        char hw_device[32];
     } video;
     bool enable_audio;
     struct
@@ -107,7 +109,7 @@ typedef void (*crp_callback)(int /* event */, void* /* data */, void* /* user_da
 CRP_DLL_EXPORT crp_handle crp_create();
 CRP_DLL_EXPORT void crp_destroy(crp_handle handle);
 CRP_DLL_EXPORT void crp_auth(crp_handle handle, const char* username, const char* password, bool is_md5);
-CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, Option* option, crp_callback callback, void* user_data);
+CRP_DLL_EXPORT void crp_play(crp_handle handle, const char* url, struct Option* option, crp_callback callback, void* user_data);
 CRP_DLL_EXPORT void crp_replay(crp_handle handle);
 CRP_DLL_EXPORT void crp_stop(crp_handle handle);
 CRP_DLL_EXPORT int crp_version_code();

@@ -5,6 +5,7 @@ extern "C"
 {
 #include "libavcodec/avcodec.h"
 #include "libavutil/hwcontext.h"
+#include "libswscale/swscale.h"
 }
 #include "coralreefplayer.h"
 
@@ -16,7 +17,8 @@ extern const uint8_t jpegEndCode[2];
 class VideoDecoder
 {
 public:
-    VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height);
+    VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, const std::string& device,
+                    Format format, int width, int height);
     virtual ~VideoDecoder();
     virtual bool processPacket(AVPacket* packet);
     void addExtraData(const uint8_t* data, int size);
@@ -31,6 +33,7 @@ protected:
     AVPixelFormat hwPixFmt;
     AVFrame* hwFrame;
     AVFrame* frame;
+    SwsContext* swsCtx;
 
     Frame outFrame;
 };
@@ -58,5 +61,6 @@ private:
 class MJPEGVideoDecoder : public VideoDecoder
 {
 public:
-    MJPEGVideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, Format format, int width, int height);
+    MJPEGVideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, const std::string& device,
+                        Format format, int width, int height);
 };
