@@ -11,20 +11,59 @@
 #include "opencv2/imgproc.hpp"
 #endif
 #include "coralreefplayer.h"
+#include "optparse.h"
 
 #define IDLE_FPS 25
-#define WIDTH 1280
-#define HEIGHT 720
-#define SAMPLE_RATE 44100
-#define CHANNEL 2
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
 #define SDL_REPLAY_EVENT (SDL_USEREVENT + 2)
 
 std::string url;
-Transport transport = CRP_UDP;
+Option option;
 crp_handle player;
 bool playing;
 uint64_t pts;
+
+SDL_PixelFormatEnum GetPixelFormat(Format format)
+{
+    switch (format)
+    {
+        case CRP_YUV420P:
+            return SDL_PIXELFORMAT_IYUV;
+        case CRP_NV12:
+            return SDL_PIXELFORMAT_NV12;
+        case CRP_NV21:
+            return SDL_PIXELFORMAT_NV21;
+        case CRP_RGB24:
+            return SDL_PIXELFORMAT_RGB24;
+        case CRP_BGR24:
+            return SDL_PIXELFORMAT_BGR24;
+        case CRP_ARGB32:
+            return SDL_PIXELFORMAT_ARGB8888;
+        case CRP_RGBA32:
+            return SDL_PIXELFORMAT_RGBA8888;
+        case CRP_ABGR32:
+            return SDL_PIXELFORMAT_ABGR8888;
+        case CRP_BGRA32:
+            return SDL_PIXELFORMAT_BGRA8888;
+    }
+    return SDL_PIXELFORMAT_UNKNOWN;
+}
+
+SDL_AudioFormat GetAudioFormat(Format format)
+{
+    switch (format)
+    {
+        case CRP_U8:
+            return AUDIO_U8;
+        case CRP_S16:
+            return AUDIO_S16SYS;
+        case CRP_S32:
+            return AUDIO_S32SYS;
+        case CRP_F32:
+            return AUDIO_F32SYS;
+    }
+    return AUDIO_S16SYS;
+}
 
 enum WindowLocation
 {
@@ -74,19 +113,6 @@ void play()
     if (playing)
         crp_stop(player);
     SDL_FlushEvent(SDL_REFRESH_EVENT);
-    Option option;
-    memset(&option, 0, sizeof(option));
-    option.transport = transport;
-    option.video.format = ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P;
-    option.video.width = WIDTH;
-    option.video.height = HEIGHT;
-    // qsv/amf/cuvid/videotoolbox/mediacodec
-    // 全志 H6: drm:/dev/dri/renderD128
-    strcpy(option.video.hw_device, "");
-    option.enable_audio = true;
-    option.audio.format = CRP_S16;
-    option.audio.sample_rate = SAMPLE_RATE;
-    option.audio.channels = CHANNEL;
     crp_play(player, url.c_str(), &option, [](int ev, void* data, void* userdata)
         {
             if (ev == CRP_EV_NEW_FRAME || ev == CRP_EV_NEW_AUDIO)
@@ -203,9 +229,9 @@ void loop(SDL_Window* window)
         ImGui::InputText("Stream URL", &url);
         ImGui::Text("Transport: ");
         ImGui::SameLine();
-        ImGui::RadioButton("UDP", (int*) &transport, CRP_UDP);
+        ImGui::RadioButton("UDP", (int*) &option.transport, CRP_UDP);
         ImGui::SameLine();
-        ImGui::RadioButton("TCP", (int*) &transport, CRP_TCP);
+        ImGui::RadioButton("TCP", (int*) &option.transport, CRP_TCP);
         ImGui::BeginDisabled(url.empty());
         if (ImGui::Button("Play", ImVec2(120, 0)))
         {
@@ -272,14 +298,150 @@ void process(cv::Mat &mat)
 }
 #endif
 
+static void parse_args(int argc, char* argv[], bool& fullscreen)
+{
+    const struct optparse_long longopts[] =
+    {
+        {"transport", 't', OPTPARSE_REQUIRED},
+        {"videoformat", 'v', OPTPARSE_REQUIRED},
+        {"size", 's', OPTPARSE_REQUIRED},
+        {"hwdevice", 'd', OPTPARSE_REQUIRED},
+        {"audioformat", 'a', OPTPARSE_REQUIRED},
+        {"samplerate", 'r', OPTPARSE_REQUIRED},
+        {"channels", 'c', OPTPARSE_REQUIRED},
+        {"fullscreen", 'f', OPTPARSE_NONE},
+        {"version", 0, OPTPARSE_NONE},
+        {"help", 'h', OPTPARSE_NONE},
+        {0}
+    };
+    const struct {
+        const char* name;
+        Format format;
+    } video_formats[] = {
+        {"yuv420", CRP_YUV420P},
+        {"nv12", CRP_NV12},
+        {"nv21", CRP_NV21},
+        {"rgb24", CRP_RGB24},
+        {"bgr24", CRP_BGR24},
+        {"argb32", CRP_ARGB32},
+        {"rgba32", CRP_RGBA32},
+        {"abgr32", CRP_ABGR32},
+        {"bgra32", CRP_BGRA32},
+    }, audio_formats[] = {
+        {"u8", CRP_U8},
+        {"s16", CRP_S16},
+        {"s32", CRP_S32},
+        {"f32", CRP_F32},
+    };
+
+    struct optparse parser;
+    optparse_init(&parser, argv);
+
+    int opt, index;
+    while ((opt = optparse_long(&parser, longopts, &index)) != -1)
+    {
+        switch (opt)
+        {
+            case 't':
+                option.transport = strcmp(parser.optarg, "tcp") == 0 ? CRP_TCP : CRP_UDP;
+                break;
+            case 'v':
+                for (auto& format : video_formats)
+                {
+                    if (strcmp(parser.optarg, format.name) == 0)
+                    {
+                        option.video.format = format.format;
+                        break;
+                    }
+                }
+                break;
+            case 's':
+                sscanf(parser.optarg, "%dx%d", &option.video.width, &option.video.height);
+                break;
+            case 'd':
+                strncpy(option.video.hw_device, parser.optarg, sizeof(option.video.hw_device));
+                break;
+            case 'a':
+                option.enable_audio = strcmp(parser.optarg, "none") != 0;
+                for (auto& format : audio_formats)
+                {
+                    if (strcmp(parser.optarg, format.name) == 0)
+                    {
+                        option.audio.format = format.format;
+                        break;
+                    }
+                }
+                break;
+            case 'r':
+                option.audio.sample_rate = atoi(parser.optarg);
+                break;
+            case 'c':
+                option.audio.channels = atoi(parser.optarg);
+                break;
+            case 'f':
+                fullscreen = true;
+                break;
+            case 'h':
+                printf("Usage: %s [OPTION]... [URL]\n", argv[0]);
+                printf("Options:\n");
+                printf("  -t, --transport=TRANSPORT       The transport of the stream, either tcp or udp\n");
+                printf("  -v, --videoformat=FORMAT        The video format of the video, can be:yuv420,nv12,nv21,rgb24,bgr24,argb32,rgba32,abgr32,bgra32\n");
+                printf("  -s, --size=WIDTHxHEIGHT         The width and height of the video\n");
+                printf("  -d, --hwdevice=TYPE[:DEVICE]    The hardware device for decoding, can be:qsv,cuvid,cuda,dxva2,d3d11va,vaapi,vdpau,v4lm2m,drm,vulkan\n");
+                printf("                                  Use 'ffmpeg -decoders' and 'ffmpeg -hwaccels' to see all supported devices\n");
+                printf("                                  See https://trac.ffmpeg.org/wiki/HWAccelIntro for more information\n");
+                printf("                                  Available devices for embedded platforms:\n");
+                printf("                                    Android: mediacodec\n");
+                printf("                                    macOS and iOS: videotoolbox\n");
+                printf("                                    Raspberry Pi: mmal,v4lm2m\n");
+                printf("                                    Rockchip: rkmpp\n");
+                printf("                                    Allwinner H6: drm:/dev/dri/renderD128 (with the ffmpeg patch from LibreELEC)\n");
+                printf("  -a, --audioformat=FORMAT        The audio format of the audio, can be:none,u8,s16,s32,f32\n");
+                printf("  -r, --samplerate=RATE           The sample rate of the audio\n");
+                printf("  -c, --channels=CHANNELS         The channels of the audio\n");
+                printf("  -f, --fullscreen                Start in fullscreen mode\n");
+                printf("      --version                   Show version infomation and exit\n");
+                printf("  -h, --help                      Show this help and exit\n");
+                exit(EXIT_SUCCESS);
+            case '?':
+                fprintf(stderr, "%s: %s\n", argv[0], parser.errmsg);
+                exit(EXIT_FAILURE);
+            default:
+                if (strcmp(longopts[index].longname, "version") == 0)
+                {
+                    printf("CoralReefCam %s\n", crp_version_str());
+                    exit(EXIT_SUCCESS);
+                }
+        }
+    }
+
+    char* arg;
+    if ((arg = optparse_arg(&parser)))
+        url = arg;
+}
+
 #undef main
 extern "C"
 int main(int argc, char* argv[])
 {
-    if (argc > 1)
-        url = argv[1];
-    if (argc > 2)
-        transport = strcmp(argv[2], "tcp") == 0 ? CRP_TCP : CRP_UDP;
+    option.transport = CRP_UDP;
+    option.video.format = ENABLE_OPENCV ? CRP_BGR24 : CRP_YUV420P;
+    option.video.width = 1280;
+    option.video.height = 720;
+    strcpy(option.video.hw_device, "");
+    option.enable_audio = true;
+    option.audio.format = CRP_S16;
+    option.audio.sample_rate = 44100;
+    option.audio.channels = 2;
+    bool fullscreen = false;
+    parse_args(argc, argv, fullscreen);
+    int width = option.video.width;
+    int height = option.video.height;
+    if (width == 0 && height == 0)
+    {
+        width = 1920;
+        height = 1080;
+    }
 
     if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER))
     {
@@ -288,7 +450,9 @@ int main(int argc, char* argv[])
     }
     SDL_SetHint(SDL_HINT_IME_SHOW_UI, "1");
     SDL_WindowFlags window_flags = (SDL_WindowFlags) (SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_OPENGL);
-    SDL_Window* window = SDL_CreateWindow("CoralReefCam", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT, window_flags);
+    if (fullscreen)
+        window_flags = (SDL_WindowFlags) (window_flags | SDL_WINDOW_FULLSCREEN_DESKTOP);
+    SDL_Window* window = SDL_CreateWindow("CoralReefCam", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, window_flags);
     if (!window)
     {
         printf("Could not create window: %s\n", SDL_GetError());
@@ -300,17 +464,17 @@ int main(int argc, char* argv[])
         printf("Could not create renderer: %s\n", SDL_GetError());
         return -1;
     }
-    constexpr Uint32 format = ENABLE_OPENCV ? SDL_PIXELFORMAT_BGR24 : SDL_PIXELFORMAT_IYUV;
-    SDL_Texture* texture = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
+    Uint32 format = GetPixelFormat((Format) option.video.format);
+    SDL_Texture* texture = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STREAMING, width, height);
     if (!texture)
     {
         printf("Could not create texture: %s\n", SDL_GetError());
         return -1;
     }
     SDL_AudioSpec wanted_spec;
-    wanted_spec.freq = SAMPLE_RATE;
-    wanted_spec.format = AUDIO_S16SYS;
-    wanted_spec.channels = CHANNEL;
+    wanted_spec.freq = option.audio.sample_rate;
+    wanted_spec.format = GetAudioFormat((Format) option.audio.format);
+    wanted_spec.channels = option.audio.channels;
     wanted_spec.silence = 0;
     wanted_spec.samples = 1024;
     wanted_spec.callback = NULL;
