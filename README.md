@@ -125,7 +125,7 @@ struct Option
         int width;          // 解码图像宽度，CRP_WIDTH_AUTO 为从码流自动获取
         int height;         // 解码图像高度，CRP_HEIGHT_AUTO 为从码流自动获取
         int format;         // 解码图像格式，见 Format 枚举定义
-        char hw_device[16]; // 硬解码器名称，可取值请参考 ffmpeg 文档，为空则使用软解码器
+        char hw_device[32]; // 硬解码器名称，可取值请参考 ffmpeg 文档，为空则使用软解码器
     } video;
     bool enable_audio;      // 是否启用音频
     struct

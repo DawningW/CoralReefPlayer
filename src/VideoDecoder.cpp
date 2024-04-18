@@ -168,29 +168,29 @@ VideoDecoder::VideoDecoder(const AVCodec* codec, AVHWDeviceType deviceType, cons
     codecCtx->extradata_size = 0;
     if (deviceType != AV_HWDEVICE_TYPE_NONE)
     {
-       codecCtx->hw_device_ctx = av_buffer_ref(hwDeviceCtx);
-       codecCtx->get_format = [](AVCodecContext* avctx, const AVPixelFormat* pix_fmts) -> AVPixelFormat
-       {
-           while (*pix_fmts != AV_PIX_FMT_NONE)
-           {
-               if (*pix_fmts == ((VideoDecoder*) avctx->opaque)->getHwPixFormat())
-               {
-                   return *pix_fmts;
-               }
-               pix_fmts++;
-           }
-           fprintf(stderr, "Failed to get hardware surface format.\n");
-           return AV_PIX_FMT_NONE;
-       };
-       switch (deviceType)
-       {
-           case AV_HWDEVICE_TYPE_QSV:
-               av_opt_set(codecCtx->priv_data, "async_depth", "1", 0);
-               break;
-           case AV_HWDEVICE_TYPE_CUDA:
-               av_opt_set(codecCtx->priv_data, "delay", "0", 0);
-               break;
-       }
+        codecCtx->hw_device_ctx = av_buffer_ref(hwDeviceCtx);
+        codecCtx->get_format = [](AVCodecContext* avctx, const AVPixelFormat* pix_fmts) -> AVPixelFormat
+        {
+            while (*pix_fmts != AV_PIX_FMT_NONE)
+            {
+                if (*pix_fmts == ((VideoDecoder*) avctx->opaque)->getHwPixFormat())
+                {
+                    return *pix_fmts;
+                }
+                pix_fmts++;
+            }
+            fprintf(stderr, "Failed to get hardware surface format.\n");
+            return AV_PIX_FMT_NONE;
+        };
+        switch (deviceType)
+        {
+            case AV_HWDEVICE_TYPE_QSV:
+                av_opt_set(codecCtx->priv_data, "async_depth", "1", 0);
+                break;
+            case AV_HWDEVICE_TYPE_CUDA:
+                av_opt_set(codecCtx->priv_data, "delay", "0", 0);
+                break;
+        }
     }
 
     if (deviceType != AV_HWDEVICE_TYPE_NONE)
@@ -236,10 +236,6 @@ bool VideoDecoder::processPacket(AVPacket* packet)
             {
                 fprintf(stderr, "Error transferring the data to system memory.\n");
                 continue;
-            }
-            if (hwFrame->format == AV_PIX_FMT_DRM_PRIME)
-            {
-                frame->format = AV_PIX_FMT_NV12;
             }
         }
 

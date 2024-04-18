@@ -387,13 +387,13 @@ static void parse_args(int argc, char* argv[], bool& fullscreen)
                 printf("  -t, --transport=TRANSPORT       The transport of the stream, either tcp or udp\n");
                 printf("  -v, --videoformat=FORMAT        The video format of the video, can be:yuv420,nv12,nv21,rgb24,bgr24,argb32,rgba32,abgr32,bgra32\n");
                 printf("  -s, --size=WIDTHxHEIGHT         The width and height of the video\n");
-                printf("  -d, --hwdevice=TYPE[:DEVICE]    The hardware device for decoding, can be:qsv,cuvid,cuda,dxva2,d3d11va,vaapi,vdpau,v4lm2m,drm,vulkan\n");
+                printf("  -d, --hwdevice=TYPE[:DEVICE]    The hardware device for decoding, can be:qsv,cuvid,cuda,dxva2,d3d11va,vaapi,vdpau,v4l2m2m,drm,vulkan\n");
                 printf("                                  Use 'ffmpeg -decoders' and 'ffmpeg -hwaccels' to see all supported devices\n");
                 printf("                                  See https://trac.ffmpeg.org/wiki/HWAccelIntro for more information\n");
                 printf("                                  Available devices for embedded platforms:\n");
                 printf("                                    Android: mediacodec\n");
                 printf("                                    macOS and iOS: videotoolbox\n");
-                printf("                                    Raspberry Pi: mmal,v4lm2m\n");
+                printf("                                    Raspberry Pi: mmal,v4lm2m,drm:/dev/dri/renderD128\n");
                 printf("                                    Rockchip: rkmpp\n");
                 printf("                                    Allwinner H6: drm:/dev/dri/renderD128 (with the ffmpeg patch from LibreELEC)\n");
                 printf("  -a, --audioformat=FORMAT        The audio format of the audio, can be:none,u8,s16,s32,f32\n");
