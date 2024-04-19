@@ -14,12 +14,19 @@ namespace CoralReefPlayer
     public enum Format
     {
         YUV420P = 0,
-        RGB24 = 1,
-        BGR24 = 2,
-        ARGB32 = 3,
-        RGBA32 = 4,
-        ABGR32 = 5,
-        BGRA32 = 6,
+        NV12 = 1,
+        NV21 = 2,
+        RGB24 = 3,
+        BGR24 = 4,
+        ARGB32 = 5,
+        RGBA32 = 6,
+        ABGR32 = 7,
+        BGRA32 = 8,
+
+        U8 = 0,
+        S16 = 1,
+        S32 = 2,
+        F32 = 3,
     }
 
     public enum Event
@@ -30,30 +37,47 @@ namespace CoralReefPlayer
         PLAYING = 3,
         END = 4,
         STOP = 5,
+        NEW_AUDIO = 6,
+    }
+
+    public struct Option
+    {
+        public Transport Transport;
+        public int Width;
+        public int Height;
+        public Format VideoFormat;
+        public string HWDevice;
+        public bool EnableAudio;
+        public int SampleRate;
+        public int Channels;
+        public Format AudioFormat;
+        public long Timeout;
     }
 
     public struct Frame
     {
         public int Width;
         public int Height;
+        public int SampleRate;
+        public int Channels;
         public Format Format;
-        public UnmanagedMemoryStream Data;
-        public int LineSize;
+        public UnmanagedMemoryStream[] Data;
+        public int[] LineSize;
         public ulong PTS;
     }
 
     public interface ICallback
     {
         void OnEvent(Event ev, long data);
-        void OnFrame(Frame frame);
+        void OnFrame(bool isAudio, Frame frame);
     }
 
     public class ActionCallback : ICallback
     {
         private Action<Event, long> EventListener;
-        private Action<Frame> FrameListener;
+        private Action<bool, Frame> FrameListener;
 
-        public ActionCallback(Action<Event, long> eventListener, Action<Frame> frameListener)
+        public ActionCallback(Action<Event, long> eventListener, Action<bool, Frame> frameListener)
         {
             EventListener = eventListener;
             FrameListener = frameListener;
@@ -64,9 +88,9 @@ namespace CoralReefPlayer
             EventListener?.Invoke(ev, data);
         }
 
-        public void OnFrame(Frame frame)
+        public void OnFrame(bool isAudio, Frame frame)
         {
-            FrameListener?.Invoke(frame);
+            FrameListener?.Invoke(isAudio, frame);
         }
     }
 
@@ -91,8 +115,21 @@ namespace CoralReefPlayer
             crp_auth(handle, username, password, isMD5);
         }
 
-        public void Play(string url, Transport transport, int width, int height, Format format, ICallback callback)
+        public void Play(string url, Option option, ICallback callback)
         {
+            COption cOption = new COption
+            {
+                transport = (int)option.Transport,
+                video_width = option.Width,
+                video_height = option.Height,
+                video_format = (int)option.VideoFormat,
+                hw_device = option.HWDevice,
+                enable_audio = option.EnableAudio,
+                audio_sample_rate = option.SampleRate,
+                audio_channels = option.Channels,
+                audio_format = (int)option.AudioFormat,
+                timeout = option.Timeout,
+            };
             cs_callback = (ev, data, userData) =>
             {
                 Event ev2 = (Event)ev;
@@ -104,24 +141,52 @@ namespace CoralReefPlayer
                         Width = cFrame.width,
                         Height = cFrame.height,
                         Format = (Format)cFrame.format,
-                        Data = null,
-                        LineSize = cFrame.linesize[0],
+                        Data = new UnmanagedMemoryStream[4],
+                        LineSize = new int[4],
+                        PTS = cFrame.pts,
+                    };
+                    unsafe
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            byte* pData = (byte*)cFrame.data[i].ToPointer();
+                            int length = cFrame.linesize[i] * cFrame.height;
+                            if (i > 0) length /= 2;
+                            if (pData != null)
+                                frame.Data[i] = new UnmanagedMemoryStream(pData, length);
+                            frame.LineSize[i] = cFrame.linesize[i];
+                        }
+                    }
+                    callback.OnFrame(false, frame);
+                }
+                else if (ev2 == Event.NEW_AUDIO)
+                {
+                    CFrame cFrame = Marshal.PtrToStructure<CFrame>(data);
+                    Frame frame = new Frame
+                    {
+                        SampleRate = cFrame.width,
+                        Channels = cFrame.height,
+                        Format = (Format)cFrame.format,
+                        Data = new UnmanagedMemoryStream[1],
+                        LineSize = new int[1],
                         PTS = cFrame.pts,
                     };
                     unsafe
                     {
                         byte* pData = (byte*)cFrame.data[0].ToPointer();
-                        int length = cFrame.linesize[0] * cFrame.height;
-                        frame.Data = new UnmanagedMemoryStream(pData, length);
+                        int length = cFrame.linesize[0];
+                        if (pData != null)
+                            frame.Data[0] = new UnmanagedMemoryStream(pData, length);
+                        frame.LineSize[0] = cFrame.linesize[0];
                     }
-                    callback.OnFrame(frame);
+                    callback.OnFrame(true, frame);
                 }
                 else
                 {
                     callback.OnEvent(ev2, data.ToInt64());
                 }
             };
-            crp_play(handle, url, (int)transport, width, height, (int)format, cs_callback, IntPtr.Zero);
+            crp_play(handle, url, ref cOption, cs_callback, IntPtr.Zero);
         }
 
         public void Replay()

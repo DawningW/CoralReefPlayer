@@ -360,6 +360,7 @@ static void parse_args(int argc, char* argv[], bool& fullscreen)
                 break;
             case 'd':
                 strncpy(option.video.hw_device, parser.optarg, sizeof(option.video.hw_device));
+                option.video.hw_device[sizeof(option.video.hw_device) - 1] = '\0';
                 break;
             case 'a':
                 option.enable_audio = strcmp(parser.optarg, "none") != 0;

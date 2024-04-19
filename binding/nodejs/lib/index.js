@@ -20,12 +20,19 @@ const Transport = {
 
 const Format = {
     YUV420P: 0,
-    RGB24: 1,
-    BGR24: 2,
-    ARGB32: 3,
-    RGBA32: 4,
-    ABGR32: 5,
-    BGRA32: 6,
+    NV12: 1,
+    NV21: 2,
+    RGB24: 3,
+    BGR24: 4,
+    ARGB32: 5,
+    RGBA32: 6,
+    ABGR32: 7,
+    BGRA32: 8,
+
+    U8: 0,
+    S16: 1,
+    S32: 2,
+    F32: 3,
 }
 
 const Event = {
@@ -35,6 +42,7 @@ const Event = {
     PLAYING: 3,
     END: 4,
     STOP: 5,
+    NEW_AUDIO: 6,
 }
 
 class Player {
@@ -50,9 +58,9 @@ class Player {
     auth(username, password, isMD5) {
         addon.auth(this.handle, username, password, isMD5)
     }
-    play(url, transport, width, height, format, callback) {
+    play(url, option, callback) {
         this.callback = callback // avoid GC
-        addon.play(this.handle, url, transport, width, height, format, callback)
+        addon.play(this.handle, url, option, callback)
     }
     replay() {
         addon.replay(this.handle)

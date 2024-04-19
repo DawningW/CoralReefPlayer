@@ -1,6 +1,5 @@
 package cn.oureda.coralreefplayer;
 
-import java.nio.ByteBuffer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -8,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PullTest {
-    private static final String URL = "rtsp://127.0.0.1/main.sdp";
+    private static final String URL = "rtsp://127.0.0.1:8554/";
 
     @BeforeAll
     static void setUp() {
@@ -19,19 +18,24 @@ public class PullTest {
     void test() {
         CoralReefPlayer player = new CoralReefPlayer();
         Boolean[] hasFrame = new Boolean[] {false};
-        player.play(URL, CoralReefPlayer.TRANSPORT_UDP, 0, 0, CoralReefPlayer.FORMAT_RGB24,
-                new CoralReefPlayer.Callback() {
-                    @Override
-                    public void onEvent(int event, long data) {
-                        System.out.println("event: " + event + ", data: " + data);
-                    }
+        Option option = new Option();
+        option.transport = CoralReefPlayer.TRANSPORT_UDP;
+        option.videoFormat = CoralReefPlayer.FORMAT_YUV420P;
+        player.play(URL, option, new CoralReefPlayer.Callback() {
+            @Override
+            public void onEvent(int event, long data) {
+                System.out.println("event: " + event + ", data: " + data);
+            }
 
-                    @Override
-                    public void onFrame(int width, int height, int format, ByteBuffer data, long pts) {
-                        System.out.println("frame: " + width + "x" + height + ", format: " + format + ", pts: " + pts);
-                        hasFrame[0] = true;
-                    }
-                });
+            @Override
+            public void onFrame(boolean isAudio, Frame frame) {
+                if (!isAudio)
+                    System.out.printf("frame: %dx%d, format: %d, pts: %d\n", frame.width, frame.height, frame.format, frame.pts);
+                else
+                    System.out.printf("audio: %dx%d, format: %d, pts: %d\n", frame.sampleRate, frame.channels, frame.format, frame.pts);
+                hasFrame[0] = true;
+            }
+        });
         long start = System.currentTimeMillis();
         while (!hasFrame[0]) {
             try {

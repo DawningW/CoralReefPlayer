@@ -1,5 +1,20 @@
-use ::std::os::raw::{c_char, c_int, c_uchar, c_uint, c_ulonglong, c_void};
+use ::std::os::raw::{c_char, c_int, c_uchar, c_uint, c_longlong, c_ulonglong, c_void};
 use ::std::ffi::{CStr, CString};
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct COption {
+    transport: c_int,
+    video_width: c_int,
+    video_height: c_int,
+    video_format: c_int,
+    hw_device: [c_char; 32],
+    enable_audio: bool,
+    audio_sample_rate: c_int,
+    audio_channels: c_int,
+    audio_format: c_int,
+    timeout: c_longlong,
+}
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -21,31 +36,26 @@ extern "C" {
     fn crp_create() -> crp_handle;
     fn crp_destroy(handle: crp_handle);
     fn crp_auth(handle: crp_handle, username: *const c_char, password: *const c_char, is_md5: bool);
-    fn crp_play(
-        handle: crp_handle,
-        url: *const c_char,
-        transport: c_int,
-        width: c_int,
-        height: c_int,
-        format: c_int,
-        callback: crp_callback,
-        user_data: *mut c_void,
-    );
+    fn crp_play(handle: crp_handle, url: *const c_char, option: *mut COption, callback: crp_callback, user_data: *mut c_void);
     fn crp_replay(handle: crp_handle);
     fn crp_stop(handle: crp_handle);
     fn crp_version_code() -> c_int;
     fn crp_version_str() -> *const c_char;
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy, Default)]
 pub enum Transport {
+    #[default]
     UDP,
     TCP,
 }
 
-#[derive(PartialEq)]
-pub enum Format {
+#[derive(PartialEq, Clone, Copy, Default)]
+pub enum VideoFormat {
+    #[default]
     YUV420P,
+    NV12,
+    NV21,
     RGB24,
     BGR24,
     ARGB32,
@@ -54,7 +64,22 @@ pub enum Format {
     BGRA32,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy, Default)]
+pub enum AudioFormat {
+    #[default]
+    U8,
+	S16,
+	S32,
+	F32,
+}
+
+#[derive(PartialEq, Clone, Copy)]
+pub enum Format {
+    Video(VideoFormat),
+    Audio(AudioFormat),
+}
+
+#[derive(PartialEq, Clone, Copy)]
 pub enum Event {
     NewFrame,
     Error,
@@ -62,11 +87,28 @@ pub enum Event {
     Playing,
     End,
     Stop,
+    NewAudio,
+}
+
+#[derive(Default)]
+pub struct Option {
+    pub transport: Transport,
+    pub width: i32,
+    pub height: i32,
+    pub video_format: VideoFormat,
+    pub hw_device: String,
+    pub enable_audio: bool,
+    pub sample_rate: i32,
+    pub channels: i32,
+    pub audio_format: AudioFormat,
+    pub timeout: i64,
 }
 
 pub struct Frame {
     pub width: i32,
     pub height: i32,
+    pub sample_rate: i32,
+    pub channels: i32,
     pub format: Format,
     pub data: [Box<[u8]>; 4],
     pub linesize: [i32; 4],
@@ -91,12 +133,32 @@ extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_v
         let frame = Frame {
             width: cframe.width,
             height: cframe.height,
-            format: unsafe { ::std::mem::transmute::<_, Format>(cframe.format as i8) },
+            sample_rate: 0,
+            channels: 0,
+            format: Format::Video(unsafe { ::std::mem::transmute::<_, VideoFormat>(cframe.format as i8) }),
             data: [
                 unsafe { ::std::slice::from_raw_parts(cframe.data[0], (cframe.linesize[0] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[1], (cframe.linesize[1] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[2], (cframe.linesize[2] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[3], (cframe.linesize[3] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[1], (cframe.linesize[1] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[2], (cframe.linesize[2] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[3], (cframe.linesize[3] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
+            ],
+            linesize: cframe.linesize,
+            pts: cframe.pts,
+        };
+        (*player.callback)(ee, Data::Frame(frame));
+    } else if ee == Event::NewAudio {
+        let cframe = unsafe { &*(data as *const CFrame) };
+        let frame = Frame {
+            width: 0,
+            height: 0,
+            sample_rate: cframe.width,
+            channels: cframe.height,
+            format: Format::Audio(unsafe { ::std::mem::transmute::<_, AudioFormat>(cframe.format as i8) }),
+            data: [
+                unsafe { ::std::slice::from_raw_parts(cframe.data[0], cframe.linesize[0] as usize) }.to_vec().into_boxed_slice(),
+                Box::new([]),
+                Box::new([]),
+                Box::new([]),
             ],
             linesize: cframe.linesize,
             pts: cframe.pts,
@@ -127,13 +189,32 @@ impl Player {
         unsafe { crp_auth(self.handle, username.as_ptr(), password.as_ptr(), is_md5) }
     }
 
-    pub fn play<F>(&mut self, url: &str, transport: Transport, width: i32, height: i32, format: Format, callback: F) where
+    pub fn play<F>(&mut self, url: &str, option: &Option, callback: F) where
         F: Fn(Event, Data) + 'static {
         let url = CString::new(url).unwrap();
+        let mut opt = COption {
+            transport: option.transport as i32,
+            video_width: option.width,
+            video_height: option.height,
+            video_format: option.video_format as i32,
+            hw_device: {
+                let mut hw_device = [0; 32];
+                let len = option.hw_device.len().min(hw_device.len());
+                for i in 0..len {
+                    hw_device[i] = option.hw_device.as_bytes()[i] as i8;
+                }
+                hw_device
+            },
+            enable_audio: option.enable_audio,
+            audio_sample_rate: option.sample_rate,
+            audio_channels: option.channels,
+            audio_format: option.audio_format as i32,
+            timeout: option.timeout,
+        };
         self.callback = Box::new(callback);
         unsafe {
             let user_data = self as *mut Player as *mut c_void;
-            crp_play(self.handle, url.as_ptr(), transport as i32, width, height, format as i32, rust_callback, user_data);
+            crp_play(self.handle, url.as_ptr(), &mut opt as *mut COption, rust_callback, user_data);
         }
     }
 

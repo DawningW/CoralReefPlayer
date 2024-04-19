@@ -34,10 +34,10 @@ JNIEXPORT void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1auth
 /*
  * Class:     cn_oureda_coralreefplayer_NativeMethods
  * Method:    crp_play
- * Signature: (JLjava/lang/String;IIIILjava/lang/Object;)V
+ * Signature: (JLjava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V
  */
 JNIEXPORT void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1play
-  (JNIEnv *, jclass, jlong, jstring, jint, jint, jint, jint, jobject);
+  (JNIEnv *, jclass, jlong, jstring, jobject, jobject);
 
 /*
  * Class:     cn_oureda_coralreefplayer_NativeMethods

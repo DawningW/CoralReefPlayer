@@ -1,3 +1,4 @@
+#include <cstring>
 #include <unordered_map>
 #include <napi.h>
 #include "coralreefplayer.h"
@@ -11,14 +12,49 @@ void js_callback(int event, void* data, void* user_data) {
     tsfn.BlockingCall([event, data](Napi::Env env, Napi::Function callback) {
         if (event == CRP_EV_NEW_FRAME) {
             Frame* frame = (Frame*) data;
-            Object obj = Object::New(env);
+            Napi::Object obj = Napi::Object::New(env);
             obj.DefineProperties({
                 PropertyDescriptor::Value("width", Napi::Number::New(env, frame->width), napi_enumerable),
                 PropertyDescriptor::Value("height", Napi::Number::New(env, frame->height), napi_enumerable),
                 PropertyDescriptor::Value("format", Napi::Number::New(env, frame->format), napi_enumerable),
-                // Electron 21+ not allow to use external buffer, must copy. See https://github.com/nodejs/node-addon-api/blob/main/doc/external_buffer.md
+                PropertyDescriptor::Value("pts", Napi::Number::New(env, frame->pts), napi_enumerable)
+            });
+            if (frame->format == CRP_YUV420P || frame->format == CRP_NV12 || frame->format == CRP_NV21) {
+                Napi::Array data = Napi::Array::New(env);
+                Napi::Array linesize = Napi::Array::New(env);
+                for (int i = 0; i < 4; i++) {
+                    if (frame->data[i] == nullptr) {
+                        break;
+                    }
+                    data.Set(i, Napi::Buffer<uint8_t>::NewOrCopy(env, frame->data[i], frame->linesize[i] * (frame->height >> !!i)));
+                    linesize.Set(i, Napi::Number::New(env, frame->linesize[i]));
+                }
+                obj.DefineProperties({
+                    PropertyDescriptor::Value("data", data, napi_enumerable),
+                    PropertyDescriptor::Value("linesize", linesize, napi_enumerable)
+                });
+            } else {
+                obj.DefineProperties({
+                    // Electron 21+ not allow to use external buffer, must copy.
+                    // See https://github.com/nodejs/node-addon-api/blob/main/doc/external_buffer.md
+                    PropertyDescriptor::Value("data", Napi::Buffer<uint8_t>::NewOrCopy(
+                        env, frame->data[0], frame->linesize[0] * frame->height), napi_enumerable),
+                    PropertyDescriptor::Value("linesize", Napi::Number::New(env, frame->linesize[0]), napi_enumerable),
+                });
+            }
+            callback.Call({
+                Napi::Number::New(env, event),
+                obj
+            });
+        } else if (event == CRP_EV_NEW_AUDIO) {
+            Frame* frame = (Frame*) data;
+            Napi::Object obj = Napi::Object::New(env);
+            obj.DefineProperties({
+                PropertyDescriptor::Value("sample_rate", Napi::Number::New(env, frame->sample_rate), napi_enumerable),
+                PropertyDescriptor::Value("channels", Napi::Number::New(env, frame->channels), napi_enumerable),
+                PropertyDescriptor::Value("format", Napi::Number::New(env, frame->format), napi_enumerable),
                 PropertyDescriptor::Value("data", Napi::Buffer<uint8_t>::NewOrCopy(
-                    env, frame->data[0], frame->linesize[0] * frame->height), napi_enumerable),
+                    env, frame->data[0], frame->linesize[0]), napi_enumerable),
                 PropertyDescriptor::Value("linesize", Napi::Number::New(env, frame->linesize[0]), napi_enumerable),
                 PropertyDescriptor::Value("pts", Napi::Number::New(env, frame->pts), napi_enumerable)
             });
@@ -64,17 +100,47 @@ void Play(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     crp_handle handle = (crp_handle) info[0].As<Napi::External<void>>().Data();
     std::string url = info[1].As<Napi::String>().Utf8Value();
-    int transport = info[2].As<Napi::Number>().Int32Value();
-    int width = info[3].As<Napi::Number>().Int32Value();
-    int height = info[4].As<Napi::Number>().Int32Value();
-    int format = info[5].As<Napi::Number>().Int32Value();
-    Napi::Function callback = info[6].As<Napi::Function>();
+    Napi::Object obj = info[2].As<Napi::Object>();
+    Option option{};
+    if (obj.Has("transport")) {
+        option.transport = obj.Get("transport").As<Napi::Number>().Int32Value();
+    }
+    if (obj.Has("width")) {
+        option.video.width = obj.Get("width").As<Napi::Number>().Int32Value();
+    }
+    if (obj.Has("height")) {
+        option.video.height = obj.Get("height").As<Napi::Number>().Int32Value();
+    }
+    if (obj.Has("video_format")) {
+        option.video.format = obj.Get("video_format").As<Napi::Number>().Int32Value();
+    }
+    if (obj.Has("hw_device")) {
+        std::string hw_device = obj.Get("hw_device").As<Napi::String>().Utf8Value();
+        strncpy(option.video.hw_device, hw_device.c_str(), sizeof(option.video.hw_device));
+        option.video.hw_device[sizeof(option.video.hw_device) - 1] = '\0';
+    }
+    if (obj.Has("enable_audio")) {
+        option.enable_audio = obj.Get("enable_audio").As<Napi::Boolean>().Value();
+    }
+    if (obj.Has("sample_rate")) {
+        option.audio.sample_rate = obj.Get("sample_rate").As<Napi::Number>().Int32Value();
+    }
+    if (obj.Has("channels")) {
+        option.audio.channels = obj.Get("channels").As<Napi::Number>().Int32Value();
+    }
+    if (obj.Has("audio_format")) {
+        option.audio.format = obj.Get("audio_format").As<Napi::Number>().Int32Value();
+    }
+    if (obj.Has("timeout")) {
+        option.timeout = obj.Get("timeout").As<Napi::Number>().Int64Value();
+    }
+    Napi::Function callback = info[3].As<Napi::Function>();
     if (g_callbacks.find(handle) != g_callbacks.end()) {
         g_callbacks[handle].Release();
     }
     g_callbacks[handle] = Napi::ThreadSafeFunction::New(
         env, callback, "AsyncCallback", 0, 1, [](Napi::Env) {});
-    crp_play(handle, url.c_str(), transport, width, height, format, js_callback, handle);
+    crp_play(handle, url.c_str(), &option, js_callback, handle);
 }
 
 void Replay(const Napi::CallbackInfo& info) {

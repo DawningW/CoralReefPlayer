@@ -1,14 +1,17 @@
 using System;
 using System.Threading;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace CoralReefPlayer.Test {
     public class PullTest {
-        private static readonly string URL = "rtsp://127.0.0.1/h264.sdp";
+        private static readonly string URL = "rtsp://127.0.0.1:8554/";
+        readonly ITestOutputHelper output;
 
-        public PullTest()
+        public PullTest(ITestOutputHelper output)
         {
-            Console.WriteLine("CoralReefPlayer version: {0} ({1})", Player.VersionStr(), Player.VersionCode());
+            this.output = output;
+            output.WriteLine("CoralReefPlayer version: {0} ({1})", Player.VersionStr(), Player.VersionCode());
         }
 
         [Fact]
@@ -16,14 +19,22 @@ namespace CoralReefPlayer.Test {
         {
             Player player = new Player();
             bool hasFrame = false;
-            player.Play(URL, Transport.UDP, 0, 0, Format.RGB24, new ActionCallback(
+            Option option = new Option
+            {
+                Transport = Transport.UDP,
+                VideoFormat = Format.YUV420P,
+            };
+            player.Play(URL, option, new ActionCallback(
                 (ev, data) =>
                 {
-                    Console.WriteLine("event: {0}, data: {1}", ev, data);
+                    output.WriteLine("event: {0}, data: {1}", ev, data);
                 },
-                (frame) =>
+                (isAudio, frame) =>
                 {
-                    Console.WriteLine("frame: {0}x{1}, format: {2}, PTS: {3}", frame.Width, frame.Height, frame.Format, frame.PTS);
+                    if (!isAudio)
+                        output.WriteLine("frame: {0}x{1}, format: {2}, PTS: {3}", frame.Width, frame.Height, frame.Format, frame.PTS);
+                    else
+                        output.WriteLine("audio: {0}x{1}, format: {2}, PTS: {3}", frame.SampleRate, frame.Channels, frame.Format, frame.PTS);
                     hasFrame = true;
                 }
             ));

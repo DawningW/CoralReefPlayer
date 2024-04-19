@@ -9,6 +9,7 @@ if(NOT Python3_FOUND)
 endif()
 
 get_target_property(CRP_INCLUDE_DIR CoralReefPlayer INTERFACE_INCLUDE_DIRECTORIES)
+string(REPLACE ";" "\",\n\"" CRP_INCLUDE_DIR "${CRP_INCLUDE_DIR}")
 get_target_property(CRP_LIBRARY_DIR CoralReefPlayer BINARY_DIR)
 set(CRP_LIBRARY CoralReefPlayer)
 

@@ -1,6 +1,6 @@
 package cn.oureda.coralreefplayer;
 
-public class NativeMethods {
+class NativeMethods {
     static {
         if (isAndroid()) {
             System.loadLibrary("crp_native");
@@ -13,14 +13,14 @@ public class NativeMethods {
         }
     }
 
-    public static native long crp_create();
-    public static native void crp_destroy(long handle);
-    public static native void crp_auth(long handle, String username, String password, boolean is_md5);
-    public static native void crp_play(long handle, String url, int transport, int width, int height, int format, Object callback);
-    public static native void crp_replay(long handle);
-    public static native void crp_stop(long handle);
-    public static native int crp_version_code();
-    public static native String crp_version_str();
+    static native long crp_create();
+    static native void crp_destroy(long handle);
+    static native void crp_auth(long handle, String username, String password, boolean is_md5);
+    static native void crp_play(long handle, String url, Object option, Object callback);
+    static native void crp_replay(long handle);
+    static native void crp_stop(long handle);
+    static native int crp_version_code();
+    static native String crp_version_str();
 
     private static boolean isAndroid() {
         try {
