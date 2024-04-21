@@ -6,3 +6,11 @@
     void onEvent(...);
     void onFrame(...);
 }
+
+-keepclassmembers class cn.oureda.coralreefplayer.Option {
+    *;
+}
+
+-keep class cn.oureda.coralreefplayer.Frame {
+    *;
+}

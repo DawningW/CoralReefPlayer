@@ -13,9 +13,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.nio.ByteBuffer;
-
 import cn.oureda.coralreefplayer.CoralReefPlayer;
+import cn.oureda.coralreefplayer.Frame;
+import cn.oureda.coralreefplayer.Option;
 import cn.oureda.crpdemo.databinding.ActivityPlayerBinding;
 
 public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer.Callback {
@@ -60,8 +60,12 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
         Log.i(TAG, "onStart");
         Intent intent = getIntent();
         String url = intent.getStringExtra("url");
-        int transport = intent.getBooleanExtra("is_tcp", false) ? 0 : 1;
-        player.play(url, transport, 0, 0, CoralReefPlayer.FORMAT_RGBA32, this);
+        Option option = new Option();
+        option.transport = intent.getBooleanExtra("is_tcp", false) ?
+                CoralReefPlayer.TRANSPORT_TCP : CoralReefPlayer.TRANSPORT_UDP;
+        option.videoFormat = CoralReefPlayer.FORMAT_RGBA32;
+        option.hwDevice = "";
+        player.play(url, option, this);
     }
 
     @Override
@@ -99,31 +103,33 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     }
 
     @Override
-    public void onFrame(int width, int height, int format, ByteBuffer data, long pts) {
+    public void onFrame(boolean isAudio, Frame frame) {
         // Log.i(TAG, "onFrame");
-        // 在拉流线程上创建位图, 避免 Player 释放后访问空指针
-        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        bitmap.copyPixelsFromBuffer(data);
+        if (!isAudio) {
+            // 在拉流线程上创建位图, 避免 Player 释放后访问空指针
+            Bitmap bitmap = Bitmap.createBitmap(frame.width, frame.height, Bitmap.Config.ARGB_8888);
+            bitmap.copyPixelsFromBuffer(frame.data[0]);
 
-        runOnUiThread(() -> {
-            if (!played) {
-                int viewWidth = binding.getRoot().getWidth();
-                int viewHeight = binding.getRoot().getHeight();
-                float ratio = (float) width / height;
-                if ((float) viewWidth / viewHeight < ratio) {
-                    // 以宽度为基准
-                    binding.getRoot().getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
-                    binding.getRoot().getLayoutParams().height = (int) (viewWidth / ratio + 0.5f);
-                } else {
-                    // 以高度为基准
-                    binding.getRoot().getLayoutParams().height = ViewGroup.LayoutParams.MATCH_PARENT;
-                    binding.getRoot().getLayoutParams().width = (int) (viewHeight * ratio + 0.5f);
+            runOnUiThread(() -> {
+                if (!played) {
+                    int viewWidth = binding.getRoot().getWidth();
+                    int viewHeight = binding.getRoot().getHeight();
+                    float ratio = (float) frame.width / frame.height;
+                    if ((float) viewWidth / viewHeight < ratio) {
+                        // 以宽度为基准
+                        binding.getRoot().getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
+                        binding.getRoot().getLayoutParams().height = (int) (viewWidth / ratio + 0.5f);
+                    } else {
+                        // 以高度为基准
+                        binding.getRoot().getLayoutParams().height = ViewGroup.LayoutParams.MATCH_PARENT;
+                        binding.getRoot().getLayoutParams().width = (int) (viewHeight * ratio + 0.5f);
+                    }
+                    played = true;
                 }
-                played = true;
-            }
 
-            binding.imagePlayer.setImageBitmap(bitmap);
-        });
+                binding.imagePlayer.setImageBitmap(bitmap);
+            });
+        }
     }
 
     private void toast(String message) {

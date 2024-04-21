@@ -10,6 +10,7 @@
 #endif
 
 JavaVM *g_jvm = NULL;
+jclass g_frame_class = NULL;
 std::unordered_map<crp_handle, jobject> g_callbacks;
 
 static void ThrowJavaException(JNIEnv* jenv, const char* exc, const char* msg) {
@@ -32,7 +33,7 @@ void java_callback(int event, void *data, void *user_data) {
     if (event == CRP_EV_NEW_FRAME) {
         Frame *frame = (Frame *) data;
         jmethodID method = jenv->GetMethodID(cls, "onFrame", "(ZLcn/oureda/coralreefplayer/Frame;)V");
-        jclass cls2 = jenv->FindClass("cn/oureda/coralreefplayer/Frame");
+        jclass cls2 = g_frame_class;
         jobject jframe = jenv->NewObject(cls2, jenv->GetMethodID(cls2, "<init>", "()V"));
         jenv->SetIntField(jframe, jenv->GetFieldID(cls2, "width", "I"), frame->width);
         jenv->SetIntField(jframe, jenv->GetFieldID(cls2, "height", "I"), frame->height);
@@ -54,7 +55,7 @@ void java_callback(int event, void *data, void *user_data) {
     } else if (event == CRP_EV_NEW_AUDIO) {
         Frame *frame = (Frame *) data;
         jmethodID method = jenv->GetMethodID(cls, "onFrame", "(ZLcn/oureda/coralreefplayer/Frame;)V");
-        jclass cls2 = jenv->FindClass("cn/oureda/coralreefplayer/Frame");
+        jclass cls2 = g_frame_class;
         jobject jframe = jenv->NewObject(cls2, jenv->GetMethodID(cls2, "<init>", "()V"));
         jenv->SetIntField(jframe, jenv->GetFieldID(cls2, "sampleRate", "I"), frame->sample_rate);
         jenv->SetIntField(jframe, jenv->GetFieldID(cls2, "channels", "I"), frame->channels);
@@ -78,6 +79,14 @@ void java_callback(int event, void *data, void *user_data) {
 }
 
 jlong JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1create(JNIEnv *jenv, jclass jcls) {
+    if (g_jvm == NULL) {
+        jenv->GetJavaVM(&g_jvm);
+    }
+    // See https://developer.android.google.cn/training/articles/perf-jni?hl=zh-cn#faq:-why-didnt-findclass-find-my-class
+    if (g_frame_class == NULL) {
+        jclass cls = jenv->FindClass("cn/oureda/coralreefplayer/Frame");
+        g_frame_class = (jclass)jenv->NewGlobalRef(cls);
+    }
     return (jlong) crp_create();
 }
 
@@ -125,9 +134,6 @@ void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1play(JNIEnv *jenv
     option.audio.format = jenv->GetIntField(jarg3, jenv->GetFieldID(cls, "audioFormat", "I"));
     option.timeout = jenv->GetLongField(jarg3, jenv->GetFieldID(cls, "timeout", "J"));
 
-    if (g_jvm == NULL) {
-        jenv->GetJavaVM(&g_jvm);
-    }
     if (g_callbacks.find(arg1) != g_callbacks.end()) {
         jenv->DeleteGlobalRef(g_callbacks[arg1]);
     }

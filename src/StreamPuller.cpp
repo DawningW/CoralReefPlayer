@@ -110,7 +110,7 @@ void StreamPuller::runRTSP()
     
     callback.invokeSync(CRP_EV_START, nullptr, userData);
     ((OurRTSPClient*) rtspClient)->parent = this;
-    rtspClient->sendDescribeCommand([](RTSPClient * rtspClient, int resultCode, char* resultString)
+    rtspClient->sendDescribeCommand([](RTSPClient* rtspClient, int resultCode, char* resultString)
         {
             ((OurRTSPClient*) rtspClient)->parent->continueAfterDESCRIBE(rtspClient, resultCode, resultString);
             delete[] resultString;

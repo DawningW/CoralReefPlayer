@@ -31,3 +31,11 @@
 -keep interface cn.oureda.coralreefplayer.CoralReefPlayer$Callback {
     *;
 }
+
+-keep class cn.oureda.coralreefplayer.Option {
+    *;
+}
+
+-keep class cn.oureda.coralreefplayer.Frame {
+    *;
+}
