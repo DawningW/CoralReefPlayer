@@ -30,7 +30,7 @@ namespace CoralReefPlayer
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
             public IntPtr[] data;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
-            public int[] linesize;
+            public int[] stride;
             public ulong pts;
         }
 

@@ -108,14 +108,14 @@ bool AudioDecoder::processPacket(AVPacket* packet)
                     av_get_default_channel_layout(frame->channels), srcSampleFmt, frame->sample_rate,
                     0, NULL);
                 swr_init(swrCtx);
-                av_samples_alloc(outFrame.data, outFrame.linesize, outFrame.channels, 1024, dstSampleFmt, 0);
+                av_samples_alloc(outFrame.data, outFrame.stride, outFrame.channels, 1024, dstSampleFmt, 0);
             }
             else
             {
                 for (int i = 0; i < 4; i++)
                 {
                     outFrame.data[i] = frame->data[i];
-                    outFrame.linesize[i] = frame->linesize[i];
+                    outFrame.stride[i] = frame->linesize[i];
                 }
             }
         }
@@ -123,7 +123,7 @@ bool AudioDecoder::processPacket(AVPacket* packet)
         if (swrCtx != nullptr)
         {
             int outSamples = swr_convert(swrCtx, outFrame.data, frame->nb_samples, (const uint8_t**) frame->data, frame->nb_samples);
-            outFrame.linesize[0] = outSamples * av_get_bytes_per_sample(to_av_format((Format) outFrame.format)) * outFrame.channels;
+            outFrame.stride[0] = outSamples * av_get_bytes_per_sample(to_av_format((Format) outFrame.format)) * outFrame.channels;
         }
         outFrame.pts = frame->pts;
         hasFrame = true;

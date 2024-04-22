@@ -62,7 +62,7 @@ namespace CoralReefPlayer
         public int Channels;
         public Format Format;
         public UnmanagedMemoryStream[] Data;
-        public int[] LineSize;
+        public int[] Stride;
         public ulong PTS;
     }
 
@@ -142,7 +142,7 @@ namespace CoralReefPlayer
                         Height = cFrame.height,
                         Format = (Format)cFrame.format,
                         Data = new UnmanagedMemoryStream[4],
-                        LineSize = new int[4],
+                        Stride = new int[4],
                         PTS = cFrame.pts,
                     };
                     unsafe
@@ -150,11 +150,11 @@ namespace CoralReefPlayer
                         for (int i = 0; i < 4; i++)
                         {
                             byte* pData = (byte*)cFrame.data[i].ToPointer();
-                            int length = cFrame.linesize[i] * cFrame.height;
+                            int length = cFrame.stride[i] * cFrame.height;
                             if (i > 0) length /= 2;
                             if (pData != null)
                                 frame.Data[i] = new UnmanagedMemoryStream(pData, length);
-                            frame.LineSize[i] = cFrame.linesize[i];
+                            frame.Stride[i] = cFrame.stride[i];
                         }
                     }
                     callback.OnFrame(false, frame);
@@ -168,16 +168,16 @@ namespace CoralReefPlayer
                         Channels = cFrame.height,
                         Format = (Format)cFrame.format,
                         Data = new UnmanagedMemoryStream[1],
-                        LineSize = new int[1],
+                        Stride = new int[1],
                         PTS = cFrame.pts,
                     };
                     unsafe
                     {
                         byte* pData = (byte*)cFrame.data[0].ToPointer();
-                        int length = cFrame.linesize[0];
+                        int length = cFrame.stride[0];
                         if (pData != null)
                             frame.Data[0] = new UnmanagedMemoryStream(pData, length);
-                        frame.LineSize[0] = cFrame.linesize[0];
+                        frame.Stride[0] = cFrame.stride[0];
                     }
                     callback.OnFrame(true, frame);
                 }

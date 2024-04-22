@@ -99,7 +99,7 @@ struct Frame
     };
     int format;
     uint8_t* data[4];
-    int linesize[4];
+    int stride[4];
     uint64_t pts;
 };
 

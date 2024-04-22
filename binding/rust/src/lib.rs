@@ -23,7 +23,7 @@ struct CFrame {
     height: c_int,
     format: c_uint,
     data: [*mut c_uchar; 4usize],
-    linesize: [c_int; 4usize],
+    stride: [c_int; 4usize],
     pts: c_ulonglong,
 }
 
@@ -111,7 +111,7 @@ pub struct Frame {
     pub channels: i32,
     pub format: Format,
     pub data: [Box<[u8]>; 4],
-    pub linesize: [i32; 4],
+    pub stride: [i32; 4],
     pub pts: u64,
 }
 
@@ -137,12 +137,12 @@ extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_v
             channels: 0,
             format: Format::Video(unsafe { ::std::mem::transmute::<_, VideoFormat>(cframe.format as i8) }),
             data: [
-                unsafe { ::std::slice::from_raw_parts(cframe.data[0], (cframe.linesize[0] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[1], (cframe.linesize[1] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[2], (cframe.linesize[2] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[3], (cframe.linesize[3] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[0], (cframe.stride[0] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[1], (cframe.stride[1] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[2], (cframe.stride[2] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[3], (cframe.stride[3] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
             ],
-            linesize: cframe.linesize,
+            stride: cframe.stride,
             pts: cframe.pts,
         };
         (*player.callback)(ee, Data::Frame(frame));
@@ -155,12 +155,12 @@ extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_v
             channels: cframe.height,
             format: Format::Audio(unsafe { ::std::mem::transmute::<_, AudioFormat>(cframe.format as i8) }),
             data: [
-                unsafe { ::std::slice::from_raw_parts(cframe.data[0], cframe.linesize[0] as usize) }.to_vec().into_boxed_slice(),
+                unsafe { ::std::slice::from_raw_parts(cframe.data[0], cframe.stride[0] as usize) }.to_vec().into_boxed_slice(),
                 Box::new([]),
                 Box::new([]),
                 Box::new([]),
             ],
-            linesize: cframe.linesize,
+            stride: cframe.stride,
             pts: cframe.pts,
         };
         (*player.callback)(ee, Data::Frame(frame));

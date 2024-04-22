@@ -50,7 +50,7 @@ export interface Frame {
     channels?: number;
     format: Format;
     data: Buffer | Buffer[];
-    linesize: number | number[];
+    stride: number | number[];
     pts: number;
 }
 

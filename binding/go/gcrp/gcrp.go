@@ -72,7 +72,7 @@ type Frame struct {
 	Channels   int
 	Format     Format
 	Data       [4][]byte
-	LineSize   [4]int
+	Stride     [4]int
 	PTS        uint64
 }
 
@@ -101,12 +101,12 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 			0, 0,
 			Format(frame.format),
 			[4][]byte{
-				C.GoBytes(unsafe.Pointer(frame.data[0]), C.int(frame.linesize[0]*height)),
-				C.GoBytes(unsafe.Pointer(frame.data[1]), C.int(frame.linesize[1]*height/2)),
-				C.GoBytes(unsafe.Pointer(frame.data[2]), C.int(frame.linesize[2]*height/2)),
-				C.GoBytes(unsafe.Pointer(frame.data[3]), C.int(frame.linesize[3]*height/2)),
+				C.GoBytes(unsafe.Pointer(frame.data[0]), C.int(frame.stride[0]*height)),
+				C.GoBytes(unsafe.Pointer(frame.data[1]), C.int(frame.stride[1]*height/2)),
+				C.GoBytes(unsafe.Pointer(frame.data[2]), C.int(frame.stride[2]*height/2)),
+				C.GoBytes(unsafe.Pointer(frame.data[3]), C.int(frame.stride[3]*height/2)),
 			},
-			[4]int{int(frame.linesize[0]), int(frame.linesize[1]), int(frame.linesize[2]), int(frame.linesize[3])},
+			[4]int{int(frame.stride[0]), int(frame.stride[1]), int(frame.stride[2]), int(frame.stride[3])},
 			uint64(frame.pts),
 		})
 	} else if event == C.CRP_EV_NEW_AUDIO {
@@ -117,12 +117,12 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 			int(C.frame_get_height(frame)),
 			Format(frame.format),
 			[4][]byte{
-				C.GoBytes(unsafe.Pointer(frame.data[0]), C.int(frame.linesize[0])),
+				C.GoBytes(unsafe.Pointer(frame.data[0]), C.int(frame.stride[0])),
 				{},
 				{},
 				{},
 			},
-			[4]int{int(frame.linesize[0]), int(frame.linesize[1]), int(frame.linesize[2]), int(frame.linesize[3])},
+			[4]int{int(frame.stride[0]), int(frame.stride[1]), int(frame.stride[2]), int(frame.stride[3])},
 			uint64(frame.pts),
 		})
 	} else {

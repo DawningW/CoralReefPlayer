@@ -21,25 +21,25 @@ void js_callback(int event, void* data, void* user_data) {
             });
             if (frame->format == CRP_YUV420P || frame->format == CRP_NV12 || frame->format == CRP_NV21) {
                 Napi::Array data = Napi::Array::New(env);
-                Napi::Array linesize = Napi::Array::New(env);
+                Napi::Array stride = Napi::Array::New(env);
                 for (int i = 0; i < 4; i++) {
                     if (frame->data[i] == nullptr) {
                         break;
                     }
-                    data.Set(i, Napi::Buffer<uint8_t>::NewOrCopy(env, frame->data[i], frame->linesize[i] * (frame->height >> !!i)));
-                    linesize.Set(i, Napi::Number::New(env, frame->linesize[i]));
+                    data.Set(i, Napi::Buffer<uint8_t>::NewOrCopy(env, frame->data[i], frame->stride[i] * (frame->height >> !!i)));
+                    stride.Set(i, Napi::Number::New(env, frame->stride[i]));
                 }
                 obj.DefineProperties({
                     PropertyDescriptor::Value("data", data, napi_enumerable),
-                    PropertyDescriptor::Value("linesize", linesize, napi_enumerable)
+                    PropertyDescriptor::Value("stride", stride, napi_enumerable)
                 });
             } else {
                 obj.DefineProperties({
                     // Electron 21+ not allow to use external buffer, must copy.
                     // See https://github.com/nodejs/node-addon-api/blob/main/doc/external_buffer.md
                     PropertyDescriptor::Value("data", Napi::Buffer<uint8_t>::NewOrCopy(
-                        env, frame->data[0], frame->linesize[0] * frame->height), napi_enumerable),
-                    PropertyDescriptor::Value("linesize", Napi::Number::New(env, frame->linesize[0]), napi_enumerable),
+                        env, frame->data[0], frame->stride[0] * frame->height), napi_enumerable),
+                    PropertyDescriptor::Value("stride", Napi::Number::New(env, frame->stride[0]), napi_enumerable),
                 });
             }
             callback.Call({
@@ -54,8 +54,8 @@ void js_callback(int event, void* data, void* user_data) {
                 PropertyDescriptor::Value("channels", Napi::Number::New(env, frame->channels), napi_enumerable),
                 PropertyDescriptor::Value("format", Napi::Number::New(env, frame->format), napi_enumerable),
                 PropertyDescriptor::Value("data", Napi::Buffer<uint8_t>::NewOrCopy(
-                    env, frame->data[0], frame->linesize[0]), napi_enumerable),
-                PropertyDescriptor::Value("linesize", Napi::Number::New(env, frame->linesize[0]), napi_enumerable),
+                    env, frame->data[0], frame->stride[0]), napi_enumerable),
+                PropertyDescriptor::Value("stride", Napi::Number::New(env, frame->stride[0]), napi_enumerable),
                 PropertyDescriptor::Value("pts", Napi::Number::New(env, frame->pts), napi_enumerable)
             });
             callback.Call({

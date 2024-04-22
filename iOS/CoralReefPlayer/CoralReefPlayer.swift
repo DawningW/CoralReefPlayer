@@ -69,7 +69,7 @@ public struct Frame {
     public var channels: Int = 0
     public var format: Int32
     public var data: [UnsafeBufferPointer<UInt8>]
-    public var linesize: [Int]
+    public var stride: [Int]
     public var pts: UInt64
 }
 
@@ -83,12 +83,12 @@ private func swift_callback(event: Int32, data: UnsafeMutableRawPointer?, userDa
             height: Int(cframe.height),
             format: cframe.format,
             data: [
-                UnsafeBufferPointer(start: cframe.data.0, count: Int(cframe.linesize.0 * cframe.height)),
-                UnsafeBufferPointer(start: cframe.data.1, count: Int(cframe.linesize.1 * cframe.height / 2)),
-                UnsafeBufferPointer(start: cframe.data.2, count: Int(cframe.linesize.2 * cframe.height / 2)),
-                UnsafeBufferPointer(start: cframe.data.3, count: Int(cframe.linesize.3 * cframe.height / 2))
+                UnsafeBufferPointer(start: cframe.data.0, count: Int(cframe.stride.0 * cframe.height)),
+                UnsafeBufferPointer(start: cframe.data.1, count: Int(cframe.stride.1 * cframe.height / 2)),
+                UnsafeBufferPointer(start: cframe.data.2, count: Int(cframe.stride.2 * cframe.height / 2)),
+                UnsafeBufferPointer(start: cframe.data.3, count: Int(cframe.stride.3 * cframe.height / 2))
             ],
-            linesize: [Int(cframe.linesize.0), Int(cframe.linesize.1), Int(cframe.linesize.2), Int(cframe.linesize.3)],
+            stride: [Int(cframe.stride.0), Int(cframe.stride.1), Int(cframe.stride.2), Int(cframe.stride.3)],
             pts: cframe.pts
         )
         player.callback(ee, frame)
@@ -99,9 +99,9 @@ private func swift_callback(event: Int32, data: UnsafeMutableRawPointer?, userDa
             height: Int(cframe.height),
             format: cframe.format,
             data: [
-                UnsafeBufferPointer(start: cframe.data.0, count: Int(cframe.linesize.0)),
+                UnsafeBufferPointer(start: cframe.data.0, count: Int(cframe.stride.0)),
             ],
-            linesize: [Int(cframe.linesize.0)],
+            stride: [Int(cframe.stride.0)],
             pts: cframe.pts
         )
         player.callback(ee, frame)

@@ -29,7 +29,7 @@ class ViewController: UIViewController {
                 let colorSpace = CGColorSpaceCreateDeviceRGB()
                 let bitmapInfo = CGBitmapInfo(rawValue: CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue)
                 let providerRef = CGDataProvider(data: NSData(bytes: frame.data[0].baseAddress, length: frame.data[0].count) as CFData)!
-                let cgImage = CGImage(width: frame.width, height: frame.height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: frame.linesize[0], space: colorSpace, bitmapInfo: bitmapInfo, provider: providerRef, decode: nil, shouldInterpolate: true, intent: .defaultIntent)!
+                let cgImage = CGImage(width: frame.width, height: frame.height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: frame.stride[0], space: colorSpace, bitmapInfo: bitmapInfo, provider: providerRef, decode: nil, shouldInterpolate: true, intent: .defaultIntent)!
 
                 DispatchQueue.main.async {
                     self.imagePlayer.image = UIImage(cgImage: cgImage)

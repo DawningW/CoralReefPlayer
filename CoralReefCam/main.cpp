@@ -526,13 +526,13 @@ int main(int argc, char* argv[])
                 {
                     if (format == SDL_PIXELFORMAT_IYUV)
                     {
-                        SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->linesize[0],
-                            frame->data[1], frame->linesize[1], frame->data[2], frame->linesize[2]);
+                        SDL_UpdateYUVTexture(texture, NULL, frame->data[0], frame->stride[0],
+                            frame->data[1], frame->stride[1], frame->data[2], frame->stride[2]);
                     }
                     else if (format == SDL_PIXELFORMAT_NV12 || format == SDL_PIXELFORMAT_NV21)
                     {
-                        SDL_UpdateNVTexture(texture, NULL, frame->data[0], frame->linesize[0],
-                            frame->data[1], frame->linesize[1]);
+                        SDL_UpdateNVTexture(texture, NULL, frame->data[0], frame->stride[0],
+                            frame->data[1], frame->stride[1]);
                     }
                     else
                     {
@@ -541,7 +541,7 @@ int main(int argc, char* argv[])
                         mat.data = (uchar*)frame->data[0];
                         process(mat);
 #endif
-                        SDL_UpdateTexture(texture, NULL, frame->data[0], frame->linesize[0]);
+                        SDL_UpdateTexture(texture, NULL, frame->data[0], frame->stride[0]);
                     }
                     pts = frame->pts;
                     has_frame = true;
@@ -549,7 +549,7 @@ int main(int argc, char* argv[])
                 }
                 else
                 {
-                    SDL_QueueAudio(device_id, frame->data[0], frame->linesize[0]);
+                    SDL_QueueAudio(device_id, frame->data[0], frame->stride[0]);
                 }
             }
             else if (event.type == SDL_REPLAY_EVENT)

@@ -154,7 +154,7 @@ struct Frame
     };
     int format;              // 数据格式，见 Format 枚举定义
     uint8_t* data[4];        // 数据指针
-    int linesize[4];         // 数据跨度，即一行数据的字节数（由于内存对齐，可能大于图像宽度）
+    int stride[4];         // 数据跨度，即一行数据的字节数（由于内存对齐，可能大于图像宽度）
     uint64_t pts;            // 展示时间戳
 };
 

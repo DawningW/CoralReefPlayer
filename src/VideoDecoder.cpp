@@ -262,21 +262,21 @@ bool VideoDecoder::processPacket(AVPacket* packet)
                 swsCtx = sws_getContext(frame->width, frame->height, srcPixFmt,
                                         outFrame.width, outFrame.height, dstPixFmt,
                                         SWS_FAST_BILINEAR, NULL, NULL, NULL);
-                av_image_alloc(outFrame.data, outFrame.linesize, outFrame.width, outFrame.height, dstPixFmt, 1);
+                av_image_alloc(outFrame.data, outFrame.stride, outFrame.width, outFrame.height, dstPixFmt, 1);
             }
             else
             {
                 for (int i = 0; i < 4; i++)
                 {
                     outFrame.data[i] = frame->data[i];
-                    outFrame.linesize[i] = frame->linesize[i];
+                    outFrame.stride[i] = frame->linesize[i];
                 }
             }
         }
 
         if (swsCtx != nullptr)
         {
-            sws_scale(swsCtx, frame->data, frame->linesize, 0, frame->height, outFrame.data, outFrame.linesize);
+            sws_scale(swsCtx, frame->data, frame->linesize, 0, frame->height, outFrame.data, outFrame.stride);
         }
         outFrame.pts = frame->pts;
         hasFrame = true;

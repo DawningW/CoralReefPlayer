@@ -20,7 +20,7 @@ void py_callback(int event, void* data, void* user_data) {
             py::list data;
             for (int i = 0; i < 3; i++) {
                 data.append(py::memoryview::from_buffer(
-                    frame->data[i], {frame->height >> !!i, frame->width >> !!i}, {frame->linesize[i], 1}, true
+                    frame->data[i], {frame->height >> !!i, frame->width >> !!i}, {frame->stride[i], 1}, true
                 ));
             }
             obj["data"] = data;
@@ -28,14 +28,14 @@ void py_callback(int event, void* data, void* user_data) {
             py::list data;
             for (int i = 0; i < 2; i++) {
                 data.append(py::memoryview::from_buffer(
-                    frame->data[i], {frame->height >> !!i, frame->width >> !!i, i + 1}, {frame->linesize[i], i + 1, 1}, true
+                    frame->data[i], {frame->height >> !!i, frame->width >> !!i, i + 1}, {frame->stride[i], i + 1, 1}, true
                 ));
             }
             obj["data"] = data;
         } else {
             int pb = frame->format >= CRP_RGB24 && frame->format <= CRP_BGR24 ? 3 : 4;
             obj["data"] = py::memoryview::from_buffer(
-                frame->data[0], {frame->height, frame->width, pb}, {frame->linesize[0], pb, 1}, true
+                frame->data[0], {frame->height, frame->width, pb}, {frame->stride[0], pb, 1}, true
             );
         }
         obj["pts"] = frame->pts;
@@ -47,7 +47,7 @@ void py_callback(int event, void* data, void* user_data) {
         obj["channels"] = frame->channels;
         obj["format"] = frame->format;
         obj["data"] = py::memoryview::from_memory(
-            frame->data[0], frame->linesize[0], true
+            frame->data[0], frame->stride[0], true
         );
         obj["pts"] = frame->pts;
         g_callbacks[(crp_handle) user_data](event, obj);

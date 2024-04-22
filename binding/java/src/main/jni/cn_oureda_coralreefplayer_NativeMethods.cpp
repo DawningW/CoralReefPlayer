@@ -43,13 +43,13 @@ void java_callback(int event, void *data, void *user_data) {
             if (frame->data[i] == NULL) {
                 break;
             }
-            jobject buffer = jenv->NewDirectByteBuffer(frame->data[i], frame->linesize[i] * (frame->height >> !!i));
+            jobject buffer = jenv->NewDirectByteBuffer(frame->data[i], frame->stride[i] * (frame->height >> !!i));
             jenv->SetObjectArrayElement(data, i, buffer);
         }
         jenv->SetObjectField(jframe, jenv->GetFieldID(cls2, "data", "[Ljava/nio/ByteBuffer;"), data);
-        jintArray linesize = jenv->NewIntArray(4);
-        jenv->SetIntArrayRegion(linesize, 0, 4, (const jint*) frame->linesize);
-        jenv->SetObjectField(jframe, jenv->GetFieldID(cls2, "linesize", "[I"), linesize);
+        jintArray stride = jenv->NewIntArray(4);
+        jenv->SetIntArrayRegion(stride, 0, 4, (const jint*) frame->stride);
+        jenv->SetObjectField(jframe, jenv->GetFieldID(cls2, "stride", "[I"), stride);
         jenv->SetLongField(jframe, jenv->GetFieldID(cls2, "pts", "J"), frame->pts);
         jenv->CallVoidMethod(callback, method, false, jframe);
     } else if (event == CRP_EV_NEW_AUDIO) {
@@ -61,12 +61,12 @@ void java_callback(int event, void *data, void *user_data) {
         jenv->SetIntField(jframe, jenv->GetFieldID(cls2, "channels", "I"), frame->channels);
         jenv->SetIntField(jframe, jenv->GetFieldID(cls2, "format", "I"), frame->format);
         jobjectArray data = jenv->NewObjectArray(1, jenv->FindClass("java/nio/ByteBuffer"), NULL);
-        jobject buffer = jenv->NewDirectByteBuffer(frame->data[0], frame->linesize[0]);
+        jobject buffer = jenv->NewDirectByteBuffer(frame->data[0], frame->stride[0]);
         jenv->SetObjectArrayElement(data, 0, buffer);
         jenv->SetObjectField(jframe, jenv->GetFieldID(cls2, "data", "[Ljava/nio/ByteBuffer;"), data);
-        jintArray linesize = jenv->NewIntArray(1);
-        jenv->SetIntArrayRegion(linesize, 0, 1, (const jint*) frame->linesize);
-        jenv->SetObjectField(jframe, jenv->GetFieldID(cls2, "linesize", "[I"), linesize);
+        jintArray stride = jenv->NewIntArray(1);
+        jenv->SetIntArrayRegion(stride, 0, 1, (const jint*) frame->stride);
+        jenv->SetObjectField(jframe, jenv->GetFieldID(cls2, "stride", "[I"), stride);
         jenv->SetLongField(jframe, jenv->GetFieldID(cls2, "pts", "J"), frame->pts);
         jenv->CallVoidMethod(callback, method, true, jframe);
     } else {

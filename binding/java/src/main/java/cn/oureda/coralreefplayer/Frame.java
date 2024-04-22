@@ -9,6 +9,6 @@ public class Frame {
     public int channels;
     public int format;
     public ByteBuffer[] data;
-    public int[] linesize;
+    public int[] stride;
     public long pts;
 }
