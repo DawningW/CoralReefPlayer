@@ -15,7 +15,7 @@ endif()
 message(STATUS "Git hash is ${GIT_HASH}")
 
 # generate file git_hash.h
-file(WRITE
-    ${TARGET_DIR}/generated/git_hash.h
-    "#define CRP_GIT_HASH \"${GIT_HASH}\"\n" # MSVC .rc need LF
+file(CONFIGURE
+    OUTPUT ${TARGET_DIR}/generated/git_hash.h
+    CONTENT "#define CRP_GIT_HASH \"${GIT_HASH}\"\n" # MSVC .rc need LF
 )
