@@ -3,15 +3,11 @@ import XCTest
 
 final class CoralReefPlayerTests: XCTestCase {
     
-    let url = "rtsp://127.0.0.1/main.sdp"
-
-    override public init() {
-        super.init()
-        NSLog("CoralReefPlayer version: \(versionStr()) (\(versionCode()))")
-    }
+    let url = "rtsp://127.0.0.1:8554/"
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
+        NSLog("CoralReefPlayer version: \(versionStr()) (\(versionCode()))")
     }
 
     override func tearDownWithError() throws {
@@ -21,7 +17,11 @@ final class CoralReefPlayerTests: XCTestCase {
     func testPull() throws {
         var hasFrame = false
         let player = Player()
-        player.play(url: url, transport: Transport.UDP, width: 0, height: 0, format: Format.RGB24, callback: { (event, data) in
+        let option = Option(
+            transport: Transport.UDP,
+            videoFormat: VideoFormat.YUV420P
+        )
+        player.play(url: url, option: option, callback: { (event, data) in
             print("event: \(event)")
             if event == Event.NEW_FRAME {
                 hasFrame = true
