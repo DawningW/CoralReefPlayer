@@ -2,4 +2,5 @@
 #ifndef AVUTIL_FFVERSION_H
 #define AVUTIL_FFVERSION_H
 #define FFMPEG_VERSION "n4.4-19-g8d172d9409"
+// #define FFMPEG_VERSION "c152b69-avbuild"
 #endif /* AVUTIL_FFVERSION_H */
