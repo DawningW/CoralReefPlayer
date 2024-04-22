@@ -42,7 +42,7 @@ void py_callback(int event, void* data, void* user_data) {
         g_callbacks[(crp_handle) user_data](event, obj);
     } else if (event == CRP_EV_NEW_AUDIO) {
         Frame* frame = (Frame*) data;
-        py::object frame = py::dict();
+        py::object obj = py::dict();
         obj["sample_rate"] = frame->sample_rate;
         obj["channels"] = frame->channels;
         obj["format"] = frame->format;
