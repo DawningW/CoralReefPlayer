@@ -1,12 +1,26 @@
+![logo](doc/logo.png)
+
 # CoralReefPlayer
 
-CoralReefPlayer 即珊瑚礁播放器，是一款使用 C++20 开发的跨平台流媒体播放器库，可为水下机器人上位机提供可定制、高性能、低延迟的推拉流、编解码及录像能力。
+![License: MIT](https://img.shields.io/badge/license-MIT-blue) ![Branch: v1](https://img.shields.io/badge/branch-v1-red)
+
+CoralReefPlayer 即珊瑚礁播放器，是一款使用 C++20 开发的跨平台流媒体播放器库，目前支持播放 RTSP 和 MJPEG over HTTP 流，可为基于网络进行视频流传输的机器人上位机提供可定制、高性能、低延迟的推拉流、编解码及录像能力。
 
 CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作系统，并且提供 C#、Java 和 Python 等语言的 binding，方便使用各种语言和框架开发上位机。
+
+与现存的各种播放器库相比，CoralReefPlayer 具有以下特点：
+- 使用 C++20 标准开发，代码简洁、高效
+- 接口简单易用
+- 所有主流操作系统和编程语言支持
+- **遵循单缓冲区设计，专为低延迟场景优化**
 
 CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
 
 ![v0.2](doc/snapshot-0.2.png)
+
+该库由大连理工大学 OurEDA 实验室开发，其 v1 版本较为稳定，已广泛应用在为某机构开发的水下机器人和各款用于比赛的机器人上位机中，可用于生产环境，配合实验室自研的 Rouring 框架（暂无开源计划）更可实现最低**66ms**的图传延迟。
+
+如果您在项目或科研工作中用到了 CoralReefPlayer，欢迎在 Issues 中告诉我们。如果遇到了 bug 或有功能需求，也欢迎提交 Issue 或直接 PR，我们会有专人回答并解决您的问题。
 
 ## 依赖
 
@@ -39,6 +53,10 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 4. 享受 CoralReefCamCpp 吧
 
 如果不想使用 ninja 构建，也可使用 cmake-gui 生成 VS 工程，然后用 VS 打开工程进行构建
+
+> [!TIP]
+>
+> 为降低开发和使用门槛，在 Windows 平台上所使用的第三方库均为预编译好的库，因此无需安装任何依赖即可一键编译。
 
 ### Linux
 
@@ -106,6 +124,36 @@ CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交
 
 其他系统正在适配中，欢迎提交 PR
 
+## bindings
+
+> [!IMPORTANT]
+>
+> 目前各语言的 binding 只能在本地生成依赖库包，没有上传到包管理器仓库中，因此建议自行编译生成。
+
+### Java
+
+启用 `BUILD_JAVA_BINDING` 选项，然后运行 `java-package` 目标即可在 install 目录中生成 jar 包。
+
+### C\#
+
+启用 `BUILD_CSHARP_BINDING` 选项，并配置 dotnet 目标版本，然后运行 `csharp-package` 目标即可在 install 目录中生成 nuget 包。
+
+### Python
+
+启用 `BUILD_PYTHON_BINDING` 选项，然后运行 `python-package` 目标即可在 install 目录中生成 whl 包。
+
+### Node.js
+
+启用 `BUILD_JS_BINDING` 选项，然后运行 `node-package` 目标即可在 install 目录中生成 npm 包。
+
+### Go
+
+启用 `BUILD_GO_BINDING` 选项，然后运行 `go-package` 目标即可在 install 目录中生成包含 Go 代码的 tar.gz 压缩文件。
+
+### Rust
+
+启用 `BUILD_RUST_BINDING` 选项，然后运行 `rust-package` 目标即可在 install 目录中生成包含 Rust 代码的 zip 压缩文件。
+
 ## 文档
 
 CoralReefPlayer 总体架构图：
@@ -154,7 +202,7 @@ struct Frame
     };
     int format;              // 数据格式，见 Format 枚举定义
     uint8_t* data[4];        // 数据指针
-    int stride[4];         // 数据跨度，即一行数据的字节数（由于内存对齐，可能大于图像宽度）
+    int stride[4];           // 数据跨度，即一行数据的字节数（由于内存对齐，可能大于图像宽度）
     uint64_t pts;            // 展示时间戳
 };
 
@@ -222,8 +270,19 @@ int crp_version_code();
 const char* crp_version_str();
 ```
 
+## 贡献
+
+如果您想要为 CoralReefPlayer 添加更多功能，或者发现了 bug，欢迎向我们提交 PR。我们的社区准则和代码规范正在编写中，目前请尽量保证代码风格与现存代码一致。
+
+## 更新日志
+
+详细更新日志请查看本项目的 Release 页面。
+
 ## 版权声明
 
-本项目除使用的第三方库外所有代码均为自研，版权由大连理工大学 OurEDA 实验室所有。
+本项目由大连理工大学 OurEDA 实验室开发，其 v1 版本以 MIT 协议开源。根据 MIT 协议，作者不对此软件作任何形式的担保，您可以以任何形式自由使用本软件，但**需要**将该版权声明包含在使用此软件的软件中。
 
-除 CoralReefCam 和 API 接口外的代码仅限在 OurEDA 实验室内网传播，禁止上传至外网，产品应以去除 debug 信息的预编译库形式与 API 接口及文档一并提供给客户。
+## 相关仓库
+
+- [bubbler](https://github.com/xaxys/bubbler) - Bubbler，专为嵌入式场景优化的协议序列化/反序列化代码生成器。
+- [OpenFinNAV](https://github.com/redlightASl/OpenFinNAV) - 鳍航，针对水下机器人（ROV/AUV）设计的飞控固件库。
