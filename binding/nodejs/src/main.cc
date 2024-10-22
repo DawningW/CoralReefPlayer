@@ -1,9 +1,23 @@
 #include <cstring>
 #include <unordered_map>
 #include <napi.h>
+#ifdef __OHOS__
+extern "C" {
+#include "libavutil/log.h"
+}
+#endif
 #include "coralreefplayer.h"
 
 using namespace Napi;
+
+// The Buffer in HarmonyOS has a limit of 2MB, so we use ArrayBuffer instead.
+#ifdef __OHOS__
+// HarmonyOS need FinalizeCallback, or throw napi_invalid_arg exception
+static void FinalizeCallback(napi_env env, void *finalize_data) {}
+#define NAPI_NEW_BUFFER(env, data, length) Napi::ArrayBuffer::New(env, data, length, FinalizeCallback)
+#else
+#define NAPI_NEW_BUFFER(env, data, length) Napi::Buffer<uint8_t>::NewOrCopy(env, data, length)
+#endif
 
 std::unordered_map<crp_handle, Napi::ThreadSafeFunction> g_callbacks;
 
@@ -26,7 +40,7 @@ void js_callback(int event, void* data, void* user_data) {
                     if (frame->data[i] == nullptr) {
                         break;
                     }
-                    data.Set(i, Napi::Buffer<uint8_t>::NewOrCopy(env, frame->data[i], frame->stride[i] * (frame->height >> !!i)));
+                    data.Set(i, NAPI_NEW_BUFFER(env, frame->data[i], frame->stride[i] * (frame->height >> !!i)));
                     stride.Set(i, Napi::Number::New(env, frame->stride[i]));
                 }
                 obj.DefineProperties({
@@ -37,7 +51,7 @@ void js_callback(int event, void* data, void* user_data) {
                 obj.DefineProperties({
                     // Electron 21+ not allow to use external buffer, must copy.
                     // See https://github.com/nodejs/node-addon-api/blob/main/doc/external_buffer.md
-                    PropertyDescriptor::Value("data", Napi::Buffer<uint8_t>::NewOrCopy(
+                    PropertyDescriptor::Value("data", NAPI_NEW_BUFFER(
                         env, frame->data[0], frame->stride[0] * frame->height), napi_enumerable),
                     PropertyDescriptor::Value("stride", Napi::Number::New(env, frame->stride[0]), napi_enumerable),
                 });
@@ -53,7 +67,7 @@ void js_callback(int event, void* data, void* user_data) {
                 PropertyDescriptor::Value("sample_rate", Napi::Number::New(env, frame->sample_rate), napi_enumerable),
                 PropertyDescriptor::Value("channels", Napi::Number::New(env, frame->channels), napi_enumerable),
                 PropertyDescriptor::Value("format", Napi::Number::New(env, frame->format), napi_enumerable),
-                PropertyDescriptor::Value("data", Napi::Buffer<uint8_t>::NewOrCopy(
+                PropertyDescriptor::Value("data", NAPI_NEW_BUFFER(
                     env, frame->data[0], frame->stride[0]), napi_enumerable),
                 PropertyDescriptor::Value("stride", Napi::Number::New(env, frame->stride[0]), napi_enumerable),
                 PropertyDescriptor::Value("pts", Napi::Number::New(env, frame->pts), napi_enumerable)
@@ -65,7 +79,7 @@ void js_callback(int event, void* data, void* user_data) {
         } else {
             callback.Call({
                 Napi::Number::New(env, event),
-                Napi::Number::New(env, (int) data)
+                Napi::Number::New(env, (uintptr_t) data)
             });
         }
     });
@@ -168,6 +182,9 @@ Napi::Value VersionCode(const Napi::CallbackInfo& info) {
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
+#ifdef __OHOS__
+    av_log_set_callback(nullptr);
+#endif
     exports.Set(Napi::String::New(env, "create"), Napi::Function::New(env, Create));
     exports.Set(Napi::String::New(env, "destroy"), Napi::Function::New(env, Destroy));
     exports.Set(Napi::String::New(env, "auth"), Napi::Function::New(env, Auth));
@@ -179,4 +196,8 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     return exports;
 }
 
+#ifndef __OHOS__
 NODE_API_MODULE(NODE_GYP_MODULE_NAME, Init)
+#else
+NODE_API_MODULE(crp_ohos, Init)
+#endif

@@ -50,30 +50,36 @@ if(WIN32 OR CYGWIN)
         LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     )
-elseif(ANDROID)
+elseif(ANDROID OR OHOS)
+    if(ANDROID)
+        set(LIBAV_ABI ${ANDROID_ABI})
+    elseif(OHOS)
+        set(LIBAV_ABI ${OHOS_ARCH})
+    endif()
+
     add_library(avfilter SHARED IMPORTED GLOBAL)
     set_target_properties(avfilter PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavfilter.so
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${LIBAV_ABI}/libavfilter.so
     )
     add_library(avformat SHARED IMPORTED GLOBAL)
     set_target_properties(avformat PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavformat.so
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${LIBAV_ABI}/libavformat.so
     )
     add_library(avcodec SHARED IMPORTED GLOBAL)
     set_target_properties(avcodec PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavcodec.so
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${LIBAV_ABI}/libavcodec.so
     )
     add_library(avutil SHARED IMPORTED GLOBAL)
     set_target_properties(avutil PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libavutil.so
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${LIBAV_ABI}/libavutil.so
     )
     add_library(swresample SHARED IMPORTED GLOBAL)
     set_target_properties(swresample PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libswresample.so
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${LIBAV_ABI}/libswresample.so
     )
     add_library(swscale SHARED IMPORTED GLOBAL)
     set_target_properties(swscale PROPERTIES
-        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${ANDROID_ABI}/libswscale.so
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Android/lib/${LIBAV_ABI}/libswscale.so
     )
 
     set_target_properties(avfilter avformat avcodec avutil swresample swscale PROPERTIES

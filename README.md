@@ -6,7 +6,7 @@
 
 CoralReefPlayer 即珊瑚礁播放器，是一款使用 C++20 开发的跨平台流媒体播放器库，目前支持播放 RTSP 和 MJPEG over HTTP 流，可为基于网络进行视频流传输的机器人上位机提供可定制、高性能、低延迟的推拉流、编解码及录像能力。
 
-CoralReefPlayer 支持 Windows、Linux、MacOS、Android 和 iOS 等主流操作系统，并且提供 C#、Java 和 Python 等语言的 binding，方便使用各种语言和框架开发上位机。
+CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙等主流操作系统，并且提供 C#、Java 和 Python 等语言的 binding，方便使用各种语言和框架开发上位机。
 
 与现存的各种播放器库相比，CoralReefPlayer 具有以下特点：
 - 使用 C++20 标准开发，代码简洁、高效
@@ -114,6 +114,18 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 2. 使用 Xcode 打开 `CoralReefPlayer.xcodeproj`
 3. 编译并运行 `Example` 目标
 
+### HarmonyOS NEXT
+
+前置条件：
+
+- DevEco Studio 5.0.3.900 或更高版本
+- HarmonyOS NEXT SDK 5.0.0.71（API 12）或更高版本
+
+编译步骤：
+
+1. 使用 DevEco Studio 打开 Harmony 目录
+2. 编译并运行 `entry` 项目
+
 ### 交叉编译
 
 CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交叉编译，工具链文件的编写请参考 `cmake/toolchains/aarch64-linux-gnu.toolchain.cmake`。
@@ -122,7 +134,7 @@ CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交
 
 ### Other
 
-其他系统正在适配中，欢迎提交 PR
+目前 CoralReefPlayer 已适配全部主流操作系统，若您想添加对其他系统的支持，欢迎提交 PR
 
 ## bindings
 

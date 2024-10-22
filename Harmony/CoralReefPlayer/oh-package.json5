@@ -1,0 +1,12 @@
+{
+  "name": "coralreefplayer",
+  "version": "1.0.0",
+  "description": "Please describe the basic information.",
+  "main": "Index.ets",
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "libcrp_ohos.so": "file:./src/main/cpp/types/libcrp_ohos",
+    "@ohos-rs/node-addon-api": "^0.0.1"
+  }
+}
