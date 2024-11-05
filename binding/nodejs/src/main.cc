@@ -1,11 +1,6 @@
 #include <cstring>
 #include <unordered_map>
 #include <napi.h>
-#ifdef __OHOS__
-extern "C" {
-#include "libavutil/log.h"
-}
-#endif
 #include "coralreefplayer.h"
 
 using namespace Napi;
@@ -182,9 +177,6 @@ Napi::Value VersionCode(const Napi::CallbackInfo& info) {
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
-#ifdef __OHOS__
-    av_log_set_callback(nullptr);
-#endif
     exports.Set(Napi::String::New(env, "create"), Napi::Function::New(env, Create));
     exports.Set(Napi::String::New(env, "destroy"), Napi::Function::New(env, Destroy));
     exports.Set(Napi::String::New(env, "auth"), Napi::Function::New(env, Auth));
