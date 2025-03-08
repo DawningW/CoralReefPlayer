@@ -1,6 +1,10 @@
 #include "AudioDecoder.h"
 #include <cstdio>
 
+// libavutil introduced a breaking change in version 57.28.100
+// The channel_layout struct was removed and replaced with ch_layout
+// This change is not reflected in the headers, so we need to check the version
+#define HAVE_CH_LAYOUT (LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(57, 28, 100))
 #define EXTRADATA_MAX_SIZE (AV_INPUT_BUFFER_PADDING_SIZE)
 
 static AVSampleFormat to_av_format(Format format)
@@ -95,18 +99,46 @@ bool AudioDecoder::processPacket(AVPacket* packet)
             if (outFrame.sample_rate == 0 && outFrame.channels == 0)
             {
                 outFrame.sample_rate = frame->sample_rate;
+#ifdef HAVE_CH_LAYOUT
+                outFrame.channels = frame->ch_layout.nb_channels;
+#else
                 outFrame.channels = frame->channels;
+#endif
             }
             AVSampleFormat srcSampleFmt = (AVSampleFormat) frame->format;
             AVSampleFormat dstSampleFmt = to_av_format((Format) outFrame.format);
+#ifdef HAVE_CH_LAYOUT
+            bool needConvert = frame->sample_rate != outFrame.sample_rate || frame->ch_layout.nb_channels != outFrame.channels ||
+                                srcSampleFmt != dstSampleFmt;
+#else
             bool needConvert = frame->sample_rate != outFrame.sample_rate || frame->channels != outFrame.channels ||
                                 srcSampleFmt != dstSampleFmt;
+#endif
             if (needConvert)
             {
-                swrCtx = swr_alloc_set_opts(NULL,
+                if (swrCtx == nullptr) {
+                    // SwrContext not allocated
+                    swrCtx = swr_alloc();
+                }
+#ifdef HAVE_CH_LAYOUT
+
+                AVChannelLayout out_ch_layout;
+                av_channel_layout_default(&out_ch_layout, outFrame.channels);
+
+                if (swr_alloc_set_opts2(&swrCtx,
+                    &out_ch_layout, dstSampleFmt, outFrame.sample_rate,
+                    &frame->ch_layout, srcSampleFmt, frame->sample_rate,
+                    0, NULL) < 0) {
+                    fprintf(stderr, "Failed to set resampler options\n");
+                }
+                
+                av_channel_layout_uninit(&out_ch_layout);
+#else
+                swrCtx = swr_alloc_set_opts(swrCtx,
                     av_get_default_channel_layout(outFrame.channels), dstSampleFmt, outFrame.sample_rate,
                     av_get_default_channel_layout(frame->channels), srcSampleFmt, frame->sample_rate,
                     0, NULL);
+#endif
                 swr_init(swrCtx);
                 av_samples_alloc(outFrame.data, outFrame.stride, outFrame.channels, 1024, dstSampleFmt, 0);
             }
@@ -134,7 +166,11 @@ bool AudioDecoder::processPacket(AVPacket* packet)
 void AudioDecoder::initParameters(int sampleRate, int channels)
 {
     codecCtx->sample_rate = sampleRate;
+#ifdef HAVE_CH_LAYOUT
+    codecCtx->ch_layout.nb_channels = channels;
+#else
     codecCtx->channels = channels;
+#endif
     //codecCtx->bits_per_coded_sample = 16;
 }
 
