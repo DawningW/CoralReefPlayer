@@ -99,7 +99,7 @@ bool AudioDecoder::processPacket(AVPacket* packet)
             if (outFrame.sample_rate == 0 && outFrame.channels == 0)
             {
                 outFrame.sample_rate = frame->sample_rate;
-#ifdef HAVE_CH_LAYOUT
+#if HAVE_CH_LAYOUT
                 outFrame.channels = frame->ch_layout.nb_channels;
 #else
                 outFrame.channels = frame->channels;
@@ -107,7 +107,7 @@ bool AudioDecoder::processPacket(AVPacket* packet)
             }
             AVSampleFormat srcSampleFmt = (AVSampleFormat) frame->format;
             AVSampleFormat dstSampleFmt = to_av_format((Format) outFrame.format);
-#ifdef HAVE_CH_LAYOUT
+#if HAVE_CH_LAYOUT
             bool needConvert = frame->sample_rate != outFrame.sample_rate || frame->ch_layout.nb_channels != outFrame.channels ||
                                 srcSampleFmt != dstSampleFmt;
 #else
@@ -120,7 +120,7 @@ bool AudioDecoder::processPacket(AVPacket* packet)
                     // SwrContext not allocated
                     swrCtx = swr_alloc();
                 }
-#ifdef HAVE_CH_LAYOUT
+#if HAVE_CH_LAYOUT
 
                 AVChannelLayout out_ch_layout;
                 av_channel_layout_default(&out_ch_layout, outFrame.channels);
@@ -166,7 +166,7 @@ bool AudioDecoder::processPacket(AVPacket* packet)
 void AudioDecoder::initParameters(int sampleRate, int channels)
 {
     codecCtx->sample_rate = sampleRate;
-#ifdef HAVE_CH_LAYOUT
+#if HAVE_CH_LAYOUT
     codecCtx->ch_layout.nb_channels = channels;
 #else
     codecCtx->channels = channels;
