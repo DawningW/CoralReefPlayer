@@ -13,5 +13,9 @@ int __register_atfork(void (*prepare)(void), void (*parent)(void), void (*child)
     return pthread_atfork(prepare, parent, child);
 }
 
+int __system_property_get(const char *name, char *value) {
+    return 0;
+}
+
 }
 #endif

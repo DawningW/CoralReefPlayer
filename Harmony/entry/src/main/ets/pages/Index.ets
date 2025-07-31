@@ -26,7 +26,7 @@ struct Index {
           .onClick(() => {
             let option: Option = {
               transport: Transport.UDP,
-              video_format: Format.RGBA32,
+              video_format: Format.BGRA32,
             };
             this.player = new Player();
             this.player.play(this.url, option, (event, data) => {
