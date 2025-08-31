@@ -1,4 +1,3 @@
-const { format } = require('path');
 const crp = require('../lib/index.js');
 const assert = require('assert');
 
@@ -14,13 +13,19 @@ async function testPull() {
     let option = {
         transport: crp.Transport.UDP,
         format: crp.Format.YUV420P,
-    }
+    };
     player.play(url, option, (event, data) => {
-        console.log(`event: ${event}`);
         if (event == crp.Event.NEW_FRAME || event == crp.Event.NEW_AUDIO) {
+            if (event == crp.Event.NEW_FRAME) {
+                console.log(`frame: ${data.width}x${data.height}, format: ${data.format}, pts: ${data.pts}`);
+            } else {
+                console.log(`audio: ${data.sample_rate}x${data.channels}, format: ${data.format}, pts: ${data.pts}`);
+            }
             hasFrame = true;
-        } else if (event == crp.Event.ERROR) {
-            console.error('error');
+        } else if (event == crp.Event.VIDEO_EXTRADATA || event == crp.Event.AUDIO_EXTRADATA) {
+            console.log(`received ${event == crp.Event.VIDEO_EXTRADATA ? 'video' : 'audio'} extra data, size: ${data.length}`);
+        } else {
+            console.log(`event: ${event}, data: ${data}`);
         }
     });
     for (let i = 0; i < 10; i++) {

@@ -27,14 +27,22 @@ namespace CoralReefPlayer.Test {
             player.Play(URL, option, new ActionCallback(
                 (ev, data) =>
                 {
-                    output.WriteLine("event: {0}, data: {1}", ev, data);
+                    if (ev == Event.VIDEO_EXTRADATA || ev == Event.AUDIO_EXTRADATA)
+                    {
+                        byte[] extraData = (byte[])data;
+                        output.WriteLine("received {0} extra data, size: {1}", ev == Event.VIDEO_EXTRADATA ? "video" : "audio", extraData.Length);
+                    }
+                    else
+                    {
+                        output.WriteLine("event: {0}, data: {1}", ev, data);
+                    }
                 },
                 (isAudio, frame) =>
                 {
                     if (!isAudio)
-                        output.WriteLine("frame: {0}x{1}, format: {2}, PTS: {3}", frame.Width, frame.Height, frame.Format, frame.PTS);
+                        output.WriteLine("frame: {0}x{1}, format: {2}, pts: {3}", frame.Width, frame.Height, frame.Format, frame.PTS);
                     else
-                        output.WriteLine("audio: {0}x{1}, format: {2}, PTS: {3}", frame.SampleRate, frame.Channels, frame.Format, frame.PTS);
+                        output.WriteLine("audio: {0}x{1}, format: {2}, pts: {3}", frame.SampleRate, frame.Channels, frame.Format, frame.PTS);
                     hasFrame = true;
                 }
             ));

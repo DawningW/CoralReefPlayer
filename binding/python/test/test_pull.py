@@ -7,11 +7,16 @@ url = "rtsp://127.0.0.1:8554/"
 
 def on_event(event, data):
     global hasFrame
-    print(f"event: {event}")
     if event == crp.EVENT_NEW_FRAME or event == crp.EVENT_NEW_AUDIO:
+        if event == crp.EVENT_NEW_FRAME:
+            print(f"frame: {data['width']}x{data['height']}, format: {data['format']}, pts: {data['pts']}")
+        else:
+            print(f"audio: {data['sample_rate']}x{data['channels']}, format: {data['format']}, pts: {data['pts']}")
         hasFrame = True
-    elif event == crp.EVENT_ERROR:
-        print("error")
+    elif event == crp.EVENT_VIDEO_EXTRADATA or event == crp.EVENT_AUDIO_EXTRADATA:
+        print(f"received {'video' if event == crp.EVENT_VIDEO_EXTRADATA else 'audio'} extra data, size: {data.nbytes}")
+    else:
+        print(f"event: {event}, data: {data}")
 
 if __name__ == "__main__":
     hasFrame = False

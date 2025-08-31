@@ -295,6 +295,12 @@ void VideoDecoder::addExtraData(const uint8_t* data, int size)
     codecCtx->extradata_size += size;
 }
 
+const uint8_t* VideoDecoder::getExtraData(int &size)
+{
+    size = codecCtx->extradata_size;
+    return codecCtx->extradata;
+}
+
 Frame* VideoDecoder::getFrame()
 {
     return &outFrame;

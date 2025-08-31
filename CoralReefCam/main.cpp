@@ -153,6 +153,11 @@ void play()
             {
                 playing = false;
             }
+            else if (ev == CRP_EV_VIDEO_EXTRADATA || ev == CRP_EV_AUDIO_EXTRADATA)
+            {
+                int size = ((const EventData*) data)->extra_data.size;
+                printf("Received %s extradata, size: %d bytes\n", ev == CRP_EV_VIDEO_EXTRADATA ? "video" : "audio", size);
+            }
         }, nullptr);
 }
 

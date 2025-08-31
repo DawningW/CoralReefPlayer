@@ -50,6 +50,8 @@ const (
 	EVENT_END
 	EVENT_STOP
 	EVENT_NEW_AUDIO
+	EVENT_VIDEO_EXTRADATA
+	EVENT_AUDIO_EXTRADATA
 )
 
 type Option struct {
@@ -77,7 +79,7 @@ type Frame struct {
 }
 
 type Callback interface {
-	OnEvent(event Event, data int64)
+	OnEvent(event Event, data any)
 	OnFrame(isAudio bool, frame Frame)
 }
 
@@ -125,6 +127,9 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 			[4]int{int(frame.stride[0]), int(frame.stride[1]), int(frame.stride[2]), int(frame.stride[3])},
 			uint64(frame.pts),
 		})
+	} else if event == C.CRP_EV_VIDEO_EXTRADATA || event == C.CRP_EV_AUDIO_EXTRADATA {
+		ed := (*C.struct_ExtraData)(data)
+		callbacks[id].OnEvent(Event(event), C.GoBytes(unsafe.Pointer(ed.data), C.int(ed.size)))
 	} else {
 		callbacks[id].OnEvent(Event(event), int64(uintptr(data)))
 	}

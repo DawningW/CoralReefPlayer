@@ -34,6 +34,13 @@ namespace CoralReefPlayer
             public ulong pts;
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct CExtraData
+        {
+            public IntPtr data;
+            public int size;
+        }
+
         internal delegate void crp_callback(int ev, IntPtr data, IntPtr user_data);
 
         [DllImport("CoralReefPlayer", EntryPoint = "crp_create")]

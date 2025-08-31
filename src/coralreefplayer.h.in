@@ -60,6 +60,8 @@ enum Event
     CRP_EV_END,       // 播放结束事件
     CRP_EV_STOP,      // 停止拉流事件
     CRP_EV_NEW_AUDIO, // 收到新音频数据事件
+    CRP_EV_VIDEO_EXTRADATA, // 收到视频的附加数据(如 SPS、PPS 等)事件
+    CRP_EV_AUDIO_EXTRADATA, // 收到音频的附加数据事件
 };
 
 struct Option
@@ -101,6 +103,16 @@ struct Frame
     uint8_t* data[4];
     int stride[4];
     uint64_t pts;
+};
+
+union EventData
+{
+    struct Frame frame;
+    struct ExtraData
+    {
+        const uint8_t* data;
+        int size;
+    } extra_data;
 };
 
 typedef void* crp_handle;

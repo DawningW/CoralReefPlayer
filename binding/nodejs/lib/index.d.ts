@@ -28,6 +28,8 @@ export enum Event {
     END,
     STOP,
     NEW_AUDIO,
+    VIDEO_EXTRADATA,
+    AUDIO_EXTRADATA,
 }
 
 export interface Option {
@@ -49,16 +51,20 @@ export interface Frame {
     sample_rate?: number;
     channels?: number;
     format: Format;
-    data: Buffer | Buffer[];
+    data: BufferLike | BufferLike[];
     stride: number | number[];
     pts: number;
 }
+
+type BufferLike = Buffer | ArrayBuffer;
+
+export type EventData = number | Frame | BufferLike;
 
 export class Player {
     constructor();
     release(): void;
     auth(username: string, password: string, isMD5: boolean): void;
-    play(url: string, option: Option, callback: (event: Event, data: number | Frame) => void): void;
+    play(url: string, option: Option, callback: (event: Event, data: EventData) => void): void;
     replay(): void;
     stop(): void;
 }

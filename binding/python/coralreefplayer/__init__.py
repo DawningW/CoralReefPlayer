@@ -39,6 +39,8 @@ EVENT_PLAYING = 3
 EVENT_END = 4
 EVENT_STOP = 5
 EVENT_NEW_AUDIO = 6
+EVENT_VIDEO_EXTRADATA = 7
+EVENT_AUDIO_EXTRADATA = 8
 
 class Player():
     def __init__(self):

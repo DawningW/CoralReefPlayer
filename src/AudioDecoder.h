@@ -16,6 +16,7 @@ public:
     virtual bool processPacket(AVPacket* packet);
     void initParameters(int sampleRate, int channels);
     void addExtraData(const uint8_t* data, int size);
+    const uint8_t* getExtraData(int &size);
     Frame* getFrame();
     static AudioDecoder* createNew(const std::string& codecName, Format format, int sampleRate, int channels);
 

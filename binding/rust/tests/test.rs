@@ -26,6 +26,9 @@ fn test_pull() {
                 }
                 has_frame_clone.store(true, Ordering::Relaxed);
             }
+            crp::Data::ExtraData(data) => {
+                println!("received {} extra data, size: {}", if event == crp::Event::VideoExtraData { "video" } else { "audio" }, data.len());
+            }
             crp::Data::EventCode(code) => {
                 println!("event: {}, data: {}", event as i8, code);
             }

@@ -51,6 +51,12 @@ void py_callback(int event, void* data, void* user_data) {
         );
         obj["pts"] = frame->pts;
         g_callbacks[(crp_handle) user_data](event, obj);
+    } else if (event == CRP_EV_VIDEO_EXTRADATA || event == CRP_EV_AUDIO_EXTRADATA) {
+        EventData* ed = (EventData*) data;
+        auto view = py::memoryview::from_memory(
+            (void*) ed->extra_data.data, ed->extra_data.size, true
+        );
+        g_callbacks[(crp_handle) user_data](event, view);
     } else {
         g_callbacks[(crp_handle) user_data](event, data);
     }

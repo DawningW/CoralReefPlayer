@@ -30,6 +30,8 @@ export enum Event {
   END = 4,
   STOP = 5,
   NEW_AUDIO = 6,
+  VIDEO_EXTRADATA = 7,
+  AUDIO_EXTRADATA = 8,
 }
 
 export interface Option {
@@ -56,6 +58,8 @@ export interface Frame {
   pts: number;
 }
 
+export type EventData = number | Frame | ArrayBuffer
+
 export class Player {
   handle?: Object;
   callback?: Object;
@@ -72,7 +76,7 @@ export class Player {
   auth(username: string, password: string, isMD5: boolean): void {
     crp.auth(this.handle, username, password, isMD5)
   }
-  play(url: string, option: Option, callback: (event: Event, data: number | Frame) => void): void {
+  play(url: string, option: Option, callback: (event: Event, data: EventData) => void): void {
     this.callback = callback // avoid GC
     crp.play(this.handle, url, option, callback)
   }

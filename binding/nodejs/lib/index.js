@@ -43,6 +43,8 @@ const Event = {
     END: 4,
     STOP: 5,
     NEW_AUDIO: 6,
+    VIDEO_EXTRADATA: 7,
+    AUDIO_EXTRADATA: 8,
 }
 
 class Player {

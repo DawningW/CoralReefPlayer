@@ -38,6 +38,8 @@ namespace CoralReefPlayer
         END = 4,
         STOP = 5,
         NEW_AUDIO = 6,
+        VIDEO_EXTRADATA = 7,
+        AUDIO_EXTRADATA = 8,
     }
 
     public struct Option
@@ -68,22 +70,22 @@ namespace CoralReefPlayer
 
     public interface ICallback
     {
-        void OnEvent(Event ev, long data);
+        void OnEvent(Event ev, object data);
         void OnFrame(bool isAudio, Frame frame);
     }
 
     public class ActionCallback : ICallback
     {
-        private Action<Event, long> EventListener;
+        private Action<Event, object> EventListener;
         private Action<bool, Frame> FrameListener;
 
-        public ActionCallback(Action<Event, long> eventListener, Action<bool, Frame> frameListener)
+        public ActionCallback(Action<Event, object> eventListener, Action<bool, Frame> frameListener)
         {
             EventListener = eventListener;
             FrameListener = frameListener;
         }
 
-        public void OnEvent(Event ev, long data)
+        public void OnEvent(Event ev, object data)
         {
             EventListener?.Invoke(ev, data);
         }
@@ -180,6 +182,16 @@ namespace CoralReefPlayer
                         frame.Stride[0] = cFrame.stride[0];
                     }
                     callback.OnFrame(true, frame);
+                }
+                else if (ev2 == Event.VIDEO_EXTRADATA || ev2 == Event.AUDIO_EXTRADATA)
+                {
+                    CExtraData cExtraData = Marshal.PtrToStructure<CExtraData>(data);
+                    byte[] extraData = new byte[cExtraData.size];
+                    if (cExtraData.size > 0)
+                    {
+                        Marshal.Copy(cExtraData.data, extraData, 0, cExtraData.size);
+                    }
+                    callback.OnEvent(ev2, extraData);
                 }
                 else
                 {

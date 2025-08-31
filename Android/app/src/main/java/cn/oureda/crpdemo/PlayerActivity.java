@@ -84,7 +84,7 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     }
 
     @Override
-    public void onEvent(int event, long data) {
+    public void onEvent(int event, Object data) {
         Log.i(TAG, "onEvent: " + event);
         runOnUiThread(() -> {
             if (event == CoralReefPlayer.EVENT_ERROR) {
@@ -98,6 +98,9 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
                 toast("视频流已到达末尾");
             } else if (event == CoralReefPlayer.EVENT_STOP) {
                 toast("停止拉流");
+            } else if (event == CoralReefPlayer.EVENT_VIDEO_EXTRADATA) {
+                byte[] extraData = (byte[]) data;
+                toast("获取到视频参数集, 长度" + extraData.length + "字节");
             }
         });
     }

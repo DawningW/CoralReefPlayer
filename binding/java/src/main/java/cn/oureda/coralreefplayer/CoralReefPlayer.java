@@ -25,6 +25,8 @@ public class CoralReefPlayer {
     public static final int EVENT_END = 4;
     public static final int EVENT_STOP = 5;
     public static final int EVENT_NEW_AUDIO = 6;
+    public static final int EVENT_VIDEO_EXTRADATA = 7;
+    public static final int EVENT_AUDIO_EXTRADATA = 8;
 
     private long handle;
 
@@ -62,7 +64,7 @@ public class CoralReefPlayer {
     }
 
     public interface Callback {
-        void onEvent(int event, long data);
+        void onEvent(int event, Object data);
         void onFrame(boolean isAudio, Frame frame);
     }
 }

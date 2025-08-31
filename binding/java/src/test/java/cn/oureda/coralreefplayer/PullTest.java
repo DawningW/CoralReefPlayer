@@ -23,8 +23,14 @@ public class PullTest {
         option.videoFormat = CoralReefPlayer.FORMAT_YUV420P;
         player.play(URL, option, new CoralReefPlayer.Callback() {
             @Override
-            public void onEvent(int event, long data) {
-                System.out.println("event: " + event + ", data: " + data);
+            public void onEvent(int event, Object data) {
+                if (event == CoralReefPlayer.EVENT_VIDEO_EXTRADATA || event == CoralReefPlayer.EVENT_AUDIO_EXTRADATA) {
+                    byte[] extraData = (byte[]) data;
+                    System.out.printf("received %s extra data, size: %d\n",
+                        event == CoralReefPlayer.EVENT_VIDEO_EXTRADATA ? "video" : "audio", extraData.length);
+                } else {
+                    System.out.println("event: " + event + ", data: " + data);
+                }
             }
 
             @Override

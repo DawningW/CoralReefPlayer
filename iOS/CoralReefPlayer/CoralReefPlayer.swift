@@ -33,6 +33,8 @@ public enum Event : Int32 {
     case END = 4
     case STOP = 5
     case NEW_AUDIO = 6
+    case VIDEO_EXTRADATA = 7
+    case AUDIO_EXTRADATA = 8
 }
 
 public struct Option {
@@ -105,6 +107,10 @@ private func swift_callback(event: Int32, data: UnsafeMutableRawPointer?, userDa
             pts: cframe.pts
         )
         player.callback(ee, frame)
+    } else if ee == Event.VIDEO_EXTRADATA || ee == Event.AUDIO_EXTRADATA {
+        let ced = data!.bindMemory(to: CoralReefPlayerIOS.ExtraData.self, capacity: 1).pointee
+        let ed = ced.data == nil || ced.size == 0 ? [] : Array(UnsafeBufferPointer(start: ced.data, count: Int(ced.size)))
+        player.callback(ee, ed)
     } else {
         player.callback(ee, data == nil ? 0 : Int(bitPattern: data!))
     }

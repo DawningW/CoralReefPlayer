@@ -218,6 +218,16 @@ struct Frame
     uint64_t pts;            // 展示时间戳
 };
 
+union EventData
+{
+    struct Frame frame;
+    struct ExtraData
+    {
+        const uint8_t* data; // extra data数组
+        int size;            // extra data数组长度
+    } extra_data;
+};
+
 /**
  * @brief 事件回调函数类型
  * @param event 事件类型，见 Event 枚举定义

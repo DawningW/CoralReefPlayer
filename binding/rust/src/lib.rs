@@ -27,6 +27,13 @@ struct CFrame {
     pts: c_ulonglong,
 }
 
+#[repr(C)]
+#[derive(Copy, Clone)]
+struct CExtraData {
+    data: *mut c_uchar,
+    size: c_int,
+}
+
 #[allow(non_camel_case_types)]
 type crp_handle = *mut c_void;
 #[allow(non_camel_case_types)]
@@ -88,6 +95,8 @@ pub enum Event {
     End,
     Stop,
     NewAudio,
+    VideoExtraData,
+    AudioExtraData,
 }
 
 #[derive(Default)]
@@ -118,11 +127,22 @@ pub struct Frame {
 pub enum Data {
     EventCode(i64),
     Frame(Frame),
+    ExtraData(Box<[u8]>),
 }
 
 pub struct Player {
     handle: crp_handle,
     callback: Box<dyn Fn(Event, Data)>,
+}
+
+macro_rules! c_arr_copy {
+    ($ptr:expr, $size:expr) => {
+        if $ptr.is_null() || $size == 0 {
+            Box::new([])
+        } else {
+            unsafe { ::std::slice::from_raw_parts($ptr, $size) }.to_vec().into_boxed_slice()
+        }
+    };
 }
 
 extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_void) {
@@ -137,10 +157,10 @@ extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_v
             channels: 0,
             format: Format::Video(unsafe { ::std::mem::transmute::<_, VideoFormat>(cframe.format as i8) }),
             data: [
-                unsafe { ::std::slice::from_raw_parts(cframe.data[0], (cframe.stride[0] * cframe.height) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[1], (cframe.stride[1] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[2], (cframe.stride[2] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
-                unsafe { ::std::slice::from_raw_parts(cframe.data[3], (cframe.stride[3] * cframe.height / 2) as usize) }.to_vec().into_boxed_slice(),
+                c_arr_copy!(cframe.data[0], (cframe.stride[0] * cframe.height) as usize),
+                c_arr_copy!(cframe.data[1], (cframe.stride[1] * cframe.height / 2) as usize),
+                c_arr_copy!(cframe.data[2], (cframe.stride[2] * cframe.height / 2) as usize),
+                c_arr_copy!(cframe.data[3], (cframe.stride[3] * cframe.height / 2) as usize),
             ],
             stride: cframe.stride,
             pts: cframe.pts,
@@ -155,7 +175,7 @@ extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_v
             channels: cframe.height,
             format: Format::Audio(unsafe { ::std::mem::transmute::<_, AudioFormat>(cframe.format as i8) }),
             data: [
-                unsafe { ::std::slice::from_raw_parts(cframe.data[0], cframe.stride[0] as usize) }.to_vec().into_boxed_slice(),
+                c_arr_copy!(cframe.data[0], cframe.stride[0] as usize),
                 Box::new([]),
                 Box::new([]),
                 Box::new([]),
@@ -164,6 +184,9 @@ extern "C" fn rust_callback(event: c_int, data: *mut c_void, user_data: *mut c_v
             pts: cframe.pts,
         };
         (*player.callback)(ee, Data::Frame(frame));
+    } else if ee == Event::VideoExtraData || ee == Event::AudioExtraData {
+        let ced = unsafe { &*(data as *const CExtraData) };
+        (*player.callback)(ee, Data::ExtraData(c_arr_copy!(ced.data, ced.size as usize)));
     } else {
         (*player.callback)(ee, Data::EventCode(data as i64));
     }

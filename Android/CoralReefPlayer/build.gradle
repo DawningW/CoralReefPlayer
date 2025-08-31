@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'cn.oureda.coralreefplayer'
-    compileSdk 33
+    compileSdk 35
 
     defaultConfig {
         minSdk 24

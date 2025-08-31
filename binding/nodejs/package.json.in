@@ -19,11 +19,11 @@
   "author": "Wu Chen",
   "license": "ISC",
   "dependencies": {
-    "node-addon-api": "^7.1.0",
-    "node-gyp-build": "^4.8.0"
+    "node-addon-api": "^8.5.0",
+    "node-gyp-build": "^4.8.4"
   },
   "devDependencies": {
-    "prebuildify": "^6.0.0"
+    "prebuildify": "^6.0.1"
   },
   "gypfile": true
 }

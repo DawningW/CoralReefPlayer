@@ -1,4 +1,5 @@
 #include <cstring>
+#include <semaphore>
 #include <unordered_map>
 #include <napi.h>
 #include "coralreefplayer.h"
@@ -17,8 +18,13 @@ static void FinalizeCallback(napi_env env, void *finalize_data) {}
 std::unordered_map<crp_handle, Napi::ThreadSafeFunction> g_callbacks;
 
 void js_callback(int event, void* data, void* user_data) {
+#ifdef __OHOS__
+    // HarmonyOS napi_call_threadsafe_function does not wait this call to end
+    // So we use semaphore to wait until this call ends
+    std::binary_semaphore sem(0);
+#endif
     Napi::ThreadSafeFunction& tsfn = g_callbacks[(crp_handle) user_data];
-    tsfn.BlockingCall([event, data](Napi::Env env, Napi::Function callback) {
+    tsfn.BlockingCall([&, event, data](Napi::Env env, Napi::Function callback) {
         if (event == CRP_EV_NEW_FRAME) {
             Frame* frame = (Frame*) data;
             Napi::Object obj = Napi::Object::New(env);
@@ -71,13 +77,26 @@ void js_callback(int event, void* data, void* user_data) {
                 Napi::Number::New(env, event),
                 obj
             });
+        } else if (event == CRP_EV_VIDEO_EXTRADATA || event == CRP_EV_AUDIO_EXTRADATA) {
+            EventData* ed = (EventData*) data;
+            auto buffer = NAPI_NEW_BUFFER(env, (uint8_t*) ed->extra_data.data, ed->extra_data.size);
+            callback.Call({
+                Napi::Number::New(env, event),
+                buffer
+            });
         } else {
             callback.Call({
                 Napi::Number::New(env, event),
                 Napi::Number::New(env, (uintptr_t) data)
             });
         }
+#ifdef __OHOS__
+        sem.release();
+#endif
     });
+#ifdef __OHOS__
+    sem.acquire();
+#endif
 }
 
 Napi::Value Create(const Napi::CallbackInfo& info) {

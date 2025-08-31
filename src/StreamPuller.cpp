@@ -404,8 +404,21 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
         subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
             {
                 noteLiveness();
+                bool inited = videoDecoder->getFrame()->data[0] != nullptr;
                 if (videoDecoder->processPacket(packet))
                 {
+                    if (!inited)
+                    {
+                        int size = 0;
+                        const uint8_t* extraData = videoDecoder->getExtraData(size);
+                        if (extraData && size > 0)
+                        {
+                            EventData eventData;
+                            eventData.extra_data.data = extraData;
+                            eventData.extra_data.size = size;
+                            callback.invokeSync(CRP_EV_VIDEO_EXTRADATA, &eventData, userData);
+                        }
+                    }
                     callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
                 }
             });
@@ -448,8 +461,21 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
         subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
             {
                 noteLiveness();
+                bool inited = audioDecoder->getFrame()->data[0] != nullptr;
                 if (audioDecoder->processPacket(packet))
                 {
+                    if (!inited)
+                    {
+                        int size = 0;
+                        const uint8_t* extraData = audioDecoder->getExtraData(size);
+                        if (extraData && size > 0)
+                        {
+                            EventData eventData;
+                            eventData.extra_data.data = extraData;
+                            eventData.extra_data.size = size;
+                            callback.invokeSync(CRP_EV_AUDIO_EXTRADATA, &eventData, userData);
+                        }
+                    }
                     callback(CRP_EV_NEW_AUDIO, audioDecoder->getFrame(), userData);
                 }
             });

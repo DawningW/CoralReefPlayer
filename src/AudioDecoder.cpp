@@ -185,6 +185,12 @@ void AudioDecoder::addExtraData(const uint8_t* data, int size)
     codecCtx->extradata_size += size;
 }
 
+const uint8_t* AudioDecoder::getExtraData(int &size)
+{
+    size = codecCtx->extradata_size;
+    return codecCtx->extradata;
+}
+
 Frame* AudioDecoder::getFrame()
 {
     return &outFrame;

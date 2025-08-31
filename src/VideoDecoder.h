@@ -22,6 +22,7 @@ public:
     virtual ~VideoDecoder();
     virtual bool processPacket(AVPacket* packet);
     void addExtraData(const uint8_t* data, int size);
+    const uint8_t* getExtraData(int &size);
     AVPixelFormat getHwPixFormat() { return hwPixFmt; }
     Frame* getFrame();
     static VideoDecoder* createNew(const std::string& codecName, Format format, int width, int height,

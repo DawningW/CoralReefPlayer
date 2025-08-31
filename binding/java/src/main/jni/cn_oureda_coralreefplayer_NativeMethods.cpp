@@ -69,9 +69,17 @@ void java_callback(int event, void *data, void *user_data) {
         jenv->SetObjectField(jframe, jenv->GetFieldID(cls2, "stride", "[I"), stride);
         jenv->SetLongField(jframe, jenv->GetFieldID(cls2, "pts", "J"), frame->pts);
         jenv->CallVoidMethod(callback, method, true, jframe);
+    } else if (event == CRP_EV_VIDEO_EXTRADATA || event == CRP_EV_AUDIO_EXTRADATA) {
+        EventData *ed = (EventData *) data;
+        jmethodID method = jenv->GetMethodID(cls, "onEvent", "(ILjava/lang/Object;)V");
+        jbyteArray data = jenv->NewByteArray(ed->extra_data.size);
+        jenv->SetByteArrayRegion(data, 0, ed->extra_data.size, (const jbyte*) ed->extra_data.data);
+        jenv->CallVoidMethod(callback, method, event, data);
     } else {
-        jmethodID method = jenv->GetMethodID(cls, "onEvent", "(IJ)V");
-        jenv->CallVoidMethod(callback, method, event, (jlong) data);
+        jmethodID method = jenv->GetMethodID(cls, "onEvent", "(ILjava/lang/Object;)V");
+        jclass cls2 = jenv->FindClass("java/lang/Long");
+        jobject jdata = jenv->NewObject(cls2, jenv->GetMethodID(cls2, "<init>", "(J)V"), (jlong) data);
+        jenv->CallVoidMethod(callback, method, event, jdata);
     }
     if (result == JNI_EDETACHED) {
         g_jvm->DetachCurrentThread();

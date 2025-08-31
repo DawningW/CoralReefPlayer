@@ -22,9 +22,19 @@ final class CoralReefPlayerTests: XCTestCase {
             videoFormat: VideoFormat.YUV420P
         )
         player.play(url: url, option: option, callback: { (event, data) in
-            print("event: \(event)")
-            if event == Event.NEW_FRAME {
+            if event == Event.NEW_FRAME || event == Event.NEW_AUDIO {
+                let frame = data as! Frame
+                if event == Event.NEW_FRAME {
+                    print("frame: \(frame.width)x\(frame.height), format: \(frame.format), pts: \(frame.pts)")
+                } else {
+                    print("audio: \(frame.sampleRate)x\(frame.channels), format: \(frame.format), pts: \(frame.pts)")
+                }
                 hasFrame = true
+            } else if event == Event.VIDEO_EXTRADATA || event == Event.AUDIO_EXTRADATA {
+                let extraData = data as! [UInt8]
+                print("received \(event == Event.VIDEO_EXTRADATA ? "video" : "audio") extra data, size: \(extraData.count)")
+            } else {
+                print("event: \(event), data: \(data)")
             }
         })
         for _ in 0...10 {

@@ -10,11 +10,11 @@ const (
 )
 
 type MyCallback struct {
-	onEvent func(event Event, data int64)
+	onEvent func(event Event, data any)
 	onFrame func(isAudio bool, frame Frame)
 }
 
-func (cb MyCallback) OnEvent(event Event, data int64) {
+func (cb MyCallback) OnEvent(event Event, data any) {
 	cb.onEvent(event, data)
 }
 
@@ -32,14 +32,23 @@ func TestPull(t *testing.T) {
 		VideoFormat: FORMAT_YUV420P,
 	}
 	player.Play(URL, option, MyCallback{
-		onEvent: func(event Event, data int64) {
-			t.Logf("event: %d, data: %d", event, data)
+		onEvent: func(event Event, data any) {
+			if event == EVENT_VIDEO_EXTRADATA || event == EVENT_AUDIO_EXTRADATA {
+				extraData := data.([]byte)
+				typ := "video"
+				if event == EVENT_AUDIO_EXTRADATA {
+					typ = "audio"
+				}
+				t.Logf("received %s extradata, size: %d", typ, len(extraData))
+			} else {
+				t.Logf("event: %d, data: %d", event, data)
+			}
 		},
 		onFrame: func(isAudio bool, frame Frame) {
 			if !isAudio {
-				t.Logf("frame: %dx%d, format: %d", frame.Width, frame.Height, frame.Format)
+				t.Logf("frame: %dx%d, format: %d, pts: %d", frame.Width, frame.Height, frame.Format, frame.PTS)
 			} else {
-				t.Logf("audio: %dx%d, format: %d", frame.SampleRate, frame.Channels, frame.Format)
+				t.Logf("audio: %dx%d, format: %d, pts: %d", frame.SampleRate, frame.Channels, frame.Format, frame.PTS)
 			}
 			hasFrame = true
 		},
