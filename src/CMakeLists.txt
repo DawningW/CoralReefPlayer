@@ -49,6 +49,13 @@ target_compile_definitions(${PROJECT_NAME}
         CORALREEFPLAYER_EXPORTS
 )
 
+if(ANDROID)
+target_link_options(${PROJECT_NAME}
+    PRIVATE
+        "-Wl,-z,max-page-size=16384"
+)
+endif()
+
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
         live555
