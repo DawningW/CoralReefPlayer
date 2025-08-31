@@ -155,7 +155,7 @@ A: Maybe. Check the demo, gallery, or Announcements ([2020](https://github.com/e
 
 **Q: Does ImPlot support 3D plots?**
 
-A: No, and likely never will since ImGui only deals in 2D rendering.
+A: An experimental extension to ImPlot, [ImPlot3D](https://github.com/brenocq/implot3d), provides a similar API for plotting and interacting with 3D data. 
 
 **Q: Does ImPlot provide analytic tools?**
 
@@ -164,6 +164,10 @@ A: Not exactly, but it does give you the ability to query plot sub-ranges, with 
 **Q: Can plots be exported/saved to image?**
 
 A: Not currently. Use your OS's screen capturing mechanisms if you need to capture a plot. ImPlot is not suitable for rendering publication quality plots; it is only intended to be used as a visualization tool. Post-process your data with MATLAB or matplotlib for these purposes.
+
+**Q: Why are my plot lines showing aliasing?**
+
+A: You probably need to enable `ImGuiStyle::AntiAliasedLinesUseTex` (or possibly `ImGuiStyle:AntiAliasedLines`). If those settings are already enabled, then you must ensure your backend supports texture based anti-aliasing (i.e. uses bilinear sampling). Most of the default ImGui backends support this feature out of the box. Learn more [here](https://github.com/ocornut/imgui/issues/3245). Alternatively, you can enable MSAA at the application level if your hardware supports it (4x should do).
 
 **Q: Can I compile ImPlot as a dynamic library?**
 
