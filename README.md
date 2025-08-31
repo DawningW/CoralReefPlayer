@@ -16,7 +16,10 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙�
 
 CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
 
-![v0.2](doc/snapshot-0.2.png)
+<div style="display: flex; gap: 10px;">
+    <img src="doc/snapshot-0.2.png" alt="v0.2" style="width: 50%;">
+    <img src="doc/urpc_2025.jpg" alt="urpc_2025" style="width: 50%;">
+</div>
 
 该库由大连理工大学 OurEDA 实验室开发，其 v1 版本较为稳定，已广泛应用在为某机构开发的水下机器人和各款用于比赛的机器人上位机中，可用于生产环境，配合实验室自研的 Rouring 框架（暂无开源计划）更可实现最低**66ms**的图传延迟。
 

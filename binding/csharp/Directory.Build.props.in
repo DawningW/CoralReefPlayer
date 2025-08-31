@@ -9,7 +9,7 @@
     <NeutralLanguage>en-US</NeutralLanguage>
     <Authors>Wu Chen</Authors>
     <Company>OurEDA</Company>
-    <Copyright>Copyright 2023-2024 OurEDA</Copyright>
+    <Copyright>Copyright 2023-2025 OurEDA</Copyright>
 
     <!-- Pack Option -->
     <PackageTags>video;stream;native</PackageTags>

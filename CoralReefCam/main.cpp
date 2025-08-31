@@ -288,7 +288,7 @@ void loop(SDL_Window* window)
     {
         ImGui::Text("CoralReefCam");
         ImGui::Text("Powered by CoralReefPlayer %s", crp_version_str());
-        ImGui::Text("Copyright (c) 2023-2024 OurEDA");
+        ImGui::Text("Copyright (c) 2023-2025 OurEDA");
         ImGui::EndPopup();
     }
 
@@ -582,7 +582,7 @@ int main(int argc, char* argv[])
         SDL_RenderClear(renderer);
         if (has_frame)
             SDL_RenderCopy(renderer, texture, NULL, NULL);
-        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+        ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
 
