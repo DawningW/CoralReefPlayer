@@ -9,25 +9,38 @@ if(NOT Python3_FOUND)
 endif()
 
 get_target_property(CRP_INCLUDE_DIR CoralReefPlayer INTERFACE_INCLUDE_DIRECTORIES)
-string(REPLACE ";" "\",\n\"" CRP_INCLUDE_DIR "${CRP_INCLUDE_DIR}")
-get_target_property(CRP_LIBRARY_DIR CoralReefPlayer BINARY_DIR)
-set(CRP_LIBRARY CoralReefPlayer)
+string(REPLACE ";" "\\;" CRP_INCLUDE_DIR "${CRP_INCLUDE_DIR}")
 
 file(
     COPY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-configure_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/setup.py.in
-    ${CMAKE_CURRENT_BINARY_DIR}/setup.py
-    @ONLY
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generate.cmake "
+    string(REPLACE \";\" \"\\\",\\n\\\"\" CRP_INCLUDE_DIR \"\${CRP_INCLUDE_DIR}\")
+    configure_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/setup.py.in
+        ${CMAKE_CURRENT_BINARY_DIR}/setup.py
+        @ONLY
+    )
+")
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/setup.py
+    COMMAND ${CMAKE_COMMAND}
+            -DPROJECT_VERSION="${PROJECT_VERSION}"
+            -DCRP_INCLUDE_DIR="${CRP_INCLUDE_DIR}"
+            -DCRP_LIBRARY_DIR="$<TARGET_FILE_DIR:CoralReefPlayer>"
+            -DCRP_LIBRARY=CoralReefPlayer
+            -P ${CMAKE_CURRENT_BINARY_DIR}/generate.cmake
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/setup.py.in
 )
 
 add_custom_target(python-prepare
     COMMAND echo "Build python binding"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS CoralReefPlayer
+            ${CMAKE_CURRENT_BINARY_DIR}/setup.py
 )
 add_copy_libs_command(python-prepare coralreefplayer/)
 

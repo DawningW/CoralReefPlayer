@@ -7,9 +7,6 @@ if(NOT CARGO_EXECUTABLE)
     message(FATAL_ERROR "cargo not found")
 endif()
 
-get_target_property(CRP_LIBRARY_DIR CoralReefPlayer BINARY_DIR)
-set(CRP_LIBRARY CoralReefPlayer)
-
 file(
     COPY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
@@ -21,16 +18,28 @@ configure_file(
     @ONLY
 )
 
-configure_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/build.rs.in
-    ${CMAKE_CURRENT_BINARY_DIR}/build.rs
-    @ONLY
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generate.cmake "
+    configure_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/build.rs.in
+        ${CMAKE_CURRENT_BINARY_DIR}/build.rs
+        @ONLY
+    )
+")
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/build.rs
+    COMMAND ${CMAKE_COMMAND}
+            -DCRP_LIBRARY_DIR="$<TARGET_FILE_DIR:CoralReefPlayer>"
+            -DCRP_LIBRARY=CoralReefPlayer
+            -P ${CMAKE_CURRENT_BINARY_DIR}/generate.cmake
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/build.rs.in
 )
 
 add_custom_target(rust-prepare
     COMMAND echo "Build rust binding"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     DEPENDS CoralReefPlayer
+            ${CMAKE_CURRENT_BINARY_DIR}/build.rs
 )
 add_copy_libs_command(rust-prepare lib/)
 

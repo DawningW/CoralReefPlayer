@@ -10,9 +10,7 @@ if(NOT OHOS)
     endif()
 
     get_target_property(CRP_INCLUDE_DIR CoralReefPlayer INTERFACE_INCLUDE_DIRECTORIES)
-    string(REPLACE ";" "',\n'" CRP_INCLUDE_DIR "${CRP_INCLUDE_DIR}")
-    get_target_property(CRP_LIBRARY_DIR CoralReefPlayer BINARY_DIR)
-    set(CRP_LIBRARY CoralReefPlayer)
+    string(REPLACE ";" "\\;" CRP_INCLUDE_DIR "${CRP_INCLUDE_DIR}")
 
     file(
         COPY ${CMAKE_CURRENT_SOURCE_DIR}/
@@ -25,16 +23,30 @@ if(NOT OHOS)
         @ONLY
     )
 
-    configure_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/binding.gyp.in
-        ${CMAKE_CURRENT_BINARY_DIR}/binding.gyp
-        @ONLY
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generate.cmake "
+        string(REPLACE \";\" \"',\\n'\" CRP_INCLUDE_DIR \"\${CRP_INCLUDE_DIR}\")
+        configure_file(
+            ${CMAKE_CURRENT_BINARY_DIR}/binding.gyp.in
+            ${CMAKE_CURRENT_BINARY_DIR}/binding.gyp
+            @ONLY
+        )
+    ")
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/binding.gyp
+        COMMAND ${CMAKE_COMMAND}
+                -DCRP_INCLUDE_DIR="${CRP_INCLUDE_DIR}"
+                -DCRP_LIBRARY_DIR="$<TARGET_FILE_DIR:CoralReefPlayer>"
+                -DCRP_LIBRARY=CoralReefPlayer
+                -P ${CMAKE_CURRENT_BINARY_DIR}/generate.cmake
+        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/binding.gyp.in
     )
 
     add_custom_target(node-prepare
         COMMAND echo "Build nodejs binding"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
         DEPENDS CoralReefPlayer
+                ${CMAKE_CURRENT_BINARY_DIR}/binding.gyp
     )
     add_copy_libs_command(node-prepare prebuilds/)
 
