@@ -3,7 +3,7 @@ import coralreefplayer as crp
 
 print(f"CoralReefPlayer version: {crp.version_str()} ({crp.version_code()})")
 
-url = "rtsp://127.0.0.1:8554/"
+url = "rtsp://127.0.0.1:8554/test"
 
 def on_event(event, data):
     global hasFrame

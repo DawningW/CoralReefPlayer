@@ -5,7 +5,7 @@ using Xunit.Abstractions;
 
 namespace CoralReefPlayer.Test {
     public class PullTest {
-        private static readonly string URL = "rtsp://127.0.0.1:8554/";
+        private static readonly string URL = "rtsp://127.0.0.1:8554/test";
         readonly ITestOutputHelper output;
 
         public PullTest(ITestOutputHelper output)

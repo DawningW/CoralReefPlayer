@@ -3,7 +3,7 @@ import XCTest
 
 final class CoralReefPlayerTests: XCTestCase {
     
-    let url = "rtsp://127.0.0.1:8554/"
+    let url = "rtsp://127.0.0.1:8554/test"
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.

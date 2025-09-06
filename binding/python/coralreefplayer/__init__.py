@@ -10,7 +10,10 @@ else:
     PATH_VAR = "LD_LIBRARY_PATH"
 if os.name == "nt" and sys.version_info >= (3, 8):
     os.add_dll_directory(BASE_DIR)
-os.environ[PATH_VAR] = BASE_DIR + os.pathsep + os.environ[PATH_VAR]
+if PATH_VAR in os.environ:
+    os.environ[PATH_VAR] = BASE_DIR + os.pathsep + os.environ[PATH_VAR]
+else:
+    os.environ[PATH_VAR] = BASE_DIR
 del BASE_DIR, PATH_VAR
 
 from . import extension as ext

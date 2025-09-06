@@ -1,0 +1,143 @@
+name: Build
+
+on:
+  push:
+    branches: [ v1 ]
+  pull_request:
+    branches: [ v1 ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Lint
+      run: echo "No code check configured"
+
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libsdl2-dev
+
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: brew install ffmpeg sdl2
+
+    - name: Build
+      run: cmake -B build -G Ninja -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=ON && cmake --build build
+
+    - name: Test
+      run: cd build && ctest
+
+  test-bindings:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - lang: java
+            build_option: BUILD_JAVA_BINDING
+          - lang: csharp
+            build_option: BUILD_CSHARP_BINDING
+          - lang: python
+            build_option: BUILD_PYTHON_BINDING
+          - lang: node
+            build_option: BUILD_JS_BINDING
+          - lang: go
+            build_option: BUILD_GO_BINDING
+          - lang: rust
+            build_option: BUILD_RUST_BINDING
+      fail-fast: false
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev libsdl2-dev
+
+    - name: Setup environment
+      run: |
+        case "${{ matrix.lang }}" in
+          java)
+            chmod +x binding/java/gradlew
+            ;;
+          python)
+            pip install pybind11
+            ;;
+          node)
+            npm i node-gyp-build -g
+            ;;
+        esac
+
+    - name: Build ${{ matrix.lang }} binding
+      run: |
+        mkdir -p install
+        cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=OFF -D${{ matrix.build_option }}=ON
+        cmake --build build --target ${{ matrix.lang }}-package --parallel $(nproc)
+
+    - name: Test ${{ matrix.lang }} binding
+      run: |
+        wget -q https://github.com/bluenviron/mediamtx/releases/download/v1.14.0/mediamtx_v1.14.0_linux_amd64.tar.gz
+        tar -xzf mediamtx_v1.14.0_linux_amd64.tar.gz
+        nohup ./mediamtx &
+        MEDIAMTX_PID=$!
+        sleep 5
+
+        ffmpeg -f lavfi -i "testsrc=size=1280x720:rate=30,format=yuv420p" -t 300 -c:v libx264 -preset ultrafast -g 30 -f rtsp rtsp://127.0.0.1:8554/test &
+        FFMPEG_PID=$!
+        sleep 5
+
+        case "${{ matrix.lang }}" in
+          java)
+            cd build/binding/java
+            ./gradlew test
+            ;;
+          csharp)
+            cd build/binding/csharp/CoralReefPlayer.Test
+            dotnet test
+            ;;
+          python)
+            pip install install/coralreefplayer-*.whl
+            cd build/binding/python/test
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/../coralreefplayer
+            python test_pull.py
+            ;;
+          node)
+            cd build/binding/nodejs
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/prebuilds
+            npm test
+            ;;
+          go)
+            cd build/binding/go/gcrp
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)
+            go test
+            ;;
+          rust)
+            cd build/binding/rust
+            cargo test
+            ;;
+        esac
+
+        # if [ -n "$FFMPEG_PID" ]; then
+        #     echo "Killing FFmpeg process..."
+        #     kill -9 $FFMPEG_PID 2>/dev/null
+        # fi
+        # if [ -n "$MEDIAMTX_PID" ]; then
+        #     echo "Killing MediaMTX process..."
+        #     kill -9 $MEDIAMTX_PID 2>/dev/null
+        # fi

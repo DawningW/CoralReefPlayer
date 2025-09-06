@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PullTest {
-    private static final String URL = "rtsp://127.0.0.1:8554/";
+    private static final String URL = "rtsp://127.0.0.1:8554/test";
 
     @BeforeAll
     static void setUp() {

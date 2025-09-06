@@ -5,7 +5,7 @@ use coralreefplayer_rs as crp;
 
 #[test]
 fn test_pull() {
-    let url = "rtsp://127.0.0.1:8554/";
+    let url = "rtsp://127.0.0.1:8554/test";
     println!("CoralReefPlayer version: {} ({})", crp::version_str(), crp::version_code());
     let has_frame = Arc::new(AtomicBool::new(false));
     let has_frame_clone = has_frame.clone();
