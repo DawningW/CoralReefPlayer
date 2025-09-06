@@ -3,7 +3,7 @@ const assert = require('assert');
 
 console.log(`CoralReefPlayer version: ${crp.versionStr()} (${crp.versionCode()})`);
 
-const url = 'rtsp://127.0.0.1:8554/';
+const url = 'rtsp://127.0.0.1:8554/test';
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

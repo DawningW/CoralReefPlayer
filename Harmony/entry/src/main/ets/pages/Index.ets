@@ -7,7 +7,7 @@ const TAG = 'crpdemo';
 @Entry
 @Component
 struct Index {
-  @State url: string = 'rtsp://127.0.0.1:8554/';
+  @State url: string = 'rtsp://127.0.0.1:8554/test';
   @State image?: PixelMap = undefined;
   player?: Player;
 

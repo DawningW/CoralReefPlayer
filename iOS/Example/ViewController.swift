@@ -3,7 +3,7 @@ import CoralReefPlayer
 
 class ViewController: UIViewController {
 
-    let url = "rtsp://127.0.0.1:8554/"
+    let url = "rtsp://127.0.0.1:8554/test"
     let player = Player()
     
     @IBOutlet weak var imagePlayer: UIImageView!

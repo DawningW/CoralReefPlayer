@@ -70,8 +70,13 @@ if(NOT ANDROID)
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
+    if(CMAKE_HOST_WIN32)
+        set(GRADLE_EXECUTABLE gradlew.bat)
+    else()
+        set(GRADLE_EXECUTABLE ./gradlew)
+    endif()
     add_custom_target(java-package
-        COMMAND gradlew -Dorg.gradle.daemon=false publish
+        COMMAND ${GRADLE_EXECUTABLE} -Dorg.gradle.daemon=false publish
         DEPENDS java-prepare
     )
 endif()

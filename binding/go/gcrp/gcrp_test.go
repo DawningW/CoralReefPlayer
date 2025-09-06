@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	URL = "rtsp://127.0.0.1:8554/"
+	URL = "rtsp://127.0.0.1:8554/test"
 )
 
 type MyCallback struct {
