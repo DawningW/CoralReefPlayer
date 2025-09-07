@@ -109,7 +109,7 @@ jobs:
             ;;
           csharp)
             cd build/binding/csharp/CoralReefPlayer.Test
-            dotnet test
+            dotnet test --framework net6.0
             ;;
           python)
             pip install install/coralreefplayer-*.whl
