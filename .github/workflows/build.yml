@@ -109,7 +109,8 @@ jobs:
             ;;
           csharp)
             cd build/binding/csharp/CoralReefPlayer.Test
-            dotnet test
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/../../CoralReefPlayer.Runtime/runtimes/linux-x64/native:$(pwd)/../../CoralReefPlayer.Runtime
+            dotnet test --framework net6.0
             ;;
           python)
             pip install install/coralreefplayer-*.whl
