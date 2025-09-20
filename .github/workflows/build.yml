@@ -60,6 +60,8 @@ jobs:
             build_option: BUILD_GO_BINDING
           - lang: rust
             build_option: BUILD_RUST_BINDING
+          - lang: cangjie
+            build_option: BUILD_CANGJIE_BINDING
       fail-fast: false
     steps:
     - name: Checkout
@@ -83,6 +85,13 @@ jobs:
             npm i node-gyp-build -g
             ;;
         esac
+
+    - name: Setup Cangjie SDK
+      if: matrix.lang == 'cangjie'
+      uses: Zxilly/setup-cangjie@v2
+      with:
+        channel: lts
+        version: auto
 
     - name: Build ${{ matrix.lang }} binding
       run: |
@@ -130,6 +139,11 @@ jobs:
           rust)
             cd build/binding/rust
             cargo test
+            ;;
+          cangjie)
+            cd build/binding/cangjie
+            export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$(pwd)/lib
+            cjpm test
             ;;
         esac
 

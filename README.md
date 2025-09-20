@@ -169,6 +169,10 @@ CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交
 
 启用 `BUILD_RUST_BINDING` 选项，然后运行 `rust-package` 目标即可在 install 目录中生成包含 Rust 代码的 zip 压缩文件。
 
+### 仓颉
+
+启用 `BUILD_CANGJIE_BINDING` 选项，然后运行 `cangjie-package` 目标即可在 install 目录中生成包含仓颉代码的 zip 压缩文件。
+
 ## 文档
 
 CoralReefPlayer 总体架构图：

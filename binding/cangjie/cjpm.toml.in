@@ -1,0 +1,17 @@
+[package]
+  cjc-version = "1.0.0"
+  name = "coralreefplayer_cj"
+  description = "Cangjie binding for CoralReefPlayer"
+  version = "@PROJECT_VERSION@.0"
+  target-dir = ""
+  src-dir = ""
+  output-type = "static"
+  compile-option = ""
+  override-compile-option = ""
+  link-option = ""
+  package-configuration = {}
+
+[dependencies]
+
+[ffi.c]
+@CRP_LIBRARY@ = { path = "@CRP_LIBRARY_DIR@" }
