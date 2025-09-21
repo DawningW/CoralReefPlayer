@@ -154,6 +154,7 @@ void StreamPuller::stop()
     if (exit)
         return;
 
+    available = 1;
     exit = 1;
     thread.join();
     callback.wait();
@@ -224,6 +225,12 @@ void StreamPuller::runRTP()
     environment = BasicUsageEnvironment::createNew(*scheduler);
 
     callback.invokeSync(CRP_EV_START, nullptr, userData);
+#if ANDROID || __OHOS__
+    // Android and HarmonyOS can't receive multicast from all interfaces at the same time
+    // So we have to specify one, usually the "wlan0" interface
+    ReceivingInterfaceAddr = ourIPv4Address(*environment);
+    memcpy(ReceivingInterfaceAddr6.s6_addr, ourIPv6Address(*environment), sizeof(ipv6AddressBits));
+#endif
     NetAddressList sessionAddresses(host.c_str());
     struct sockaddr_storage sessionAddress;
     copyAddress(sessionAddress, sessionAddresses.firstAddress());
@@ -238,8 +245,17 @@ void StreamPuller::runRTP()
         unsigned char packet[1500];
         unsigned packetSize;
         struct sockaddr_storage fromAddress;
-
         *environment << "Waiting for first RTP packet to determine payload type...\n";
+
+        available = 0;
+        environment->taskScheduler().setBackgroundHandling(rtpSocket.socketNum(), SOCKET_READABLE,
+            [](void* clientData, int mask)
+            {
+                ((StreamPuller*) clientData)->available = 1;
+            }, this);
+        environment->taskScheduler().doEventLoop(&available);
+        environment->taskScheduler().disableBackgroundHandling(rtpSocket.socketNum());
+        if (exit) goto end;
 
         if (!rtpSocket.handleRead(packet, sizeof(packet), packetSize, fromAddress)) {
             *environment << "Failed to read RTP packet\n";

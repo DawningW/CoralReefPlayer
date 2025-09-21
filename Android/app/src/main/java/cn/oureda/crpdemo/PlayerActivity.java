@@ -1,7 +1,9 @@
 package cn.oureda.crpdemo;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -23,6 +25,7 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     private ActivityPlayerBinding binding;
     private CoralReefPlayer player;
     private boolean played;
+    private WifiManager.MulticastLock lock;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,12 +55,16 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
         }
 
         player = new CoralReefPlayer();
+
+        WifiManager manager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        lock = manager.createMulticastLock("crp");
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         Log.i(TAG, "onStart");
+        lock.acquire();
         Intent intent = getIntent();
         String url = intent.getStringExtra("url");
         Option option = new Option();
@@ -73,6 +80,7 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
         super.onStop();
         Log.i(TAG, "onStop");
         player.stop();
+        lock.release();
     }
 
     @Override

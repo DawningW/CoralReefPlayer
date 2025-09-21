@@ -68,6 +68,7 @@ private:
     MediaSubsession* subsession;
     MediaSubsessionIterator* iter;
     MPEG2TransportStreamDemux* demuxer;
+    volatile char available; // for reading RTP socket
     TaskToken livenessCheckTask;
     httplib::Client* httpClient;
     VideoDecoder* videoDecoder;
