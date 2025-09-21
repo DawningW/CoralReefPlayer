@@ -6,12 +6,14 @@
 #include "GroupsockHelper.hh"
 #include "BasicUsageEnvironment.hh"
 #include "RTSPClient.hh"
+#include "MPEG2TransportStreamDemux.hh"
 #define CPPHTTPLIB_RECV_BUFSIZ size_t(32768u)
 #include "httplib.h"
 #include "coralreefplayer.h"
 #include "AsyncCallback.hpp"
 #include "VideoDecoder.h"
 #include "AudioDecoder.h"
+#include "StreamSink.h"
 
 class StreamPuller
 {
@@ -20,6 +22,7 @@ public:
     {
         CRP_UNKNOWN,
         CRP_RTSP,
+        CRP_RTP,
         CRP_HTTP,
     };
     using Callback = std::function<void(int, void*, void*)>;
@@ -34,6 +37,7 @@ public:
 private:
     void start();
     void runRTSP();
+    void runRTP();
     void runHTTP();
     void shutdownStream(RTSPClient* rtspClient);
     void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
@@ -42,6 +46,7 @@ private:
     void setupNextSubsession(RTSPClient* rtspClient);
     void subsessionAfterPlaying(MediaSubsession* subsession);
     void subsessionByeHandler(MediaSubsession* subsession, char const* reason);
+    void createTransportStream(PIDState_STREAM* pidState, StreamType& streamType);
     void timeoutHandler();
     void noteLiveness();
     static Protocol parseUrl(const std::string& url);
@@ -62,8 +67,11 @@ private:
     MediaSession* session;
     MediaSubsession* subsession;
     MediaSubsessionIterator* iter;
+    MPEG2TransportStreamDemux* demuxer;
     TaskToken livenessCheckTask;
     httplib::Client* httpClient;
     VideoDecoder* videoDecoder;
+    StreamSink::Callback videoCallback;
     AudioDecoder* audioDecoder;
+    StreamSink::Callback audioCallback;
 };

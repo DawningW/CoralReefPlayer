@@ -19,6 +19,7 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 // C++ header
 
 #ifndef _MPEG2_TRANSPORT_STREAM_PARSER_HH
+#define _MPEG2_TRANSPORT_STREAM_PARSER_HH
 
 #ifndef _STREAM_PARSER_HH
 #include "StreamParser.hh"
@@ -92,7 +93,14 @@ public:
 
 class MPEG2TransportStreamParser: public StreamParser {
 public:
+#if CRP_MODIFY
+  typedef void (onStreamCreationFunc)(PIDState_STREAM* pidState, StreamType& steamType, void* clientData);
+#endif
+
   MPEG2TransportStreamParser(FramedSource* inputSource,
+#if CRP_MODIFY
+           onStreamCreationFunc* onStreamCreationFunc, void* onStreamCreationClientData,
+#endif
 			     FramedSource::onCloseFunc* onEndFunc, void* onEndClientData);
   virtual ~MPEG2TransportStreamParser();
 
@@ -127,6 +135,10 @@ private:
   void* fOnEndClientData;
   PIDState** fPIDState;
   double fLastSeenPCR;
+#if CRP_MODIFY
+  onStreamCreationFunc* fOnStreamCreationFunc;
+  void* fOnStreamCreationClientData;
+#endif
 };
 
 #endif

@@ -274,8 +274,10 @@ Boolean MP3StreamState::findNextFrame() {
       return False;
 
 #ifdef DEBUG_ERRORS
+#if !CRP_MODIFY
       fprintf(stderr,"Illegal Audio-MPEG-Header 0x%08lx at offset 0x%lx.\n",
 	      fr().hdr,tell_stream(str)-4);
+#endif
 #endif
       /* Read more bytes until we find something that looks
 	 reasonably like a valid header.  This is not a

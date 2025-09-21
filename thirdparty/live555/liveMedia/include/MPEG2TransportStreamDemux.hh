@@ -25,15 +25,32 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 #include "FramedSource.hh"
 #endif
 
+#if CRP_MODIFY
+class PIDState_STREAM;
+class StreamType;
+#endif
+
 class MPEG2TransportStreamDemux: public Medium {
 public:
+#if CRP_MODIFY
+  typedef void (onStreamCreationFunc)(PIDState_STREAM* pidState, StreamType& streamType, void* clientData);
+#endif
+
   static MPEG2TransportStreamDemux* createNew(UsageEnvironment& env,
 					      FramedSource* inputSource,
+#if CRP_MODIFY
+                onStreamCreationFunc* onStreamCreationFunc,
+                void* onStreamCreationClientData,
+#endif
 					      FramedSource::onCloseFunc* onCloseFunc,
 					      void* onCloseClientData);
 
 private:
   MPEG2TransportStreamDemux(UsageEnvironment& env, FramedSource* inputSource,
+#if CRP_MODIFY
+          onStreamCreationFunc* onStreamCreationFunc,
+          void* onStreamCreationClientData,
+#endif
 			    FramedSource::onCloseFunc* onCloseFunc, void* onCloseClientData);
       // called only by createNew()
   virtual ~MPEG2TransportStreamDemux();

@@ -289,6 +289,7 @@ PIDState_STREAM::PIDState_STREAM(MPEG2TransportStreamParser& parser,
   // Create the 'source' and 'sink' objects for this track, and 'start playing' them:
   streamSource = new MPEG2TransportStreamDemuxedTrack(parser, pid);
 
+#if !CRP_MODIFY
   char fileName[100];
   extern StreamType StreamTypes[];
   StreamType& st = StreamTypes[streamType]; // alias
@@ -302,6 +303,7 @@ PIDState_STREAM::PIDState_STREAM(MPEG2TransportStreamParser& parser,
   fprintf(stderr, "Creating new output file \"%s\"\n", fileName);
   streamSink = FileSink::createNew(parser.envir(), fileName);
   streamSink->startPlaying(*streamSource, NULL, NULL);
+#endif
 }
 
 PIDState_STREAM::~PIDState_STREAM() {

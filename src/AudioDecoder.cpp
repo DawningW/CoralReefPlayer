@@ -116,7 +116,8 @@ bool AudioDecoder::processPacket(AVPacket* packet)
 #endif
             if (needConvert)
             {
-                if (swrCtx == nullptr) {
+                if (swrCtx == nullptr)
+                {
                     // SwrContext not allocated
                     swrCtx = swr_alloc();
                 }
@@ -128,7 +129,8 @@ bool AudioDecoder::processPacket(AVPacket* packet)
                 if (swr_alloc_set_opts2(&swrCtx,
                     &out_ch_layout, dstSampleFmt, outFrame.sample_rate,
                     &frame->ch_layout, srcSampleFmt, frame->sample_rate,
-                    0, NULL) < 0) {
+                    0, NULL) < 0)
+                {
                     fprintf(stderr, "Failed to set resampler options\n");
                 }
                 

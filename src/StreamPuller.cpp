@@ -1,9 +1,15 @@
 #include "StreamPuller.h"
 #include <cstdio>
 #include <cstring>
+#include <unordered_map>
 #include <regex>
+#include "SimpleRTPSource.hh"
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "MPEG4LATMAudioRTPSource.hh" // for parseGeneralConfigStr
+#include "MPEG2IndexFromTransportStream.hh" // for TRANSPORT_PACKET_SIZE
+#include "MPEG2TransportStreamParser.hh" // internal header for PIDState_STREAM and StreamType
+#include "H264VideoStreamFramer.hh"
+#include "H265VideoStreamFramer.hh"
 #include "StreamSink.h"
 
 #ifdef _DEBUG
@@ -14,6 +20,7 @@
 #define DEFAULT_TIMEOUT_MS 1000
 
 static const std::string USER_AGENT = std::string("CoralReefPlayer/") + crp_version_str();
+static const unsigned MAX_TS_FRAME_SIZE = 7 * TRANSPORT_PACKET_SIZE;
 
 class OurRTSPClient : public RTSPClient
 {
@@ -31,7 +38,73 @@ public:
     StreamPuller* parent;
 };
 
-StreamPuller::StreamPuller() : exit(1), authenticator(NULL) {}
+class MPEG2TransportStreamSource : public SimpleRTPSource
+{
+public:
+    static MPEG2TransportStreamSource* createNew(UsageEnvironment& env, Groupsock* RTPgs,
+        unsigned char rtpPayloadFormat, unsigned rtpTimestampFrequency = 90000)
+    {
+        return new MPEG2TransportStreamSource(env, RTPgs, rtpPayloadFormat, rtpTimestampFrequency, "video/MP2T", 0, False);
+    }
+
+protected:
+    using SimpleRTPSource::SimpleRTPSource;
+
+public:
+    virtual unsigned maxFrameSize() const
+    {
+        // Must specify maxFrameSize, or fCurParserIndex + numBytesNeeded > BANK_SIZE never becomes true
+        // causing StreamParser can't swap bank and run out of memory eventually.
+        // http://lists.live555.com/pipermail/live-devel/2021-March/021907.html
+        return MAX_TS_FRAME_SIZE;
+    }
+};
+
+StreamPuller::StreamPuller() : exit(1), authenticator(NULL)
+{
+    videoCallback = [this](AVPacket* packet)
+        {
+            noteLiveness();
+            bool inited = videoDecoder->getFrame()->data[0] != nullptr;
+            if (videoDecoder->processPacket(packet))
+            {
+                if (!inited)
+                {
+                    int size = 0;
+                    const uint8_t* extraData = videoDecoder->getExtraData(size);
+                    if (extraData && size > 0)
+                    {
+                        EventData eventData;
+                        eventData.extra_data.data = extraData;
+                        eventData.extra_data.size = size;
+                        callback.invokeSync(CRP_EV_VIDEO_EXTRADATA, &eventData, userData);
+                    }
+                }
+                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
+            }
+        };
+    audioCallback = [this](AVPacket* packet)
+        {
+            noteLiveness();
+            bool inited = audioDecoder->getFrame()->data[0] != nullptr;
+            if (audioDecoder->processPacket(packet))
+            {
+                if (!inited)
+                {
+                    int size = 0;
+                    const uint8_t* extraData = audioDecoder->getExtraData(size);
+                    if (extraData && size > 0)
+                    {
+                        EventData eventData;
+                        eventData.extra_data.data = extraData;
+                        eventData.extra_data.size = size;
+                        callback.invokeSync(CRP_EV_AUDIO_EXTRADATA, &eventData, userData);
+                    }
+                }
+                callback(CRP_EV_NEW_AUDIO, audioDecoder->getFrame(), userData);
+            }
+        };
+}
 
 StreamPuller::~StreamPuller()
 {
@@ -57,7 +130,7 @@ bool StreamPuller::start(const char* url, const Option* option, Callback callbac
 
     if (option != nullptr)
         this->option = *option;
-    if (option->timeout == 0)
+    if (this->option.timeout == 0) // option may be null pointer
         this->option.timeout = DEFAULT_TIMEOUT_MS;
     this->callback = callback;
     this->userData = userData;
@@ -96,6 +169,8 @@ void StreamPuller::start()
     exit = 0;
     if (protocol == CRP_RTSP)
         thread = std::thread(&StreamPuller::runRTSP, this);
+    else if (protocol == CRP_RTP)
+        thread = std::thread(&StreamPuller::runRTP, this);
     else if (protocol == CRP_HTTP)
         thread = std::thread(&StreamPuller::runHTTP, this);
 }
@@ -106,8 +181,9 @@ void StreamPuller::runRTSP()
     environment = BasicUsageEnvironment::createNew(*scheduler);
     rtspClient = OurRTSPClient::createNew(*environment, url.c_str(), LOG_LEVEL, USER_AGENT.c_str());
     session = NULL;
+    demuxer = NULL;
     livenessCheckTask = NULL;
-    
+
     callback.invokeSync(CRP_EV_START, nullptr, userData);
     ((OurRTSPClient*) rtspClient)->parent = this;
     rtspClient->sendDescribeCommand([](RTSPClient* rtspClient, int resultCode, char* resultString)
@@ -119,6 +195,91 @@ void StreamPuller::runRTSP()
 
     if (rtspClient != NULL)
         shutdownStream(rtspClient);
+    delete scheduler;
+}
+
+static bool parseRTPUrl(const std::string& url, std::string& host, int& port)
+{
+    std::regex regex(R"(rtp://([^:]+):(\d+))");
+    std::smatch match;
+    if (std::regex_match(url, match, regex)) {
+        host = match[1].str();
+        port = std::stoi(match[2].str());
+        return true;
+    }
+    return false;
+}
+
+void StreamPuller::runRTP()
+{
+    std::string host;
+    int port;
+    if (!parseRTPUrl(url, host, port)) {
+        fprintf(stderr, "Invalid RTP multicast url: %s\n", url.c_str());
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
+        return;
+    }
+
+    scheduler = BasicTaskScheduler::createNew();
+    environment = BasicUsageEnvironment::createNew(*scheduler);
+
+    callback.invokeSync(CRP_EV_START, nullptr, userData);
+    NetAddressList sessionAddresses(host.c_str());
+    struct sockaddr_storage sessionAddress;
+    copyAddress(sessionAddress, sessionAddresses.firstAddress());
+    Port rtpPort(port);
+    Groupsock rtpSocket(*environment, sessionAddress, rtpPort, 1);
+
+    unsigned char payloadType = 0;
+    FramedSource* source = NULL;
+    demuxer = NULL;
+    MediaSink *sink = NULL;
+    {
+        unsigned char packet[1500];
+        unsigned packetSize;
+        struct sockaddr_storage fromAddress;
+
+        *environment << "Waiting for first RTP packet to determine payload type...\n";
+
+        if (!rtpSocket.handleRead(packet, sizeof(packet), packetSize, fromAddress)) {
+            *environment << "Failed to read RTP packet\n";
+            callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
+            goto end;
+        }
+
+        payloadType = packet[1] & 0x7F;
+    }
+
+    if (payloadType == 33) {
+        source = MPEG2TransportStreamSource::createNew(*environment, &rtpSocket, payloadType);
+        demuxer = MPEG2TransportStreamDemux::createNew(*environment, source,
+            [](PIDState_STREAM* pidState, StreamType& streamType, void* clientData)
+            {
+                ((StreamPuller*) clientData)->createTransportStream(pidState, streamType);
+            }, this, NULL, NULL);
+    } else if (payloadType >= 96 && payloadType <= 99) {
+        source = H264VideoRTPSource::createNew(*environment, &rtpSocket, payloadType);
+
+        const char* codecName = "H264"; // only support H.264 now
+        videoDecoder = VideoDecoder::createNew(codecName,
+            (Format) option.video.format, option.video.width, option.video.height, option.video.hw_device);
+        sink = StreamSink::createNew(*environment, "video", codecName, videoCallback);
+
+        *environment << "Created a video data sink for the RTP stream\n";
+        sink->startPlaying(*source, NULL, NULL);
+    } else {
+        *environment << "Unknown or unsupported RTP payload type: " << (int) payloadType << "\n";
+        goto end;
+    }
+    *environment << "Detected RTP payload type: " << source->MIMEtype() << " (" << (int) payloadType << ")\n";
+
+    callback.invokeSync(CRP_EV_PLAYING, nullptr, userData);
+    environment->taskScheduler().doEventLoop(&exit);
+
+    Medium::close(sink);
+    Medium::close(source);
+    Medium::close(demuxer);
+end:
     delete scheduler;
 }
 
@@ -158,13 +319,7 @@ void StreamPuller::runHTTP()
         httpClient->set_basic_auth(authenticator->username(), authenticator->password());
     }
     std::string* body = nullptr;
-    HTTPSink sink([this](AVPacket* packet)
-        {
-            if (videoDecoder->processPacket(packet))
-            {
-                callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
-            }
-        });
+    HTTPSink sink(videoCallback);
 #ifdef _DEBUG
     printf("> GET %s\n", url.c_str());
 #endif
@@ -335,7 +490,17 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
     env << ")\n";
     mediumName = subsession->mediumName();
     codecName = subsession->codecName();
-    if (strcmp(mediumName, "video") == 0)
+
+    if (strcmp(codecName, "MP2T") == 0)
+    {
+        subsession->readSource()->setMaxFrameSize(MAX_TS_FRAME_SIZE); // See note in MPEG2TransportStreamSource::maxFrameSize()
+        demuxer = MPEG2TransportStreamDemux::createNew(env, subsession->readSource(),
+            [](PIDState_STREAM* pidState, StreamType& streamType, void* clientData)
+            {
+                ((StreamPuller*) clientData)->createTransportStream(pidState, streamType);
+            }, this, NULL, NULL);
+    }
+    else if (strcmp(mediumName, "video") == 0)
     {
         videoDecoder = VideoDecoder::createNew(codecName,
             (Format) option.video.format, option.video.width, option.video.height, option.video.hw_device);
@@ -401,27 +566,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
             }
         }
 
-        subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
-            {
-                noteLiveness();
-                bool inited = videoDecoder->getFrame()->data[0] != nullptr;
-                if (videoDecoder->processPacket(packet))
-                {
-                    if (!inited)
-                    {
-                        int size = 0;
-                        const uint8_t* extraData = videoDecoder->getExtraData(size);
-                        if (extraData && size > 0)
-                        {
-                            EventData eventData;
-                            eventData.extra_data.data = extraData;
-                            eventData.extra_data.size = size;
-                            callback.invokeSync(CRP_EV_VIDEO_EXTRADATA, &eventData, userData);
-                        }
-                    }
-                    callback(CRP_EV_NEW_FRAME, videoDecoder->getFrame(), userData);
-                }
-            });
+        subsession->sink = SessionStreamSink::createNew(env, *subsession, videoCallback);
     }
     else if (strcmp(mediumName, "audio") == 0)
     {
@@ -458,27 +603,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
             audioDecoder->initParameters(8000, 1);
         }
 
-        subsession->sink = StreamSink::createNew(env, *subsession, [this](AVPacket* packet)
-            {
-                noteLiveness();
-                bool inited = audioDecoder->getFrame()->data[0] != nullptr;
-                if (audioDecoder->processPacket(packet))
-                {
-                    if (!inited)
-                    {
-                        int size = 0;
-                        const uint8_t* extraData = audioDecoder->getExtraData(size);
-                        if (extraData && size > 0)
-                        {
-                            EventData eventData;
-                            eventData.extra_data.data = extraData;
-                            eventData.extra_data.size = size;
-                            callback.invokeSync(CRP_EV_AUDIO_EXTRADATA, &eventData, userData);
-                        }
-                    }
-                    callback(CRP_EV_NEW_AUDIO, audioDecoder->getFrame(), userData);
-                }
-            });
+        subsession->sink = SessionStreamSink::createNew(env, *subsession, audioCallback);
     }
     else
     {
@@ -486,13 +611,16 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
         goto end;
     }
 
-    env << "Created a " << mediumName << " data sink for the subsession\n";
     subsession->miscPtr = rtspClient;
-    subsession->sink->startPlaying(*(subsession->readSource()), [](void* clientData)
-        {
-            MediaSubsession* subsession = (MediaSubsession*) clientData;
-            ((OurRTSPClient*) subsession->miscPtr)->parent->subsessionAfterPlaying(subsession);
-        }, subsession);
+    if (subsession->sink != NULL)
+    {
+        env << "Created a " << mediumName << " data sink for the subsession\n";
+        subsession->sink->startPlaying(*(subsession->readSource()), [](void* clientData)
+            {
+                MediaSubsession* subsession = (MediaSubsession*) clientData;
+                ((OurRTSPClient*) subsession->miscPtr)->parent->subsessionAfterPlaying(subsession);
+            }, subsession);
+    }
     if (subsession->rtcpInstance() != NULL)
     {
         subsession->rtcpInstance()->setByeWithReasonHandler([](void* clientData, char const* reason)
@@ -502,7 +630,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
                 delete[] reason;
             }, subsession);
     }
-    
+
 end:
     setupNextSubsession(rtspClient);
 }
@@ -593,9 +721,61 @@ void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const*
     subsessionAfterPlaying(subsession);
 }
 
+void StreamPuller::createTransportStream(PIDState_STREAM *pidState, StreamType &streamType)
+{
+    static const std::unordered_map<uint8_t, const char*> STREAM_TYPE_CODEC_MAP =
+    {
+        {0x0F, "MPEG4-GENERIC"},
+        {0x1B, "H264"},
+        {0x24, "H265"},
+    };
+
+    UsageEnvironment& env = *environment;
+
+    env << "Setup PES stream type " << (int) pidState->stream_type << " with PID " << (int) pidState->PID << "\n";
+    const char* mediumName = streamType.dataType == StreamType::AUDIO ? "audio" :
+                             streamType.dataType == StreamType::VIDEO ? "video" :
+                             streamType.dataType == StreamType::DATA ? "data" :
+                             streamType.dataType == StreamType::TEXT ? "text" :
+                             "unknown";
+    const char* codecName = STREAM_TYPE_CODEC_MAP.contains(pidState->stream_type) ?
+                            STREAM_TYPE_CODEC_MAP.at(pidState->stream_type) : "";
+
+    FramedSource *inputSource = pidState->streamSource;
+    if (streamType.dataType == StreamType::VIDEO)
+    {
+        videoDecoder = VideoDecoder::createNew(codecName,
+            (Format) option.video.format, option.video.width, option.video.height, option.video.hw_device);
+        if (videoDecoder == nullptr)
+        {
+            env << "Not support video codec: " << streamType.description << "\n";
+            return;
+        }
+
+        if (strcmp(codecName, "H264") == 0)
+        {
+            inputSource = H264VideoStreamFramer::createNew(env, inputSource);
+        }
+        else if (strcmp(codecName, "H265") == 0)
+        {
+            inputSource = H265VideoStreamFramer::createNew(env, inputSource);
+        }
+
+        pidState->streamSink = StreamSink::createNew(env, "ts/video", codecName, videoCallback);
+    }
+    else
+    {
+        env << "Not support medium: " << mediumName << "\n";
+        return;
+    }
+
+    env << "Created a " << mediumName << " data sink for the PES stream\n";
+    pidState->streamSink->startPlaying(*inputSource, NULL, NULL);
+}
+
 void StreamPuller::timeoutHandler()
 {
-    UsageEnvironment& env = rtspClient->envir();
+    UsageEnvironment& env = *environment;
 
     env << "Receive stream timeout after " << (int) option.timeout << " ms\n";
     callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
@@ -605,7 +785,7 @@ void StreamPuller::noteLiveness()
 {
     if (option.timeout > 0)
     {
-        rtspClient->envir().taskScheduler().rescheduleDelayedTask(livenessCheckTask, option.timeout * 1000,
+        environment->taskScheduler().rescheduleDelayedTask(livenessCheckTask, option.timeout * 1000,
             [](void* clientData)
             {
                 ((StreamPuller*) clientData)->timeoutHandler();
@@ -617,6 +797,8 @@ StreamPuller::Protocol StreamPuller::parseUrl(const std::string& url)
 {
     if (url.starts_with("rtsp"))
         return CRP_RTSP;
+    else if (url.starts_with("rtp"))
+        return CRP_RTP;
     else if (url.starts_with("http"))
         return CRP_HTTP;
     return CRP_UNKNOWN;

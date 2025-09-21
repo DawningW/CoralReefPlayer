@@ -121,6 +121,16 @@ void FramedSource::doStopGettingFrames() {
 }
 
 unsigned FramedSource::maxFrameSize() const {
+#if !CRP_MODIFY
   // By default, this source has no maximum frame size.
   return 0;
+#else
+  return fMaxFrameSize;
+#endif
 }
+
+#if CRP_MODIFY
+void FramedSource::setMaxFrameSize(unsigned size) {
+  fMaxFrameSize = size;
+}
+#endif

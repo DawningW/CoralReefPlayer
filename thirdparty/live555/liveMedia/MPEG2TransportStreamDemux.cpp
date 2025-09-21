@@ -23,16 +23,30 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
 
 MPEG2TransportStreamDemux* MPEG2TransportStreamDemux
 ::createNew(UsageEnvironment& env, FramedSource* inputSource,
+#if CRP_MODIFY
+      onStreamCreationFunc* onStreamCreationFunc, void* onStreamCreationClientData,
+#endif
 	    FramedSource::onCloseFunc* onCloseFunc, void* onCloseClientData) {
-  return new MPEG2TransportStreamDemux(env, inputSource, onCloseFunc, onCloseClientData);
+  return new MPEG2TransportStreamDemux(env, inputSource,
+#if CRP_MODIFY
+    onStreamCreationFunc, onStreamCreationClientData,
+#endif
+    onCloseFunc, onCloseClientData);
 }
 
 MPEG2TransportStreamDemux
 ::MPEG2TransportStreamDemux(UsageEnvironment& env, FramedSource* inputSource,
+#if CRP_MODIFY
+          onStreamCreationFunc* onStreamCreationFunc, void* onStreamCreationClientData,
+#endif
 			    FramedSource::onCloseFunc* onCloseFunc, void* onCloseClientData)
   : Medium(env),
     fOnCloseFunc(onCloseFunc), fOnCloseClientData(onCloseClientData) {
-  fParser = new MPEG2TransportStreamParser(inputSource, handleEndOfFile, this);
+  fParser = new MPEG2TransportStreamParser(inputSource,
+#if CRP_MODIFY
+    onStreamCreationFunc, onStreamCreationClientData,
+#endif
+    handleEndOfFile, this);
 }
 
 MPEG2TransportStreamDemux::~MPEG2TransportStreamDemux() {

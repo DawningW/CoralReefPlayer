@@ -55,6 +55,10 @@ public:
       // size of the largest possible frame that we may serve, or 0
       // if no such maximum is known (default)
 
+#if CRP_MODIFY
+  void setMaxFrameSize(unsigned size);
+#endif
+
   virtual void doGetNextFrame() = 0;
       // called by getNextFrame()
 
@@ -90,6 +94,10 @@ private:
   void* fOnCloseClientData;
 
   Boolean fIsCurrentlyAwaitingData;
+
+#if CRP_MODIFY
+  unsigned fMaxFrameSize = 0;
+#endif
 };
 
 #endif

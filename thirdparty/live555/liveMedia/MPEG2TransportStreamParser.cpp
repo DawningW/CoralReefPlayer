@@ -26,9 +26,15 @@ StreamType StreamTypes[0x100];
 
 MPEG2TransportStreamParser
 ::MPEG2TransportStreamParser(FramedSource* inputSource,
+#if CRP_MODIFY
+           onStreamCreationFunc* onStreamCreationFunc, void* onStreamCreationClientData,
+#endif
 			     FramedSource::onCloseFunc* onEndFunc, void* onEndClientData)
   : StreamParser(inputSource, onEndFunc, onEndClientData, continueParsing, this),
     fInputSource(inputSource), fAmCurrentlyParsing(False),
+#if CRP_MODIFY
+    fOnStreamCreationFunc(onStreamCreationFunc), fOnStreamCreationClientData(onStreamCreationClientData),
+#endif
     fOnEndFunc(onEndFunc), fOnEndClientData(onEndClientData),
     fLastSeenPCR(0.0) {
   if (StreamTypes[0x01].dataType == StreamType::UNKNOWN) { // initialize array with known values

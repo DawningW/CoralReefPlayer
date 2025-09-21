@@ -124,6 +124,13 @@ void MPEG2TransportStreamParser
       if (fPIDState[elementary_PID] == NULL) {
         fPIDState[elementary_PID]
 	  = new PIDState_STREAM(*this, elementary_PID, program_number, stream_type);
+#if CRP_MODIFY
+        if (fOnStreamCreationFunc != NULL) {
+          extern StreamType StreamTypes[];
+          StreamType& st = StreamTypes[stream_type];
+          (*fOnStreamCreationFunc)((PIDState_STREAM*)fPIDState[elementary_PID], st, fOnStreamCreationClientData);
+        }
+#endif
       }
     }
   } while (0);

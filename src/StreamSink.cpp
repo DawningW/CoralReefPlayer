@@ -6,18 +6,17 @@
 #define SINK_RECEIVE_BUFFER_SIZE 1000000
 #define HTTP_RECEIVE_BUFFER_SIZE 1500000
 
-StreamSink* StreamSink::createNew(UsageEnvironment& env, MediaSubsession& subsession, Callback callback)
+StreamSink* StreamSink::createNew(UsageEnvironment& env, const char *mediumName, const char *codecName, Callback callback)
 {
-    return new StreamSink(env, subsession, callback);
+    return new StreamSink(env, mediumName, codecName, callback);
 }
 
-StreamSink::StreamSink(UsageEnvironment& env, MediaSubsession& subsession, Callback callback)
-    : MediaSink(env), fSubsession(subsession), fCallback(callback)
+StreamSink::StreamSink(UsageEnvironment& env, const char *mediumName, const char *codecName, Callback callback)
+    : MediaSink(env), fMediumName(mediumName), fCodecName(codecName), fCallback(callback)
 {
     fReceiveBuffer = new u_int8_t[SINK_RECEIVE_BUFFER_SIZE];
     memcpy(fReceiveBuffer, startCode4, sizeof(startCode4));
-    fH264OrH265 = strcmp(subsession.codecName(), "H264") == 0 ||
-        strcmp(subsession.codecName(), "H265") == 0;
+    fH264OrH265 = strcmp(codecName, "H264") == 0 || strcmp(codecName, "H265") == 0;
 }
 
 StreamSink::~StreamSink()
@@ -36,16 +35,8 @@ void StreamSink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedByte
     struct timeval presentationTime, unsigned durationInMicroseconds)
 {
 #ifdef _DEBUG
-    envir() << fSubsession.mediumName() << "/" << fSubsession.codecName() << ":\tReceived " << frameSize << " bytes";
-    if (numTruncatedBytes > 0) envir() << " (with " << numTruncatedBytes << " bytes truncated)";
-    char uSecsStr[6 + 1]; // used to output the 'microseconds' part of the presentation time
-    sprintf(uSecsStr, "%06u", (unsigned)presentationTime.tv_usec);
-    envir() << ".\tPresentation time: " << (int)presentationTime.tv_sec << "." << uSecsStr;
-    if (fSubsession.rtpSource() != NULL && !fSubsession.rtpSource()->hasBeenSynchronizedUsingRTCP())
-    {
-        envir() << "!"; // mark the debugging output to indicate that this presentation time is not RTCP-synchronized
-    }
-    envir() << "\tNormal play time: " << fSubsession.getNormalPlayTime(presentationTime) << "\n";
+    printDebugInfo(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
+    envir() << "\n";
 #endif
 
     uint8_t* buffer = fReceiveBuffer + 4;
@@ -69,6 +60,16 @@ void StreamSink::afterGettingFrame(unsigned frameSize, unsigned numTruncatedByte
         onSourceClosure(this);
 }
 
+void StreamSink::printDebugInfo(unsigned frameSize, unsigned numTruncatedBytes,
+    struct timeval presentationTime, unsigned durationInMicroseconds)
+{
+    envir() << fMediumName << "/" << fCodecName << ":\tReceived " << frameSize << " bytes";
+    if (numTruncatedBytes > 0) envir() << " (with " << numTruncatedBytes << " bytes truncated)";
+    char uSecsStr[6 + 1]; // used to output the 'microseconds' part of the presentation time
+    sprintf(uSecsStr, "%06u", (unsigned) presentationTime.tv_usec);
+    envir() << ".\tPresentation time: " << (int) presentationTime.tv_sec << "." << uSecsStr;
+}
+
 Boolean StreamSink::continuePlaying()
 {
     if (fSource == NULL)
@@ -76,6 +77,24 @@ Boolean StreamSink::continuePlaying()
 
     fSource->getNextFrame(fReceiveBuffer + 4, SINK_RECEIVE_BUFFER_SIZE - 4, afterGettingFrame, this, onSourceClosure, this);
     return True;
+}
+
+SessionStreamSink *SessionStreamSink::createNew(UsageEnvironment &env, MediaSubsession &subsession, Callback callback)
+{
+    return new SessionStreamSink(env, subsession, callback);
+}
+
+SessionStreamSink::SessionStreamSink(UsageEnvironment &env, MediaSubsession &subsession, Callback callback)
+    : StreamSink(env, subsession.mediumName(), subsession.codecName(), callback), fSubsession(subsession) {}
+
+void SessionStreamSink::printDebugInfo(unsigned frameSize, unsigned numTruncatedBytes, timeval presentationTime, unsigned durationInMicroseconds)
+{
+    StreamSink::printDebugInfo(frameSize, numTruncatedBytes, presentationTime, durationInMicroseconds);
+    if (fSubsession.rtpSource() != NULL && !fSubsession.rtpSource()->hasBeenSynchronizedUsingRTCP())
+    {
+        envir() << "!"; // mark the debugging output to indicate that this presentation time is not RTCP-synchronized
+    }
+    envir() << "\tNormal play time: " << fSubsession.getNormalPlayTime(presentationTime);
 }
 
 HTTPSink::HTTPSink(Callback onFrame) : onFrame(onFrame),

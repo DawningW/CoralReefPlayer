@@ -214,11 +214,14 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/groupsock/include
         ${CMAKE_CURRENT_SOURCE_DIR}/liveMedia/include
         ${CMAKE_CURRENT_SOURCE_DIR}/WindowsAudioInputDevice
+    # PRIVATE # for hack into live555
+        ${CMAKE_CURRENT_SOURCE_DIR}/liveMedia
 )
 
 target_compile_definitions(${PROJECT_NAME}
     PUBLIC
         NO_OPENSSL
+        CRP_MODIFY=1
     PRIVATE
         $<$<BOOL:${MSVC}>:_CRT_SECURE_NO_WARNINGS>
         $<$<BOOL:${WIN32}>:NO_GETIFADDRS>
@@ -227,6 +230,9 @@ target_compile_definitions(${PROJECT_NAME}
         $<$<BOOL:${UNIX}>:_LARGEFILE_SOURCE=1>
         $<$<BOOL:${UNIX}>:_FILE_OFFSET_BITS=64>
         $<$<BOOL:${UNIX}>:BSD=1>
+        # DEBUG
+        # DEBUG_ERRORS
+        # DEBUG_CONTENTS
 )
 
 target_link_libraries(${PROJECT_NAME}

@@ -4,7 +4,7 @@
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue) ![Branch: v1](https://img.shields.io/badge/branch-v1-red)
 
-CoralReefPlayer 即珊瑚礁播放器，是一款使用 C++20 开发的跨平台流媒体播放器库，目前支持播放 RTSP 和 MJPEG over HTTP 流，可为基于网络进行视频流传输的机器人上位机提供可定制、高性能、低延迟的推拉流、编解码及录像能力。
+CoralReefPlayer 即珊瑚礁播放器，是一款使用 C++20 开发的跨平台流媒体播放器库，目前支持播放 RTSP、RTP 和 MJPEG over HTTP 流，可为基于网络进行视频流传输的机器人上位机提供可定制、高性能、低延迟的推拉流、编解码及录像能力。
 
 CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙等主流操作系统，并且提供 C#、Java 和 Python 等语言的 binding，方便使用各种语言和框架开发上位机。
 
@@ -13,6 +13,11 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙�
 - 接口简单易用
 - 所有主流操作系统和编程语言支持
 - **遵循单缓冲区设计，专为低延迟场景优化**
+- 为实现极致低延迟并降低复杂度，**不提供**抗抖动和音画同步支持，**不支持**解码含 B 帧的视频流
+
+> [!IMPORTANT]
+>
+> 抗抖动、音画同步和双向参考帧一定需要多缓冲区才能支持，本库从设计上就不可能支持多缓冲区，否则无法实现低延迟，如对此有需求请选用正经播放器库，如 libVLC、ijkplayer 等
 
 CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
 
