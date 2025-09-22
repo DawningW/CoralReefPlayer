@@ -12,7 +12,7 @@ android {
         consumerProguardFiles "consumer-rules.pro"
         externalNativeBuild {
             cmake {
-                arguments "-DBUILD_JAVA_BINDING=ON", "-DBUILD_DEMO=OFF"
+                arguments "-DBUILD_JAVA_BINDING=ON", "-DBUILD_DEMO=OFF", "-DBUILD_TEST=OFF"
                 cppFlags "-std=c++20"
             }
         }

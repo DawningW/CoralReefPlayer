@@ -40,7 +40,18 @@ jobs:
       run: cmake -B build -G Ninja -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=ON && cmake --build build
 
     - name: Test
-      run: cd build && ctest
+      run: |
+        wget -q https://github.com/bluenviron/mediamtx/releases/download/v1.14.0/mediamtx_v1.14.0_linux_amd64.tar.gz
+        tar -xzf mediamtx_v1.14.0_linux_amd64.tar.gz
+        nohup ./mediamtx &
+        MEDIAMTX_PID=$!
+        sleep 5
+
+        ffmpeg -f lavfi -i "testsrc=size=1280x720:rate=30,format=yuv420p" -t 300 -c:v libx264 -preset ultrafast -g 30 -f rtsp rtsp://127.0.0.1:8554/test &
+        FFMPEG_PID=$!
+        sleep 5
+
+        cd build && ctest --output-on-failure
 
   test-bindings:
     needs: build-and-test
