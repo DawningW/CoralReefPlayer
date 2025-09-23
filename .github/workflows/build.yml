@@ -42,6 +42,7 @@ jobs:
       run: cmake -B build -G Ninja -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=ON && cmake --build build
 
     - name: Test
+      if: runner.os == 'Linux'
       run: |
         wget -q https://github.com/bluenviron/mediamtx/releases/download/v1.14.0/mediamtx_v1.14.0_linux_amd64.tar.gz
         tar -xzf mediamtx_v1.14.0_linux_amd64.tar.gz
@@ -53,7 +54,7 @@ jobs:
         FFMPEG_PID=$!
         sleep 5
 
-        cd build && ctest --output-on-failure
+        cd build/test && ctest -V # --output-on-failure
 
   test-bindings:
     needs: build-and-test
@@ -109,7 +110,7 @@ jobs:
     - name: Build ${{ matrix.lang }} binding
       run: |
         mkdir -p install
-        cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=OFF -D${{ matrix.build_option }}=ON
+        cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=OFF -DBUILD_TEST=OFF -D${{ matrix.build_option }}=ON
         cmake --build build --target ${{ matrix.lang }}-package --parallel $(nproc)
 
     - name: Test ${{ matrix.lang }} binding
