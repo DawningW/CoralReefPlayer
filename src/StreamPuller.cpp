@@ -10,6 +10,7 @@
 #include "MPEG2TransportStreamParser.hh" // internal header for PIDState_STREAM and StreamType
 #include "H264VideoStreamFramer.hh"
 #include "H265VideoStreamFramer.hh"
+#include "Base64.hh"
 #include "StreamSink.h"
 
 #ifdef _DEBUG
@@ -170,6 +171,8 @@ void StreamPuller::start()
     exit = 0;
     if (protocol == CRP_RTSP)
         thread = std::thread(&StreamPuller::runRTSP, this);
+    else if (protocol == CRP_SDP)
+        thread = std::thread(&StreamPuller::runSDP, this);
     else if (protocol == CRP_RTP)
         thread = std::thread(&StreamPuller::runRTP, this);
     else if (protocol == CRP_HTTP)
@@ -199,11 +202,61 @@ void StreamPuller::runRTSP()
     delete scheduler;
 }
 
+static bool parseSDP(const std::string& url, std::string& sdp)
+{
+    static const std::regex regex(R"(([a-z\d\+]+):\/\/(.+))");
+    std::smatch match;
+    if (std::regex_match(url, match, regex))
+    {
+        std::string schema = match[1].str();
+        sdp = match[2].str();
+        if (schema == "sdp+base64")
+        {
+            unsigned dataSize = 0;
+            unsigned char* data = base64Decode(sdp.c_str(), sdp.length(), dataSize, true);
+            sdp = std::string((char*) data, dataSize);
+        }
+        else if (schema != "sdp")
+        {
+            sdp = "";
+            return false;
+        }
+        return !sdp.empty();
+    }
+    return false;
+}
+
+void StreamPuller::runSDP()
+{
+    std::string sdp;
+    if (!parseSDP(url, sdp))
+    {
+        fprintf(stderr, "Invalid SDP description: %s\n", url.c_str());
+        callback.invokeSync(CRP_EV_ERROR, (void*) 0, userData);
+        return;
+    }
+
+    scheduler = BasicTaskScheduler::createNew();
+    environment = BasicUsageEnvironment::createNew(*scheduler);
+    rtspClient = NULL;
+    session = NULL;
+    demuxer = NULL;
+    livenessCheckTask = NULL;
+
+    callback.invokeSync(CRP_EV_START, nullptr, userData);
+    continueAfterDESCRIBE(NULL, 0, sdp.c_str());
+    environment->taskScheduler().doEventLoop(&exit);
+
+    shutdownStream(NULL);
+    delete scheduler;
+}
+
 static bool parseRTPUrl(const std::string& url, std::string& host, int& port)
 {
-    std::regex regex(R"(rtp://([^:]+):(\d+))");
+    static const std::regex regex(R"(rtp://([^:]+):(\d+))");
     std::smatch match;
-    if (std::regex_match(url, match, regex)) {
+    if (std::regex_match(url, match, regex))
+    {
         host = match[1].str();
         port = std::stoi(match[2].str());
         return true;
@@ -420,7 +473,7 @@ void StreamPuller::runHTTP()
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)
 {
-    UsageEnvironment& env = rtspClient->envir();
+    UsageEnvironment& env = *environment;
 
     if (session != NULL)
     {
@@ -442,7 +495,7 @@ void StreamPuller::shutdownStream(RTSPClient* rtspClient)
             }
         }
 
-        if (someSubsessionsWereActive)
+        if (rtspClient != NULL && someSubsessionsWereActive)
         {
             rtspClient->sendTeardownCommand(*session, NULL);
         }
@@ -453,9 +506,9 @@ void StreamPuller::shutdownStream(RTSPClient* rtspClient)
     this->rtspClient = NULL;
 }
 
-void StreamPuller::continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString)
+void StreamPuller::continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, const char* resultString)
 {
-    UsageEnvironment& env = rtspClient->envir();
+    UsageEnvironment& env = *environment;
 
     if (resultCode != 0)
     {
@@ -490,7 +543,7 @@ end:
 
 void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString)
 {
-    UsageEnvironment& env = rtspClient->envir();
+    UsageEnvironment& env = *environment;
     const char* mediumName;
     const char* codecName;
 
@@ -630,14 +683,14 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
         goto end;
     }
 
-    subsession->miscPtr = rtspClient;
+    subsession->miscPtr = this;
     if (subsession->sink != NULL)
     {
         env << "Created a " << mediumName << " data sink for the subsession\n";
         subsession->sink->startPlaying(*(subsession->readSource()), [](void* clientData)
             {
                 MediaSubsession* subsession = (MediaSubsession*) clientData;
-                ((OurRTSPClient*) subsession->miscPtr)->parent->subsessionAfterPlaying(subsession);
+                ((StreamPuller*) subsession->miscPtr)->subsessionAfterPlaying(subsession);
             }, subsession);
     }
     if (subsession->rtcpInstance() != NULL)
@@ -645,7 +698,7 @@ void StreamPuller::continueAfterSETUP(RTSPClient* rtspClient, int resultCode, ch
         subsession->rtcpInstance()->setByeWithReasonHandler([](void* clientData, char const* reason)
             {
                 MediaSubsession* subsession = (MediaSubsession*) clientData;
-                ((OurRTSPClient*) subsession->miscPtr)->parent->subsessionByeHandler(subsession, reason);
+                ((StreamPuller*) subsession->miscPtr)->subsessionByeHandler(subsession, reason);
                 delete[] reason;
             }, subsession);
     }
@@ -656,7 +709,7 @@ end:
 
 void StreamPuller::continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString)
 {
-    UsageEnvironment& env = rtspClient->envir();
+    UsageEnvironment& env = *environment;
 
     if (resultCode != 0)
     {
@@ -676,7 +729,7 @@ end:
 
 void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
 {
-    UsageEnvironment& env = rtspClient->envir();
+    UsageEnvironment& env = *environment;
 
     subsession = iter->next();
     if (subsession != NULL)
@@ -695,20 +748,34 @@ void StreamPuller::setupNextSubsession(RTSPClient* rtspClient)
             else
                 env << "client ports " << subsession->clientPortNum() << "-" << subsession->clientPortNum() + 1;
             env << ")\n";
-            rtspClient->sendSetupCommand(*subsession, [](RTSPClient * rtspClient, int resultCode, char* resultString)
-                {
-                    ((OurRTSPClient*) rtspClient)->parent->continueAfterSETUP(rtspClient, resultCode, resultString);
-                    delete[] resultString;
-                }, False, option.transport == CRP_TCP);
+            if (rtspClient != NULL)
+            {
+                rtspClient->sendSetupCommand(*subsession, [](RTSPClient* rtspClient, int resultCode, char* resultString)
+                    {
+                        ((OurRTSPClient*) rtspClient)->parent->continueAfterSETUP(rtspClient, resultCode, resultString);
+                        delete[] resultString;
+                    }, False, option.transport == CRP_TCP);
+            }
+            else
+            {
+                continueAfterSETUP(NULL, 0, NULL);
+            }
         }
         return;
     }
 
-    rtspClient->sendPlayCommand(*session, [](RTSPClient * rtspClient, int resultCode, char* resultString)
-        {
-            ((OurRTSPClient*) rtspClient)->parent->continueAfterPLAY(rtspClient, resultCode, resultString);
-            delete[] resultString;
-        });
+    if (rtspClient != NULL)
+    {
+        rtspClient->sendPlayCommand(*session, [](RTSPClient* rtspClient, int resultCode, char* resultString)
+            {
+                ((OurRTSPClient*) rtspClient)->parent->continueAfterPLAY(rtspClient, resultCode, resultString);
+                delete[] resultString;
+            });
+    }
+    else
+    {
+        continueAfterPLAY(NULL, 0, NULL);
+    }
 }
 
 void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession)
@@ -730,7 +797,7 @@ void StreamPuller::subsessionAfterPlaying(MediaSubsession* subsession)
 
 void StreamPuller::subsessionByeHandler(MediaSubsession* subsession, char const* reason)
 {
-    UsageEnvironment& env = rtspClient->envir();
+    UsageEnvironment& env = *environment;
 
     env << "Received RTCP \"BYE\"";
     if (reason != NULL)
@@ -817,6 +884,8 @@ StreamPuller::Protocol StreamPuller::parseUrl(const std::string& url)
 {
     if (url.starts_with("rtsp"))
         return CRP_RTSP;
+    else if (url.starts_with("sdp"))
+        return CRP_SDP;
     else if (url.starts_with("rtp"))
         return CRP_RTP;
     else if (url.starts_with("http"))

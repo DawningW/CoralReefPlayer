@@ -22,6 +22,7 @@ public:
     {
         CRP_UNKNOWN,
         CRP_RTSP,
+        CRP_SDP,
         CRP_RTP,
         CRP_HTTP,
     };
@@ -37,10 +38,11 @@ public:
 private:
     void start();
     void runRTSP();
+    void runSDP();
     void runRTP();
     void runHTTP();
     void shutdownStream(RTSPClient* rtspClient);
-    void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, char* resultString);
+    void continueAfterDESCRIBE(RTSPClient* rtspClient, int resultCode, const char* resultString);
     void continueAfterSETUP(RTSPClient* rtspClient, int resultCode, char* resultString);
     void continueAfterPLAY(RTSPClient* rtspClient, int resultCode, char* resultString);
     void setupNextSubsession(RTSPClient* rtspClient);
