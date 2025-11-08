@@ -223,6 +223,7 @@ void StreamPuller::runRTP()
 
     scheduler = BasicTaskScheduler::createNew();
     environment = BasicUsageEnvironment::createNew(*scheduler);
+    livenessCheckTask = NULL;
 
     callback.invokeSync(CRP_EV_START, nullptr, userData);
 #if ANDROID || __OHOS__
@@ -301,8 +302,10 @@ end:
 
 void StreamPuller::runHTTP()
 {
-    static const std::regex urlRegex(R"(([a-z]+:\/\/[^/]*)(\/?.*))");
+    scheduler = NULL;
+    environment = NULL;
 
+    static const std::regex urlRegex(R"(([a-z]+:\/\/[^/]*)(\/?.*))");
     std::string host, path;
     try
     {
@@ -799,6 +802,7 @@ void StreamPuller::timeoutHandler()
 
 void StreamPuller::noteLiveness()
 {
+    if (environment == NULL) return;
     if (option.timeout > 0)
     {
         environment->taskScheduler().rescheduleDelayedTask(livenessCheckTask, option.timeout * 1000,
