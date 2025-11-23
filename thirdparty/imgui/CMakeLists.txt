@@ -29,3 +29,9 @@ target_link_libraries(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
     SDL2::SDL2
 )
+
+if(EMSCRIPTEN)
+    add_compile_options(
+        -DIMGUI_DISABLE_FILE_FUNCTIONS=1
+    )
+endif()

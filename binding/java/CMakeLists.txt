@@ -41,10 +41,10 @@ target_compile_definitions(crp_native
 )
 
 if(ANDROID)
-target_link_options(crp_native
-    PRIVATE
-        "-Wl,-z,max-page-size=16384"
-)
+    target_link_options(crp_native
+        PRIVATE
+            "-Wl,-z,max-page-size=16384"
+    )
 endif()
 
 target_link_libraries(crp_native

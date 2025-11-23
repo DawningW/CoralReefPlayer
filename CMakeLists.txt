@@ -34,6 +34,12 @@ else()
             set(BUILD_MACOS_FRAMEWORK ON CACHE BOOL "Build library as Framework on macOS")
             set(BUILD_MACOS_BUNDLE ON CACHE BOOL "Build executable as App Bundle on macOS")
         endif()
+    elseif(EMSCRIPTEN)
+        add_compile_options("-pthread")
+        add_link_options(
+            "-sALLOW_MEMORY_GROWTH=1" "-pthread" "-sMALLOC=mimalloc"
+            "-sFETCH" "-sFETCH_STREAMING" "-lwebsocket.js" "-sPROXY_POSIX_SOCKETS"
+        )
     endif()
 endif()
 
@@ -51,6 +57,8 @@ elseif(APPLE)
     if(BUILD_MACOS_BUNDLE)
         set(CMAKE_INSTALL_BINDIR "." CACHE PATH "")
     endif()
+elseif(EMSCRIPTEN)
+    set(CMAKE_INSTALL_BINDIR "dist" CACHE PATH "")
 endif()
 include(GNUInstallDirs)
 foreach(dir LIB BIN INCLUDE)

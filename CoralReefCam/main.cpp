@@ -1,5 +1,13 @@
 #include <string>
+#include <functional>
 #include <stdio.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#include <emscripten/threading.h>
+#include <emscripten/websocket.h>
+#include <emscripten/posix_socket.h>
+#endif
 #include "SDL.h"
 #include "imgui.h"
 #include "imgui_stdlib.h"
@@ -22,6 +30,12 @@ Option option;
 crp_handle player;
 bool playing;
 uint64_t pts;
+
+#ifdef __EMSCRIPTEN__
+static std::function<void()> EmscriptenMainLoopFunc;
+static void EmscriptenMainLoop() { EmscriptenMainLoopFunc(); }
+static EMSCRIPTEN_WEBSOCKET_T bridgeSocket = 0;
+#endif
 
 SDL_PixelFormatEnum GetPixelFormat(Format format)
 {
@@ -449,6 +463,11 @@ int main(int argc, char* argv[])
         height = 1080;
     }
 
+#ifdef __EMSCRIPTEN__
+    bridgeSocket = emscripten_init_websocket_to_posix_socket_bridge("ws://localhost:80");
+    uint16_t readyState = 0;
+#endif
+
     if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER))
     {
         printf("Could not initialize SDL: %s\n", SDL_GetError());
@@ -498,11 +517,11 @@ int main(int argc, char* argv[])
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+    ImGui::StyleColorsDark();
     ImFontConfig font_config;
     font_config.SizePixels = 16.0f;
     io.Fonts->AddFontDefault(&font_config);
     // io.Fonts->AddFontFromFileTTF("./unifont-15.0.06.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
-    ImGui::StyleColorsDark();
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer2_Init(renderer);
 
@@ -513,8 +532,21 @@ int main(int argc, char* argv[])
     bool is_running = true;
     bool has_frame = false;
     Uint64 last_time = SDL_GetTicks64();
+#ifdef __EMSCRIPTEN__
+    io.IniFilename = nullptr;
+    EmscriptenMainLoopFunc = [&]() { do
+#else
     while (is_running)
+#endif
     {
+#ifdef __EMSCRIPTEN__
+        if (readyState == 0)
+        {
+            emscripten_websocket_get_ready_state(bridgeSocket, &readyState);
+            if (readyState == 0) continue;
+        }
+#endif
+
         bool force_update = false;
         SDL_Event event;
         while (SDL_PollEvent(&event))
@@ -585,6 +617,10 @@ int main(int argc, char* argv[])
         ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
         SDL_RenderPresent(renderer);
     }
+#ifdef __EMSCRIPTEN__
+    while (0); };
+    emscripten_set_main_loop(EmscriptenMainLoop, 0, true);
+#endif
 
     crp_destroy(player);
     ImGui_ImplSDLRenderer2_Shutdown();

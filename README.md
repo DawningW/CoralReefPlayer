@@ -9,6 +9,7 @@ CoralReefPlayer 即珊瑚礁播放器，是一款使用 C++20 开发的跨平台
 CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙等主流操作系统，并且提供 C#、Java 和 Python 等语言的 binding，方便使用各种语言和框架开发上位机。
 
 与现存的各种播放器库相比，CoralReefPlayer 具有以下特点：
+
 - 使用 C++20 标准开发，代码简洁、高效
 - 接口简单易用
 - 所有主流操作系统和编程语言支持
@@ -20,6 +21,8 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙�
 > 抗抖动、音画同步和双向参考帧一定需要多缓冲区才能支持，本库从设计上就不可能支持多缓冲区，否则无法实现低延迟，如对此有需求请选用正经播放器库，如 libVLC、ijkplayer 等
 
 CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
+
+CoralReefCam 现已支持 WebAssembly，可直接在浏览器中播放 MJPEG over HTTP 流，请前往[示例网站](http://crp.dawncraft.cc)体验。
 
 <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap;">
     <img src="doc/urpc_2025.jpg" alt="urpc_2025" style="width: 50%;">
@@ -134,6 +137,21 @@ CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 
 1. 使用 DevEco Studio 打开 Harmony 目录
 2. 编译并运行 `entry` 项目
 
+### WASM（Emscripten）
+
+前置条件：
+
+- CMake 3.24.0 或更高版本
+- Emscripten 4.0.21 或更高版本
+    - 自 4.0.21 版本起支持通过 fetch 流式下载数据，因此如需拉取 MJPEG over HTTP 流则必须高于此版本
+
+编译步骤：
+
+1. 执行 `embuilder build sdl2` 构建 SDL2 库
+2. （可选）进入 thirdparty/ffmpeg/Emscripten 目录，执行 `build -t ffmpeg .` 构建 ffmpeg 库
+3. 使用 `emcmake cmake` 配置项目，然后进行生成
+4. 其余步骤同 Linux
+
 ### 交叉编译
 
 CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交叉编译，工具链文件的编写请参考 `cmake/toolchains/aarch64-linux-gnu.toolchain.cmake`。
@@ -177,6 +195,10 @@ CoralReefPlayer 支持交叉编译，可使用 CMake 的工具链文件进行交
 ### 仓颉
 
 启用 `BUILD_CANGJIE_BINDING` 选项，然后运行 `cangjie-package` 目标即可在 install 目录中生成包含仓颉代码的 zip 压缩文件。
+
+### WASM
+
+启用 `BUILD_WASM_BINDING` 选项，然后运行 `wasm-package` 目标即可在 install 目录中生成 npm 包。
 
 ## 文档
 

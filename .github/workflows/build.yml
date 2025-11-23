@@ -76,6 +76,8 @@ jobs:
             build_option: BUILD_RUST_BINDING
           - lang: cangjie
             build_option: BUILD_CANGJIE_BINDING
+          - lang: wasm
+            build_option: BUILD_WASM_BINDING
       fail-fast: false
     steps:
     - name: Checkout
@@ -107,13 +109,22 @@ jobs:
         channel: lts
         version: auto
 
+    - name: Setup emsdk
+      if: matrix.lang == 'wasm'
+      uses: mymindstorm/setup-emsdk@v14
+
     - name: Build ${{ matrix.lang }} binding
       run: |
         mkdir -p install
-        cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=OFF -DBUILD_TEST=OFF -D${{ matrix.build_option }}=ON
+        BUILD_DEMO=OFF
+        if [ "${{ matrix.lang }}" = "wasm" ]; then
+          BUILD_DEMO=ON
+        fi
+        cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=${BUILD_DEMO} -DBUILD_TEST=OFF -D${{ matrix.build_option }}=ON
         cmake --build build --target ${{ matrix.lang }}-package --parallel $(nproc)
 
     - name: Test ${{ matrix.lang }} binding
+      if: matrix.lang != 'wasm'
       run: |
         wget -q https://github.com/bluenviron/mediamtx/releases/download/v1.14.0/mediamtx_v1.14.0_linux_amd64.tar.gz
         tar -xzf mediamtx_v1.14.0_linux_amd64.tar.gz

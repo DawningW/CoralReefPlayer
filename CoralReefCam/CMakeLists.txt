@@ -9,6 +9,10 @@ if(WIN32)
         LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
         RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
     )
+elseif(EMSCRIPTEN)
+    set(SDL2_DIR "${EMSCRIPTEN_ROOT_PATH}/tools/ports/sdl2" CACHE PATH "")
+    find_package(SDL2 REQUIRED)
+    set(EMRUN "${EMSCRIPTEN_ROOT_PATH}/emrun${EMCC_SUFFIX}")
 else()
     find_package(SDL2 2.0.18 REQUIRED)
 endif()
@@ -54,6 +58,14 @@ target_compile_definitions(${PROJECT_NAME}
         ENABLE_OPENCV=$<BOOL:${ENABLE_OPENCV}>
 )
 
+if(EMSCRIPTEN)
+    target_link_options(${PROJECT_NAME}
+        PRIVATE
+            "-sPTHREAD_POOL_SIZE=3"
+            "-sASYNCIFY=1"
+    )
+endif()
+
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         CoralReefPlayer
@@ -82,8 +94,26 @@ if(APPLE AND BUILD_MACOS_BUNDLE)
             MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
             RESOURCE ${CMAKE_CURRENT_SOURCE_DIR}/icon.icns
     )
+elseif(EMSCRIPTEN)
+    set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "index")
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+
+    add_custom_target(preview
+        COMMAND ${EMRUN} index.html
+        DEPENDS ${PROJECT_NAME}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
 endif()
 
-install(TARGETS ${PROJECT_NAME}
-    DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
-)
+if (NOT EMSCRIPTEN)
+    install(TARGETS ${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+    )
+else()
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/index.html
+        ${CMAKE_CURRENT_BINARY_DIR}/index.js
+        ${CMAKE_CURRENT_BINARY_DIR}/index.wasm
+        DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
+    )
+endif()

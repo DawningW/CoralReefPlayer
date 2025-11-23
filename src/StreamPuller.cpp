@@ -3,6 +3,11 @@
 #include <cstring>
 #include <unordered_map>
 #include <regex>
+#ifdef __EMSCRIPTEN__
+#include <strings.h>
+#include <emscripten.h>
+#include <emscripten/fetch.h>
+#endif
 #include "SimpleRTPSource.hh"
 #include "H264VideoRTPSource.hh" // for parseSPropParameterSets
 #include "MPEG4LATMAudioRTPSource.hh" // for parseGeneralConfigStr
@@ -353,11 +358,34 @@ end:
     delete scheduler;
 }
 
+static std::string parseBoundary(const char* contentType)
+{
+    /*
+     * 在标准实现中，header 条目为 Content-Type: multipart/x-mixed-replace; boundary="boundaryValue"
+     * 但在某些实现中，会有以下情况：
+     * 1. 双引号消失：boundary=boundaryValue
+     * 2. 多出分隔符：boundary="--boundaryValue"
+     * 3. 其他
+     * 此处提取的是最纯粹的 boundaryValue 部分
+     *
+     * JPEG 图片间标准实现的分隔符为 --boundaryValue
+     * 为了防止某些实现中，--消失，本实现仅匹配 boundaryValue
+     */
+    static const std::regex regex(R"===(boundary="?(?:--)?(\S+)"?\n?)===");
+    std::cmatch match;
+    if (std::regex_search(contentType, match, regex))
+    {
+        return match[1].str();
+    }
+    return "";
+}
+
 void StreamPuller::runHTTP()
 {
     scheduler = NULL;
     environment = NULL;
 
+#ifndef __EMSCRIPTEN__
     static const std::regex urlRegex(R"(([a-z]+:\/\/[^/]*)(\/?.*))");
     std::string host, path;
     try
@@ -398,19 +426,6 @@ void StreamPuller::runHTTP()
     httplib::Result res = httpClient->Get(path,
         [&](const httplib::Response& rep)
         {
-            /*
-             * 在标准实现中，header 条目为 Content-Type: multipart/x-mixed-replace; boundary="boundaryValue"
-             * 但在某些实现中，会有以下情况：
-             * 1. 双引号消失：boundary=boundaryValue
-             * 2. 多出分隔符：boundary="--boundaryValue"
-             * 3. 其他
-             * 此处提取的是最纯粹的 boundaryValue 部分
-             *
-             * JPEG 图片间标准实现的分隔符为 --boundaryValue
-             * 为了防止某些实现中，--消失，本实现仅匹配 boundaryValue
-             */
-            static const std::regex boundaryRegex(R"===(boundary="?(?:--)?(\S+)"?\n?)===");
-
 #ifdef _DEBUG
             printf("< %d %s\n", rep.status, rep.reason.c_str());
             for (auto& header : rep.headers)
@@ -423,11 +438,7 @@ void StreamPuller::runHTTP()
             if (rep.has_header("Content-Type"))
             {
                 std::string contentType = rep.get_header_value("Content-Type");
-                std::cmatch m;
-                if (std::regex_search(contentType.c_str(), m, boundaryRegex))
-                {
-                    boundary = m[1].str();
-                }
+                boundary = parseBoundary(contentType.c_str());
             }
             if (!boundary.empty())
             {
@@ -469,6 +480,117 @@ void StreamPuller::runHTTP()
     }
 
     delete httpClient;
+#else
+    callback.invokeSync(CRP_EV_START, nullptr, userData);
+    struct FetchData {
+        bool cancelled;
+        StreamPuller* puller;
+        std::string body;
+        HTTPSink sink;
+        emscripten_fetch_t* fetch;
+    } data = { false, this, std::string(), HTTPSink(videoCallback), NULL };
+    emscripten_fetch_attr_t attr;
+    emscripten_fetch_attr_init(&attr);
+    strcpy(attr.requestMethod, "GET");
+    attr.userData = &data;
+    attr.onsuccess = [](emscripten_fetch_t* fetch)
+        {
+            FetchData* data = (FetchData*) fetch->userData;
+            if (data->puller->videoDecoder != nullptr)
+            {
+                data->puller->callback.invokeSync(CRP_EV_END, nullptr, data->puller->userData);
+            }
+            else
+            {
+                fprintf(stderr, "Invalid response with status %d %s:\n", fetch->status, fetch->statusText);
+                fputs(data->body.c_str(), stderr);
+                fputc('\n', stderr);
+                data->puller->callback.invokeSync(CRP_EV_ERROR, (void*) 0, data->puller->userData);
+            }
+            data->cancelled = true;
+        };
+    attr.onerror = [](emscripten_fetch_t* fetch)
+        {
+            FetchData* data = (FetchData*) fetch->userData;
+            if (!data->cancelled && !data->puller->exit)
+            {
+                printf("Fetch failed: %d %s\n", fetch->status, fetch->statusText);
+                data->puller->callback.invokeSync(CRP_EV_ERROR, (void*) 0, data->puller->userData);
+                data->cancelled = true;
+            }
+        };
+    attr.onprogress = [](emscripten_fetch_t* fetch)
+        {
+            FetchData* data = (FetchData*) fetch->userData;
+            if (data->cancelled || data->puller->exit)
+                return;
+            if (data->puller->videoDecoder == nullptr)
+            {
+                data->body.append(fetch->data, fetch->numBytes);
+                return;
+            }
+            data->sink.writeData((const uint8_t*) fetch->data, fetch->numBytes);
+        };
+    attr.onreadystatechange = [](emscripten_fetch_t* fetch)
+        {
+            FetchData* data = (FetchData*) fetch->userData;
+#ifdef _DEBUG
+            printf("< Ready State: %d\n", fetch->readyState);
+#endif
+            if (fetch->readyState == 2) // HEADERS_RECEIVED
+            {
+#ifdef _DEBUG
+                printf("< %d %s\n", fetch->status, fetch->statusText);
+#endif
+                std::string boundary;
+                size_t headers_length = emscripten_fetch_get_response_headers_length(fetch);
+                char* headers_str = new char[headers_length + 1];
+                emscripten_fetch_get_response_headers(fetch, headers_str, headers_length + 1);
+                char** headers = emscripten_fetch_unpack_response_headers(headers_str);
+                for (char** header = headers; *header != NULL && *(header + 1) != NULL; header += 2)
+                {
+                    char* key = *header;
+                    char* value = *(header + 1);
+#ifdef _DEBUG
+                    printf("< %s: %s\n", key, value);
+#endif
+                    if (strcasecmp(key, "Content-Type") == 0)
+                    {
+                        boundary = parseBoundary(value);
+                    }
+                }
+                emscripten_fetch_free_unpacked_response_headers(headers);
+                delete[] headers_str;
+                if (!boundary.empty())
+                {
+                    Option& option = data->puller->option;
+                    data->sink.setBoundary(boundary);
+                    data->puller->videoDecoder = VideoDecoder::createNew("JPEG",
+                        (Format) option.video.format, option.video.width, option.video.height, option.video.hw_device);
+                    data->puller->callback.invokeSync(CRP_EV_PLAYING, nullptr, data->puller->userData);
+                }
+            }
+        };
+    attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_STREAM_DATA;
+    if (authenticator != NULL)
+    {
+        attr.userName = authenticator->username();
+        attr.password = authenticator->password();
+    }
+#ifdef _DEBUG
+    printf("> %s %s\n", attr.requestMethod, url.c_str());
+#endif
+    data.fetch = emscripten_fetch(&attr, url.c_str());
+    emscripten_set_main_loop_arg([](void* arg)
+    {
+        FetchData* data = (FetchData*) arg;
+        if (!data->cancelled && !data->puller->exit)
+            return;
+        // data->fetch->data = NULL; // prevent data from being freed in emscripten_fetch_close
+        emscripten_fetch_close(data->fetch);
+        emscripten_cancel_main_loop();
+    }, &data, 0, true);
+#endif
 }
 
 void StreamPuller::shutdownStream(RTSPClient* rtspClient)

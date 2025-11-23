@@ -160,6 +160,43 @@ elseif(IOS)
     set_target_properties(avfilter avformat avcodec avutil swresample swscale PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/iOS/include
     )
+elseif(EMSCRIPTEN)
+    add_library(avdevice STATIC IMPORTED GLOBAL)
+    set_target_properties(avdevice PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libavdevice.a
+    )
+    add_library(avfilter STATIC IMPORTED GLOBAL)
+    set_target_properties(avfilter PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libavfilter.a
+    )
+    add_library(avformat STATIC IMPORTED GLOBAL)
+    set_target_properties(avformat PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libavformat.a
+    )
+    add_library(avcodec STATIC IMPORTED GLOBAL)
+    set_target_properties(avcodec PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libavcodec.a
+    )
+    add_library(avutil STATIC IMPORTED GLOBAL)
+    set_target_properties(avutil PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libavutil.a
+    )
+    add_library(postproc STATIC IMPORTED GLOBAL)
+    set_target_properties(postproc PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libpostproc.a
+    )
+    add_library(swresample STATIC IMPORTED GLOBAL)
+    set_target_properties(swresample PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libswresample.a
+    )
+    add_library(swscale STATIC IMPORTED GLOBAL)
+    set_target_properties(swscale PROPERTIES
+        IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/lib/libswscale.a
+    )
+
+    set_target_properties(avdevice avfilter avformat avcodec avutil postproc swresample swscale PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/Emscripten/include
+    )
 else()
     add_library(avdevice SHARED IMPORTED GLOBAL)
     find_library(AVDEVICE_DIR avdevice)

@@ -1,0 +1,30 @@
+{
+  "name": "coralreefplayer-wasm",
+  "version": "@PROJECT_VERSION@",
+  "description": "WebAssembly binding for CoralReefPlayer",
+  "main": "index.js",
+  "module": "index.mjs",
+  "exports": {
+    ".": {
+      "require": "./index.js",
+      "import": "./index.mjs",
+      "default": "./index.js"
+    }
+  },
+  "types": "index.d.ts",
+  "files": [
+    "*.js",
+    "*.ts",
+    "*.wasm"
+  ],
+  "scripts": {
+    "serve": "npx -y local-web-server --cors.opener-policy same-origin --cors.embedder-policy require-corp -z -o",
+    "package": "npm pack"
+  },
+  "author": "Wu Chen",
+  "license": "ISC",
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

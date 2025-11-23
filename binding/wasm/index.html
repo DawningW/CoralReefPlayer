@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>CoralReefPlayerDemo</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        </style>
+        <script type="module">
+            import {Transport, Format, Event, Player, versionStr, versionCode} from './index.mjs'
+
+            console.info(`CoralReefPlayer version: ${versionStr()} (${versionCode()})`)
+
+            const player = new Player()
+
+            function showStatus(status) {
+                document.getElementById('status').innerText = status
+            }
+
+            function play(url) {
+                let option = {
+                    transport: Transport.UDP,
+                    width: 1280,
+                    height: 720,
+                    video_format: Format.RGBA32,
+                }
+                player.play(url, option, (event, data) => {
+                    try {
+                        console.log('event: ' + event.value);
+                        if (event == Event.NEW_FRAME) {
+                            drawFrame(data)
+                        } else if (event == Event.ERROR) {
+                            console.error('error, will reconnect after 5s')
+                            showStatus('Error!')
+                            setTimeout(player.replay.bind(player), 5000);
+                        } else if (event == Event.START) {
+                            showStatus('Connecting')
+                        } else if (event == Event.PLAYING) {
+                            showStatus('Playing')
+                        } else if (event == Event.END) {
+                            showStatus('Idle')
+                        } else if (event == Event.STOP) {
+                            showStatus('Stopped')
+                        }
+                    } catch (e) {
+                        console.error(e)
+                    }
+                })
+            }
+
+            function drawFrame(frame) {
+                const canvas = document.getElementById('screen')
+                const ctx = canvas.getContext('2d')
+
+                let imageData = ctx.createImageData(frame.width, frame.height)
+                imageData.data.set(frame.data)
+                ctx.putImageData(imageData, 0, 0)
+            }
+
+            window.onclose = () => {
+                player.release()
+            }
+
+            window.showStatus = showStatus
+            window.play = play
+        </script>
+    </head>
+    <body>
+        <div>
+            <input type="text" id="url" value="rtsp://127.0.0.1:8554/test">
+            <button onclick="play(document.getElementById('url').value)">play</button>
+            <span id="status">Idle</span>
+        </div>
+        <canvas id="screen" width="1280" height="720" />
+    </body>
+</html>

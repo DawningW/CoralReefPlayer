@@ -220,6 +220,8 @@ Boolean makeSocketNonBlocking(int sock) {
 #elif defined(VXWORKS)
   int arg = 1;
   return ioctl(sock, FIONBIO, (int)&arg) == 0;
+#elif CRP_MODIFY && defined(__EMSCRIPTEN__)
+  return True;
 #else
   int curFlags = fcntl(sock, F_GETFL, 0);
   return fcntl(sock, F_SETFL, curFlags|O_NONBLOCK) >= 0;
@@ -234,6 +236,8 @@ Boolean makeSocketBlocking(int sock, unsigned writeTimeoutInMilliseconds) {
 #elif defined(VXWORKS)
   int arg = 0;
   result = ioctl(sock, FIONBIO, (int)&arg) == 0;
+#elif CRP_MODIFY && defined(__EMSCRIPTEN__)
+  return True;
 #else
   int curFlags = fcntl(sock, F_GETFL, 0);
   result = fcntl(sock, F_SETFL, curFlags&(~O_NONBLOCK)) >= 0;
