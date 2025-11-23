@@ -22,7 +22,11 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙�
 
 CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
 
-CoralReefCam 现已支持 WebAssembly，可直接在浏览器中播放 MJPEG over HTTP 流，请前往[示例网站](http://crp.dawncraft.cc)体验。
+CoralReefCam 现已支持 WebAssembly，可直接在浏览器中播放 MJPEG over HTTP 流，在终端中输入以下命令前往[示例网站](http://crp.dawncraft.cc)体验。
+
+```shell
+chrome --disable-web-security --enable-features=SharedArrayBuffer --user-data-dir="%localappdata%\Temp\Chrome" http://crp.dawncraft.cc/
+```
 
 <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap;">
     <img src="doc/urpc_2025.jpg" alt="urpc_2025" style="width: 50%;">
