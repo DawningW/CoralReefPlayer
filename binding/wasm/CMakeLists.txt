@@ -13,6 +13,10 @@ endif()
 set(USE_MODULE ON CACHE BOOL "Export UMD or ES6 module for wasm binding")
 set(USE_ES6_MODULE OFF CACHE BOOL "Export ES6 module for wasm binding")
 
+if(USE_PTHREAD)
+    set(MT_SUFFIX "-mt")
+endif()
+
 file(
     COPY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
@@ -31,18 +35,19 @@ add_executable(${PROJECT_NAME}
 
 target_link_options(${PROJECT_NAME}
     PRIVATE
-        "-sPTHREAD_POOL_SIZE=3"
-        "-sEXPORTED_FUNCTIONS=[\"_malloc\",\"_free\"]"
-        "-sPURE_WASI=1"
-        "$<$<BOOL:${USE_MODULE}>:-sMODULARIZE=1>"
-        "$<$<BOOL:${USE_ES6_MODULE}>:-sEXPORT_ES6=1>"
-        "--no-entry"
+        $<$<BOOL:${USE_PTHREAD}>:-sPTHREAD_POOL_SIZE=3>
+        $<$<NOT:$<BOOL:${USE_PTHREAD}>>:-sASYNCIFY=1>
+        -sEXPORTED_FUNCTIONS=["_malloc","_free"]
+        # -sPURE_WASI=1 # Not support running in browser yet if enable this
+        $<$<BOOL:${USE_MODULE}>:-sMODULARIZE=1>
+        $<$<BOOL:${USE_ES6_MODULE}>:-sEXPORT_ES6=1>
+        --no-entry
 )
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         embind
-        "$<LINK_LIBRARY:WHOLE_ARCHIVE,CoralReefPlayer>"
+        $<LINK_LIBRARY:WHOLE_ARCHIVE,CoralReefPlayer>
 )
 
 add_dependencies(${PROJECT_NAME}

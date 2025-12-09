@@ -22,10 +22,10 @@ CoralReefPlayer 支持 Windows、Linux、MacOS、Android、iOS 和纯血鸿蒙�
 
 CoralReefCam，中文名珊瑚礁™嘻屁屁高性能版，是 CoralReefPlayer 的示例项目，集成了 SDL、imgui、OpenCV 等库，可基于此项目开发高性能机器人上位机。目前作为监控软件使用，其最初的开发目的是用于解决拉流延迟问题。
 
-CoralReefCam 现已支持 WebAssembly，可直接在浏览器中播放 MJPEG over HTTP 流，在终端中输入以下命令前往[示例网站](http://crp.dawncraft.cc)体验。
+CoralReefCam 现已支持 WebAssembly，可直接在浏览器中播放 MJPEG over HTTP 流，前往[示例网站](http://crp.dawncraft.cc)体验单线程版本。同时还支持性能更强的多线程版本，但需要强制开启 SharedArrayBuffer 功能，可通过以下命令快速启动（其他系统或浏览器请自行更换参数）：
 
 ```shell
-chrome --disable-web-security --enable-features=SharedArrayBuffer --user-data-dir="%localappdata%\Temp\Chrome" http://crp.dawncraft.cc/
+chrome --disable-web-security --enable-features=SharedArrayBuffer --user-data-dir="%localappdata%\Temp\Chrome" http://crp.dawncraft.cc/mt/
 ```
 
 <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap;">
@@ -46,6 +46,7 @@ chrome --disable-web-security --enable-features=SharedArrayBuffer --user-data-di
         - [live555](http://www.live555.com/liveMedia/) 2023.11.30
         - [cpp-httplib](https://github.com/yhirose/cpp-httplib) 0.22.0
         - [FFmpeg](https://ffmpeg.org/) 4.4 (4.4+)
+        - [emfiberthreads](https://github.com/Yahweasel/emfiberthreads) 1.3 (仅 WASM)
     - [SDL2](https://libsdl.org/) 2.32.8 (2.26.0+)
     - [imgui](https://github.com/ocornut/imgui) 1.92.2b
     - [implot](https://github.com/epezent/implot) 0.17-3da8bd3
@@ -152,7 +153,7 @@ chrome --disable-web-security --enable-features=SharedArrayBuffer --user-data-di
 编译步骤：
 
 1. 执行 `embuilder build sdl2` 构建 SDL2 库
-2. （可选）进入 thirdparty/ffmpeg/Emscripten 目录，执行 `build -t ffmpeg .` 构建 ffmpeg 库
+2. （可选）进入根目录，执行 `docker build -t ffmpeg -f thirdparty/ffmpeg/Emscripten/Dockerfile .` 构建 ffmpeg 库
 3. 使用 `emcmake cmake` 配置项目，然后进行生成
 4. 其余步骤同 Linux
 

@@ -7,6 +7,12 @@
 #include <emscripten/threading.h>
 #include <emscripten/websocket.h>
 #include <emscripten/posix_socket.h>
+#ifndef __EMSCRIPTEN_PTHREADS__
+extern "C"
+{
+#include "emft-pthread.h"
+}
+#endif
 #endif
 #include "SDL.h"
 #include "imgui.h"
@@ -545,6 +551,9 @@ int main(int argc, char* argv[])
             emscripten_websocket_get_ready_state(bridgeSocket, &readyState);
             if (readyState == 0) continue;
         }
+#ifndef __EMSCRIPTEN_PTHREADS__
+        emfiber_pthread_yield();
+#endif
 #endif
 
         bool force_update = false;

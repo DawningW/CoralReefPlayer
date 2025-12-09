@@ -1,8 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <atomic>
-#include <thread>
+#include "compat.h"
 
 template <typename... Args>
 class AsyncCallback
@@ -16,7 +15,7 @@ public:
     AsyncCallback(T&& callback) : callback(std::forward<T>(callback)), stop(true)
     {
         if (this->callback)
-            thread = std::thread(&AsyncCallback::loop, this);
+            thread = CRPThread(&AsyncCallback::loop, this);
     }
 
     ~AsyncCallback()
@@ -30,7 +29,7 @@ public:
         finish();
         this->callback = std::forward<T>(callback);
         if (this->callback)
-            thread = std::thread(&AsyncCallback::loop, this);
+            thread = CRPThread(&AsyncCallback::loop, this);
         return *this;
     }
 
@@ -87,14 +86,14 @@ private:
         signal.test_and_set();
         signal.notify_all();
         thread.join();
-        thread = std::thread();
+        thread = CRPThread();
     }
 
 private:
     Callback callback;
 
     volatile bool stop;
-    std::thread thread;
-    std::atomic_flag signal = ATOMIC_FLAG_INIT; // For Android compatibility
+    CRPThread thread;
+    CRPFlag signal = ATOMIC_FLAG_INIT; // For Android compatibility
     std::function<void()> next;
 };

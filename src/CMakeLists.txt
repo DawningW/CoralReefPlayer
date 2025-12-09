@@ -59,22 +59,38 @@ endif()
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
         live555
-        httplib
         avcodec
         avutil
         swscale
         swresample
 )
+if(NOT EMSCRIPTEN)
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC httplib
+    )
+elseif(NOT USE_PTHREAD)
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC emfiberthreads
+    )
+endif()
 
 add_dependencies(${PROJECT_NAME}
     git_hash
     live555
-    httplib
     avcodec
     avutil
     swscale
     swresample
 )
+if(NOT EMSCRIPTEN)
+    add_dependencies(${PROJECT_NAME}
+        httplib
+    )
+elseif(NOT USE_PTHREAD)
+    add_dependencies(${PROJECT_NAME}
+        emfiberthreads
+    )
+endif()
 
 if(APPLE AND BUILD_MACOS_FRAMEWORK)
     set_target_properties(${PROJECT_NAME} PROPERTIES

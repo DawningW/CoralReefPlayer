@@ -1,14 +1,12 @@
 #pragma once
 
 #include <string>
-#include <thread>
 #include <functional>
 #include "GroupsockHelper.hh"
 #include "BasicUsageEnvironment.hh"
 #include "RTSPClient.hh"
 #include "MPEG2TransportStreamDemux.hh"
-#define CPPHTTPLIB_RECV_BUFSIZ size_t(32768u)
-#include "httplib.h"
+#include "compat.h"
 #include "coralreefplayer.h"
 #include "AsyncCallback.hpp"
 #include "VideoDecoder.h"
@@ -61,7 +59,7 @@ private:
     void *userData;
 
     volatile char exit;
-    std::thread thread;
+    CRPThread thread;
     Authenticator* authenticator;
     TaskScheduler* scheduler;
     UsageEnvironment* environment;
@@ -72,7 +70,6 @@ private:
     MPEG2TransportStreamDemux* demuxer;
     volatile char available; // for reading RTP socket
     TaskToken livenessCheckTask;
-    httplib::Client* httpClient;
     VideoDecoder* videoDecoder;
     StreamSink::Callback videoCallback;
     AudioDecoder* audioDecoder;

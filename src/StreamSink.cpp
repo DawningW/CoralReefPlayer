@@ -114,7 +114,7 @@ void HTTPSink::setBoundary(const std::string& boundary)
 bool HTTPSink::writeData(const uint8_t* data, size_t size)
 {
 #ifdef _DEBUG
-    printf("video/mjpeg:\tReceived %llu bytes.\n", size);
+    printf("video/mjpeg:\tReceived %u bytes.\n", (uint32_t) size);
 #endif
 
     if (size == 0)
@@ -122,8 +122,8 @@ bool HTTPSink::writeData(const uint8_t* data, size_t size)
 
     if (buffer.size() + size > HTTP_RECEIVE_BUFFER_SIZE)
     {
-        fprintf(stderr, "Received data had overflowed by %llu bytes\n",
-            buffer.size() + size - HTTP_RECEIVE_BUFFER_SIZE);
+        fprintf(stderr, "Received data had overflowed by %u bytes\n",
+            (uint32_t) (buffer.size() + size - HTTP_RECEIVE_BUFFER_SIZE));
         buffer.clear();
         return false;
     }

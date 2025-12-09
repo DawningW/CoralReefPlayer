@@ -118,7 +118,7 @@ jobs:
         mkdir -p install
         if [ "${{ matrix.lang }}" = "wasm" ]; then
           embuilder build sdl2
-          emcmake cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=ON -DBUILD_TEST=OFF -D${{ matrix.build_option }}=ON
+          emcmake cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DBUILD_DEMO=ON -DBUILD_TEST=OFF -D${{ matrix.build_option }}=ON
           cmake --build build --target CoralReefCam --parallel $(nproc)
         else
           cmake -B build -G Ninja -DCMAKE_INSTALL_PREFIX=install -DHTTPLIB_USE_ZSTD_IF_AVAILABLE=OFF -DBUILD_DEMO=OFF -DBUILD_TEST=OFF -D${{ matrix.build_option }}=ON

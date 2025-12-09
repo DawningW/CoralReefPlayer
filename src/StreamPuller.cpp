@@ -16,6 +16,10 @@
 #include "H264VideoStreamFramer.hh"
 #include "H265VideoStreamFramer.hh"
 #include "Base64.hh"
+#ifndef __EMSCRIPTEN__
+#define CPPHTTPLIB_RECV_BUFSIZ size_t(32768u)
+#include "httplib.h"
+#endif
 #include "StreamSink.h"
 
 #ifdef _DEBUG
@@ -175,13 +179,13 @@ void StreamPuller::start()
     audioDecoder = nullptr;
     exit = 0;
     if (protocol == CRP_RTSP)
-        thread = std::thread(&StreamPuller::runRTSP, this);
+        thread = CRPThread(&StreamPuller::runRTSP, this);
     else if (protocol == CRP_SDP)
-        thread = std::thread(&StreamPuller::runSDP, this);
+        thread = CRPThread(&StreamPuller::runSDP, this);
     else if (protocol == CRP_RTP)
-        thread = std::thread(&StreamPuller::runRTP, this);
+        thread = CRPThread(&StreamPuller::runRTP, this);
     else if (protocol == CRP_HTTP)
-        thread = std::thread(&StreamPuller::runHTTP, this);
+        thread = CRPThread(&StreamPuller::runHTTP, this);
 }
 
 void StreamPuller::runRTSP()
@@ -388,6 +392,7 @@ void StreamPuller::runHTTP()
 #ifndef __EMSCRIPTEN__
     static const std::regex urlRegex(R"(([a-z]+:\/\/[^/]*)(\/?.*))");
     std::string host, path;
+    httplib::Client* httpClient = nullptr;
     try
     {
         std::smatch m;
@@ -581,15 +586,22 @@ void StreamPuller::runHTTP()
     printf("> %s %s\n", attr.requestMethod, url.c_str());
 #endif
     data.fetch = emscripten_fetch(&attr, url.c_str());
+#ifdef __EMSCRIPTEN_PTHREADS__
     emscripten_set_main_loop_arg([](void* arg)
     {
         FetchData* data = (FetchData*) arg;
         if (!data->cancelled && !data->puller->exit)
             return;
-        // data->fetch->data = NULL; // prevent data from being freed in emscripten_fetch_close
         emscripten_fetch_close(data->fetch);
         emscripten_cancel_main_loop();
     }, &data, 0, true);
+#else
+    while (!data.cancelled && !exit)
+    {
+        emfiber_pthread_yield();
+    }
+    emscripten_fetch_close(data.fetch);
+#endif
 #endif
 }
 

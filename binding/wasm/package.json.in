@@ -1,5 +1,5 @@
 {
-  "name": "coralreefplayer-wasm",
+  "name": "coralreefplayer-wasm@MT_SUFFIX@",
   "version": "@PROJECT_VERSION@",
   "description": "WebAssembly binding for CoralReefPlayer",
   "main": "index.js",

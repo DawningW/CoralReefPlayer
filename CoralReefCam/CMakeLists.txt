@@ -61,8 +61,8 @@ target_compile_definitions(${PROJECT_NAME}
 if(EMSCRIPTEN)
     target_link_options(${PROJECT_NAME}
         PRIVATE
-            "-sPTHREAD_POOL_SIZE=3"
-            "-sASYNCIFY=1"
+            $<$<BOOL:${USE_PTHREAD}>:-sPTHREAD_POOL_SIZE=3>
+            -sASYNCIFY=1
     )
 endif()
 

@@ -3,16 +3,25 @@ FROM emscripten/emsdk:4.0.21
 ARG FFMPEG_VERSION=4.4.6
 ARG PREFIX=/home/ffmpeg
 
-RUN apt update && apt install -y git autoconf libtool build-essential
+RUN apt update && apt install -y git autoconf libtool build-essential cmake
+
+COPY thirdparty/emfiberthreads /tmp/emfiberthreads
+
+RUN cd /tmp/emfiberthreads && \
+    emcmake cmake -B build -DCMAKE_INSTALL_PREFIX=${PREFIX} -DEMFIBERTHREADS_INSTALL=ON && \
+    cmake --build build --target install
 
 RUN cd /tmp/ && \
     wget http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.gz && \
     tar zxf ffmpeg-${FFMPEG_VERSION}.tar.gz && rm ffmpeg-${FFMPEG_VERSION}.tar.gz
 
-ARG CFLAGS="-pthread -O3 -I${PREFIX}/include"
-ARG LDFLAGS="$CFLAGS -L${PREFIX}/lib -sINITIAL_MEMORY=33554432"
+ARG CFLAGS="-Oz -I${PREFIX}/include"
+ARG LDFLAGS="$CFLAGS -lemfiberthreads -L${PREFIX}/lib -sINITIAL_MEMORY=33554432 -sALLOW_MEMORY_GROWTH=1"
+
+COPY thirdparty/ffmpeg/Emscripten/ffmpeg4.patch /tmp/
 
 RUN cd /tmp/ffmpeg-${FFMPEG_VERSION} && \
+    patch -p1 < /tmp/ffmpeg4.patch && \
     emconfigure ./configure \
     --prefix=${PREFIX} \
     --target-os=none \
@@ -25,6 +34,7 @@ RUN cd /tmp/ffmpeg-${FFMPEG_VERSION} && \
     --disable-programs \
     --disable-doc \
     --disable-all \
+    --disable-network \
     --enable-avcodec \
     --enable-avformat \
     --enable-avfilter \

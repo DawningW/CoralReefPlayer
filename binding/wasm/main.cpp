@@ -6,6 +6,12 @@
 #include <emscripten/val.h>
 #include <emscripten/threading.h>
 #include <emscripten/proxying.h>
+#ifndef __EMSCRIPTEN_PTHREADS__
+extern "C"
+{
+#include "emft-pthread.h"
+}
+#endif
 #include "coralreefplayer.h"
 
 using namespace emscripten;
@@ -34,11 +40,17 @@ struct JSFrame {
     uint64_t pts;
 };
 
-ProxyingQueue queue;
+#ifdef __EMSCRIPTEN_PTHREADS__
+ProxyingQueue g_queue;
+#else
+int g_player_count = 0;
+#endif
 std::unordered_map<crp_handle, val> g_callbacks;
 
 void js_callback(int event, void* data, void* user_data) {
-    queue.proxySync(emscripten_main_runtime_thread_id(), [&] {
+#ifdef __EMSCRIPTEN_PTHREADS__
+    g_queue.proxySync(emscripten_main_runtime_thread_id(), [&] {
+#endif
         val callback = g_callbacks[(crp_handle) user_data];
         if (event == CRP_EV_NEW_FRAME) {
             Frame* cFrame = (Frame*) data;
@@ -78,7 +90,9 @@ void js_callback(int event, void* data, void* user_data) {
         } else {
             callback((Event) event, (uintptr_t) data);
         }
+#ifdef __EMSCRIPTEN_PTHREADS__
     });
+#endif
 }
 
 EMSCRIPTEN_BINDINGS(coralreefplayer) {
@@ -135,9 +149,25 @@ EMSCRIPTEN_BINDINGS(coralreefplayer) {
         .element(emscripten::index<2>())
         .element(emscripten::index<3>());
     function("create", +[]() {
+#ifndef __EMSCRIPTEN_PTHREADS__
+        if (g_player_count == 0) {
+            emscripten_set_main_loop([]() {
+                emfiber_pthread_yield();
+            }, 0, false);
+        }
+        g_player_count++;
+#endif
         return (uintptr_t) crp_create();
     }, return_value_policy::reference());
     function("destroy", +[](uintptr_t handle) {
+#ifndef __EMSCRIPTEN_PTHREADS__
+        if (g_player_count > 0) {
+            g_player_count--;
+            if (g_player_count == 0) {
+                emscripten_cancel_main_loop();
+            }
+        }
+#endif
         crp_destroy((crp_handle) handle);
         g_callbacks.erase((crp_handle) handle);
     }, allow_raw_pointers());
