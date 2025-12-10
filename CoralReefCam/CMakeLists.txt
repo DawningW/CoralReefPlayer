@@ -63,6 +63,7 @@ if(EMSCRIPTEN)
         PRIVATE
             $<$<BOOL:${USE_PTHREAD}>:-sPTHREAD_POOL_SIZE=3>
             -sASYNCIFY=1
+            -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
     )
 endif()
 

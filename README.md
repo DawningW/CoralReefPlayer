@@ -48,8 +48,8 @@ chrome --disable-web-security --enable-features=SharedArrayBuffer --user-data-di
         - [FFmpeg](https://ffmpeg.org/) 4.4 (4.4+)
         - [emfiberthreads](https://github.com/Yahweasel/emfiberthreads) 1.3 (仅 WASM)
     - [SDL2](https://libsdl.org/) 2.32.8 (2.26.0+)
-    - [imgui](https://github.com/ocornut/imgui) 1.92.2b
-    - [implot](https://github.com/epezent/implot) 0.17-3da8bd3
+    - [imgui](https://github.com/ocornut/imgui) 1.92.5
+    - [implot](https://github.com/epezent/implot) 0.17
     - （可选）[OpenCV](https://opencv.org/) 4.7.0 (4.4.0+)
 
 ## 编译指南

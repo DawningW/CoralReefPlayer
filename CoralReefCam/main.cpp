@@ -12,6 +12,7 @@ extern "C"
 {
 #include "emft-pthread.h"
 }
+#include "emscripten_browser_clipboard.h"
 #endif
 #endif
 #include "SDL.h"
@@ -40,7 +41,6 @@ uint64_t pts;
 #ifdef __EMSCRIPTEN__
 static std::function<void()> EmscriptenMainLoopFunc;
 static void EmscriptenMainLoop() { EmscriptenMainLoopFunc(); }
-static EMSCRIPTEN_WEBSOCKET_T bridgeSocket = 0;
 #endif
 
 SDL_PixelFormatEnum GetPixelFormat(Format format)
@@ -470,7 +470,7 @@ int main(int argc, char* argv[])
     }
 
 #ifdef __EMSCRIPTEN__
-    bridgeSocket = emscripten_init_websocket_to_posix_socket_bridge("ws://localhost:80");
+    EMSCRIPTEN_WEBSOCKET_T bridgeSocket = emscripten_init_websocket_to_posix_socket_bridge("ws://localhost:80");
     uint16_t readyState = 0;
 #endif
 
@@ -530,6 +530,34 @@ int main(int argc, char* argv[])
     // io.Fonts->AddFontFromFileTTF("./unifont-15.0.06.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer2_Init(renderer);
+#ifdef __EMSCRIPTEN__
+    static std::string clipboardContent;
+    static bool simulatedPaste = false;
+    ImGuiPlatformIO& pio = ImGui::GetPlatformIO();
+    pio.Platform_SetClipboardTextFn = [](ImGuiContext* ctx, const char* text)
+    {
+        clipboardContent = text;
+        emscripten_browser_clipboard::copy(clipboardContent);
+    };
+    pio.Platform_GetClipboardTextFn = [](ImGuiContext* ctx)
+    {
+        return clipboardContent.c_str();
+    };
+    EM_ASM({
+        // https://github.com/pthom/hello_imgui/issues/3
+        window.addEventListener('keydown', function(event) {
+            if (event.ctrlKey && event.key == 'v')    
+                event.stopImmediatePropagation();
+        }, true);
+    });
+    emscripten_browser_clipboard::paste([](std::string&& paste_data, void* callback_data)
+    {
+        clipboardContent = std::move(paste_data);
+        ImGui::GetIO().AddKeyEvent(ImGuiMod_Ctrl, true);
+		ImGui::GetIO().AddKeyEvent(ImGuiKey_V, true);
+		simulatedPaste = true;
+    });
+#endif
 
     player = crp_create();
     if (!url.empty())
@@ -619,6 +647,14 @@ int main(int argc, char* argv[])
         ImGui_ImplSDLRenderer2_NewFrame();
         ImGui_ImplSDL2_NewFrame();
         loop(window);
+#ifdef __EMSCRIPTEN__
+        if (simulatedPaste)
+        {
+            simulatedPaste = false;
+            ImGui::GetIO().AddKeyEvent(ImGuiMod_Ctrl, false);
+            ImGui::GetIO().AddKeyEvent(ImGuiKey_V, false);
+        }
+#endif
         SDL_RenderSetScale(renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
         SDL_RenderClear(renderer);
         if (has_frame)
