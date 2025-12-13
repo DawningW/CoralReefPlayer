@@ -30,6 +30,13 @@ add_custom_command(
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/cjpm.toml.in
 )
 
+if(LINUX)
+    target_compile_definitions(CoralReefPlayer
+        PRIVATE
+            CANGJIE_FIX
+    )
+endif()
+
 add_custom_target(cangjie-prepare
     COMMAND echo "Build cangjie binding"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
