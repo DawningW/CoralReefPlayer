@@ -35,6 +35,8 @@ func pullTest() {
             break
         }
     }
+    player.stop()
+    sleep(1 * Duration.second)
     player.release()
     @Expect(hasFrame.value)
 }
