@@ -46,11 +46,9 @@ public:
     template <typename... T>
     void invokeSync(T&&... args)
     {
-#ifndef CANGJIE_FIX // XXX 仓颉同步调用回调导致Segmentation Fault的临时规避方案
         if (!callback)
             return;
         callback(std::forward<T>(args)...);
-#endif
     }
 
     template <typename... T>
