@@ -69,6 +69,7 @@ enum Event
     CRP_EV_NEW_AUDIO, // 收到新音频数据事件
     CRP_EV_VIDEO_EXTRADATA, // 收到视频的附加数据(如 SPS、PPS 等)事件
     CRP_EV_AUDIO_EXTRADATA, // 收到音频的附加数据事件
+    CRP_EV_RAW_STREAM, // 收到原始码流数据事件
 };
 
 struct Option
@@ -89,6 +90,14 @@ struct Option
         int format;
     } audio;
     int64_t timeout;
+};
+
+struct Stream
+{
+    bool is_audio;
+    uint8_t* data;
+    int size;
+    uint64_t pts;
 };
 
 struct Frame
@@ -114,6 +123,7 @@ struct Frame
 
 union EventData
 {
+    struct Stream stream;
     struct Frame frame;
     struct ExtraData
     {

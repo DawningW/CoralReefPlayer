@@ -75,6 +75,13 @@ StreamPuller::StreamPuller() : exit(1), authenticator(NULL)
     videoCallback = [this](AVPacket* packet)
         {
             noteLiveness();
+            Stream stream;
+            stream.is_audio = false;
+            stream.data = packet->data;
+            stream.size = packet->size;
+            stream.pts = packet->pts;
+            callback.invokeSync(CRP_EV_RAW_STREAM, &stream, userData);
+
             bool inited = videoDecoder->getFrame()->data[0] != nullptr;
             if (videoDecoder->processPacket(packet))
             {
@@ -96,6 +103,13 @@ StreamPuller::StreamPuller() : exit(1), authenticator(NULL)
     audioCallback = [this](AVPacket* packet)
         {
             noteLiveness();
+            Stream stream;
+            stream.is_audio = true;
+            stream.data = packet->data;
+            stream.size = packet->size;
+            stream.pts = packet->pts;
+            callback.invokeSync(CRP_EV_RAW_STREAM, &stream, userData);
+
             bool inited = audioDecoder->getFrame()->data[0] != nullptr;
             if (audioDecoder->processPacket(packet))
             {
