@@ -10,7 +10,10 @@ static int frame_get_width(struct Frame* frame) { return frame->width; }
 static int frame_get_height(struct Frame* frame) { return frame->height; }
 */
 import "C"
-import "unsafe"
+import (
+	"sync"
+	"unsafe"
+)
 
 type Transport int
 
@@ -88,12 +91,16 @@ type Player struct {
 	callbackId int
 }
 
+var mutex sync.RWMutex
 var callbacks = make(map[int]Callback)
 var lastId = 0
 
 //export goCallback
 func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer) {
 	id := int(uintptr(userData))
+	mutex.RLock()
+	defer mutex.RUnlock()
+
 	if event == C.CRP_EV_NEW_FRAME {
 		frame := (*C.struct_Frame)(data)
 		height := C.frame_get_height(frame)
@@ -142,6 +149,9 @@ func Create() Player {
 func (player Player) Destroy() {
 	C.crp_destroy(player.handle)
 	player.handle = nil
+
+	mutex.Lock()
+	defer mutex.Unlock()
 	delete(callbacks, player.callbackId)
 }
 
@@ -171,6 +181,10 @@ func (player Player) Play(url string, option Option, callback Callback) {
 		},
 		timeout: C.int64_t(option.Timeout),
 	}
+
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	player.callbackId = lastId
 	callbacks[lastId] = callback
 	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(lastId)))
