@@ -157,14 +157,17 @@ func (player Player) Destroy() {
 
 func (player Player) Auth(username, password string, isMd5 bool) {
 	cusername := C.CString(username)
+	defer C.free(unsafe.Pointer(cusername))
 	cpassword := C.CString(password)
+	defer C.free(unsafe.Pointer(cpassword))
+
 	C.crp_auth(player.handle, cusername, cpassword, C.bool(isMd5))
-	C.free(unsafe.Pointer(cusername))
-	C.free(unsafe.Pointer(cpassword))
 }
 
 func (player Player) Play(url string, option Option, callback Callback) {
 	curl := C.CString(url)
+	defer C.free(unsafe.Pointer(curl))
+
 	coption := C.struct_Option{
 		transport: C.int(option.Transport),
 		video: C.struct___1{
@@ -189,7 +192,6 @@ func (player Player) Play(url string, option Option, callback Callback) {
 	callbacks[lastId] = callback
 	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(lastId)))
 	lastId += 1
-	C.free(unsafe.Pointer(curl))
 }
 
 func (player Player) Replay() {
