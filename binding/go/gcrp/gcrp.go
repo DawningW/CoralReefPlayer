@@ -168,13 +168,16 @@ func (player Player) Play(url string, option Option, callback Callback) {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
+	cHWDevice := C.CString(option.HWDevice)
+	defer C.free(unsafe.Pointer(cHWDevice))
+
 	coption := C.struct_Option{
 		transport: C.int(option.Transport),
 		video: C.struct___1{
 			width:     C.int(option.Width),
 			height:    C.int(option.Height),
 			format:    C.int(option.VideoFormat),
-			hw_device: *(*[32]C.char)(unsafe.Pointer(C.CString(option.HWDevice))),
+			hw_device: *(*[32]C.char)(unsafe.Pointer(cHWDevice)),
 		},
 		enable_audio: C.bool(option.EnableAudio),
 		audio: C.struct___2{
