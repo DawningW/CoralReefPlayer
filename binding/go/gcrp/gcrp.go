@@ -146,11 +146,11 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 	}
 }
 
-func Create() Player {
-	return Player{C.crp_create(), 0}
+func Create() *Player {
+	return &Player{C.crp_create(), 0}
 }
 
-func (player Player) Destroy() {
+func (player *Player) Destroy() {
 	C.crp_destroy(player.handle)
 	player.handle = nil
 
@@ -159,7 +159,7 @@ func (player Player) Destroy() {
 	mutex.Unlock()
 }
 
-func (player Player) Auth(username, password string, isMd5 bool) {
+func (player *Player) Auth(username, password string, isMd5 bool) {
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
 	cpassword := C.CString(password)
@@ -168,7 +168,7 @@ func (player Player) Auth(username, password string, isMd5 bool) {
 	C.crp_auth(player.handle, cusername, cpassword, C.bool(isMd5))
 }
 
-func (player Player) Play(url string, option Option, callback Callback) {
+func (player *Player) Play(url string, option Option, callback Callback) {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 	chwdevice := C.CString(option.HWDevice)
@@ -192,19 +192,20 @@ func (player Player) Play(url string, option Option, callback Callback) {
 	}
 
 	mutex.Lock()
-	player.callbackId = lastId
-	callbacks[lastId] = callback
+	id := lastId
+	player.callbackId = id
+	callbacks[id] = callback
 	lastId += 1
 	mutex.Unlock()
 
 	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(id)))
 }
 
-func (player Player) Replay() {
+func (player *Player) Replay() {
 	C.crp_replay(player.handle)
 }
 
-func (player Player) Stop() {
+func (player *Player) Stop() {
 	C.crp_stop(player.handle)
 }
 
