@@ -10,7 +10,10 @@ static int frame_get_width(struct Frame* frame) { return frame->width; }
 static int frame_get_height(struct Frame* frame) { return frame->height; }
 */
 import "C"
-import "unsafe"
+import (
+	"sync"
+	"unsafe"
+)
 
 type Transport int
 
@@ -88,16 +91,24 @@ type Player struct {
 	callbackId int
 }
 
+var mutex sync.RWMutex
 var callbacks = make(map[int]Callback)
 var lastId = 0
 
 //export goCallback
 func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer) {
 	id := int(uintptr(userData))
+	mutex.RLock()
+	callback, ok := callbacks[id]
+	mutex.RUnlock()
+	if !ok {
+		return
+	}
+
 	if event == C.CRP_EV_NEW_FRAME {
 		frame := (*C.struct_Frame)(data)
 		height := C.frame_get_height(frame)
-		callbacks[id].OnFrame(false, Frame{
+		callback.OnFrame(false, Frame{
 			int(C.frame_get_width(frame)),
 			int(height),
 			0, 0,
@@ -113,7 +124,7 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 		})
 	} else if event == C.CRP_EV_NEW_AUDIO {
 		frame := (*C.struct_Frame)(data)
-		callbacks[id].OnFrame(true, Frame{
+		callback.OnFrame(true, Frame{
 			0, 0,
 			int(C.frame_get_width(frame)),
 			int(C.frame_get_height(frame)),
@@ -129,39 +140,47 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 		})
 	} else if event == C.CRP_EV_VIDEO_EXTRADATA || event == C.CRP_EV_AUDIO_EXTRADATA {
 		ed := (*C.struct_ExtraData)(data)
-		callbacks[id].OnEvent(Event(event), C.GoBytes(unsafe.Pointer(ed.data), C.int(ed.size)))
+		callback.OnEvent(Event(event), C.GoBytes(unsafe.Pointer(ed.data), C.int(ed.size)))
 	} else {
-		callbacks[id].OnEvent(Event(event), int64(uintptr(data)))
+		callback.OnEvent(Event(event), int64(uintptr(data)))
 	}
 }
 
-func Create() Player {
-	return Player{C.crp_create(), 0}
+func Create() *Player {
+	return &Player{C.crp_create(), 0}
 }
 
-func (player Player) Destroy() {
+func (player *Player) Destroy() {
 	C.crp_destroy(player.handle)
 	player.handle = nil
+
+	mutex.Lock()
 	delete(callbacks, player.callbackId)
+	mutex.Unlock()
 }
 
-func (player Player) Auth(username, password string, isMd5 bool) {
+func (player *Player) Auth(username, password string, isMd5 bool) {
 	cusername := C.CString(username)
+	defer C.free(unsafe.Pointer(cusername))
 	cpassword := C.CString(password)
+	defer C.free(unsafe.Pointer(cpassword))
+
 	C.crp_auth(player.handle, cusername, cpassword, C.bool(isMd5))
-	C.free(unsafe.Pointer(cusername))
-	C.free(unsafe.Pointer(cpassword))
 }
 
-func (player Player) Play(url string, option Option, callback Callback) {
+func (player *Player) Play(url string, option Option, callback Callback) {
 	curl := C.CString(url)
+	defer C.free(unsafe.Pointer(curl))
+	chwdevice := C.CString(option.HWDevice)
+	defer C.free(unsafe.Pointer(chwdevice))
+
 	coption := C.struct_Option{
 		transport: C.int(option.Transport),
 		video: C.struct___1{
 			width:     C.int(option.Width),
 			height:    C.int(option.Height),
 			format:    C.int(option.VideoFormat),
-			hw_device: *(*[32]C.char)(unsafe.Pointer(C.CString(option.HWDevice))),
+			hw_device: *(*[32]C.char)(unsafe.Pointer(chwdevice)),
 		},
 		enable_audio: C.bool(option.EnableAudio),
 		audio: C.struct___2{
@@ -171,18 +190,22 @@ func (player Player) Play(url string, option Option, callback Callback) {
 		},
 		timeout: C.int64_t(option.Timeout),
 	}
-	player.callbackId = lastId
-	callbacks[lastId] = callback
-	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(lastId)))
+
+	mutex.Lock()
+	id := lastId
+	player.callbackId = id
+	callbacks[id] = callback
 	lastId += 1
-	C.free(unsafe.Pointer(curl))
+	mutex.Unlock()
+
+	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(id)))
 }
 
-func (player Player) Replay() {
+func (player *Player) Replay() {
 	C.crp_replay(player.handle)
 }
 
-func (player Player) Stop() {
+func (player *Player) Stop() {
 	C.crp_stop(player.handle)
 }
 
