@@ -122,7 +122,6 @@ bool AudioDecoder::processPacket(AVPacket* packet)
                     swrCtx = swr_alloc();
                 }
 #if HAVE_CH_LAYOUT
-
                 AVChannelLayout out_ch_layout;
                 av_channel_layout_default(&out_ch_layout, outFrame.channels);
 

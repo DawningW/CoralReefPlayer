@@ -111,7 +111,9 @@ StreamPuller::StreamPuller() : exit(1), authenticator(NULL)
                         callback.invokeSync(CRP_EV_AUDIO_EXTRADATA, &eventData, userData);
                     }
                 }
-                callback(CRP_EV_NEW_AUDIO, audioDecoder->getFrame(), userData);
+                // Synchronized calls are required to ensure proper processing
+                // because multiple frames of audio data may be received simultaneously.
+                callback.invokeSync(CRP_EV_NEW_AUDIO, audioDecoder->getFrame(), userData);
             }
         };
 }
