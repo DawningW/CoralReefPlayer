@@ -99,12 +99,16 @@ var lastId = 0
 func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer) {
 	id := int(uintptr(userData))
 	mutex.RLock()
-	defer mutex.RUnlock()
+	callback, ok := callbacks[id]
+	mutex.RUnlock()
+	if !ok {
+		return
+	}
 
 	if event == C.CRP_EV_NEW_FRAME {
 		frame := (*C.struct_Frame)(data)
 		height := C.frame_get_height(frame)
-		callbacks[id].OnFrame(false, Frame{
+		callback.OnFrame(false, Frame{
 			int(C.frame_get_width(frame)),
 			int(height),
 			0, 0,
@@ -120,7 +124,7 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 		})
 	} else if event == C.CRP_EV_NEW_AUDIO {
 		frame := (*C.struct_Frame)(data)
-		callbacks[id].OnFrame(true, Frame{
+		callback.OnFrame(true, Frame{
 			0, 0,
 			int(C.frame_get_width(frame)),
 			int(C.frame_get_height(frame)),
@@ -136,9 +140,9 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 		})
 	} else if event == C.CRP_EV_VIDEO_EXTRADATA || event == C.CRP_EV_AUDIO_EXTRADATA {
 		ed := (*C.struct_ExtraData)(data)
-		callbacks[id].OnEvent(Event(event), C.GoBytes(unsafe.Pointer(ed.data), C.int(ed.size)))
+		callback.OnEvent(Event(event), C.GoBytes(unsafe.Pointer(ed.data), C.int(ed.size)))
 	} else {
-		callbacks[id].OnEvent(Event(event), int64(uintptr(data)))
+		callback.OnEvent(Event(event), int64(uintptr(data)))
 	}
 }
 
@@ -151,8 +155,8 @@ func (player Player) Destroy() {
 	player.handle = nil
 
 	mutex.Lock()
-	defer mutex.Unlock()
 	delete(callbacks, player.callbackId)
+	mutex.Unlock()
 }
 
 func (player Player) Auth(username, password string, isMd5 bool) {
@@ -167,9 +171,8 @@ func (player Player) Auth(username, password string, isMd5 bool) {
 func (player Player) Play(url string, option Option, callback Callback) {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
-
-	cHWDevice := C.CString(option.HWDevice)
-	defer C.free(unsafe.Pointer(cHWDevice))
+	chwdevice := C.CString(option.HWDevice)
+	defer C.free(unsafe.Pointer(chwdevice))
 
 	coption := C.struct_Option{
 		transport: C.int(option.Transport),
@@ -177,7 +180,7 @@ func (player Player) Play(url string, option Option, callback Callback) {
 			width:     C.int(option.Width),
 			height:    C.int(option.Height),
 			format:    C.int(option.VideoFormat),
-			hw_device: *(*[32]C.char)(unsafe.Pointer(cHWDevice)),
+			hw_device: *(*[32]C.char)(unsafe.Pointer(chwdevice)),
 		},
 		enable_audio: C.bool(option.EnableAudio),
 		audio: C.struct___2{
@@ -189,12 +192,12 @@ func (player Player) Play(url string, option Option, callback Callback) {
 	}
 
 	mutex.Lock()
-	defer mutex.Unlock()
-
 	player.callbackId = lastId
 	callbacks[lastId] = callback
-	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(lastId)))
 	lastId += 1
+	mutex.Unlock()
+
+	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(id)))
 }
 
 func (player Player) Replay() {
