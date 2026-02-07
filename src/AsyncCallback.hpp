@@ -38,6 +38,8 @@ public:
     {
         if (!callback)
             return;
+        if (signal.test()) // Avoid race condition with loop()
+            return;
         next = std::bind(callback, std::forward<T>(args)...);
         signal.test_and_set();
         signal.notify_all();
