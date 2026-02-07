@@ -11,7 +11,7 @@ static int frame_get_height(struct Frame* frame) { return frame->height; }
 */
 import "C"
 import (
-	"sync"
+	"runtime/cgo"
 	"unsafe"
 )
 
@@ -87,23 +87,14 @@ type Callback interface {
 }
 
 type Player struct {
-	handle     C.crp_handle
-	callbackId int
+	handle   C.crp_handle
+	cbHandle cgo.Handle
 }
-
-var mutex sync.RWMutex
-var callbacks = make(map[int]Callback)
-var lastId = 0
 
 //export goCallback
 func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer) {
-	id := int(uintptr(userData))
-	mutex.RLock()
-	callback, ok := callbacks[id]
-	mutex.RUnlock()
-	if !ok {
-		return
-	}
+
+	callback := cgo.Handle(uintptr(userData)).Value().(Callback)
 
 	if event == C.CRP_EV_NEW_FRAME {
 		frame := (*C.struct_Frame)(data)
@@ -154,9 +145,10 @@ func (player *Player) Destroy() {
 	C.crp_destroy(player.handle)
 	player.handle = nil
 
-	mutex.Lock()
-	delete(callbacks, player.callbackId)
-	mutex.Unlock()
+	if player.cbHandle != 0 {
+		player.cbHandle.Delete()
+		player.cbHandle = 0
+	}
 }
 
 func (player *Player) Auth(username, password string, isMd5 bool) {
@@ -191,14 +183,12 @@ func (player *Player) Play(url string, option Option, callback Callback) {
 		timeout: C.int64_t(option.Timeout),
 	}
 
-	mutex.Lock()
-	id := lastId
-	player.callbackId = id
-	callbacks[id] = callback
-	lastId += 1
-	mutex.Unlock()
+	if player.cbHandle != 0 {
+		player.cbHandle.Delete()
+	}
+	player.cbHandle = cgo.NewHandle(callback)
 
-	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(uintptr(id)))
+	C.crp_play(player.handle, curl, &coption, C.crp_callback(C.goCallback), unsafe.Pointer(player.cbHandle))
 }
 
 func (player *Player) Replay() {
