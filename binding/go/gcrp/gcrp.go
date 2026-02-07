@@ -96,7 +96,8 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 
 	callback := cgo.Handle(uintptr(userData)).Value().(Callback)
 
-	if event == C.CRP_EV_NEW_FRAME {
+	switch event {
+	case C.CRP_EV_NEW_FRAME:
 		frame := (*C.struct_Frame)(data)
 		height := C.frame_get_height(frame)
 		callback.OnFrame(false, Frame{
@@ -113,7 +114,7 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 			[4]int{int(frame.stride[0]), int(frame.stride[1]), int(frame.stride[2]), int(frame.stride[3])},
 			uint64(frame.pts),
 		})
-	} else if event == C.CRP_EV_NEW_AUDIO {
+	case C.CRP_EV_NEW_AUDIO:
 		frame := (*C.struct_Frame)(data)
 		callback.OnFrame(true, Frame{
 			0, 0,
@@ -129,10 +130,10 @@ func goCallback(event C.enum_Event, data unsafe.Pointer, userData unsafe.Pointer
 			[4]int{int(frame.stride[0]), int(frame.stride[1]), int(frame.stride[2]), int(frame.stride[3])},
 			uint64(frame.pts),
 		})
-	} else if event == C.CRP_EV_VIDEO_EXTRADATA || event == C.CRP_EV_AUDIO_EXTRADATA {
+	case C.CRP_EV_VIDEO_EXTRADATA, C.CRP_EV_AUDIO_EXTRADATA:
 		ed := (*C.struct_ExtraData)(data)
 		callback.OnEvent(Event(event), C.GoBytes(unsafe.Pointer(ed.data), C.int(ed.size)))
-	} else {
+	default:
 		callback.OnEvent(Event(event), int64(uintptr(data)))
 	}
 }
