@@ -964,6 +964,9 @@ void StreamPuller::createTransportStream(PIDState_STREAM *pidState, StreamType &
                             STREAM_TYPE_CODEC_MAP.at(pidState->stream_type) : "";
 
     FramedSource *inputSource = pidState->streamSource;
+    // Must specify maxFrameSize, as the same as subsession->readSource()->setMaxFrameSize(MAX_TS_FRAME_SIZE),
+    // to prevent StreamParser from truncating packets when bank reaches the end of the buffer
+    inputSource->setMaxFrameSize(TRANSPORT_PACKET_SIZE);
     if (streamType.dataType == StreamType::VIDEO)
     {
         videoDecoder = VideoDecoder::createNew(codecName,
