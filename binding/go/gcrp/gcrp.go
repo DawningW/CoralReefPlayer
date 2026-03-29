@@ -3,6 +3,8 @@ package gcrp
 /*
 #cgo CFLAGS: -I.
 #cgo LDFLAGS: -L. -lCoralReefPlayer
+#cgo darwin LDFLAGS: -Wl,-rpath,.
+#cgo linux LDFLAGS: -Wl,-rpath,$ORIGIN
 #include <stdlib.h>
 #include "coralreefplayer.h"
 extern void goCallback(enum Event, void*, void*);
