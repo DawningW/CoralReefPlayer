@@ -1,7 +1,16 @@
+#include <string>
 #include <cstring>
 #include <semaphore>
 #include <unordered_map>
+#define protected public
 #include <napi.h>
+#undef protected
+#ifdef __OHOS__
+#include <sys/mman.h>
+#include <sys/poll.h>
+#include <native_window/external_window.h>
+#include <native_buffer/native_buffer.h>
+#endif
 #include "coralreefplayer.h"
 
 using namespace Napi;
@@ -195,6 +204,61 @@ Napi::Value VersionCode(const Napi::CallbackInfo& info) {
     return Napi::Number::New(env, code);
 }
 
+#ifdef __OHOS__
+void render(const Napi::CallbackInfo& info) {
+    uint64_t surfaceId = std::stoull(info[0].As<Napi::String>().Utf8Value());
+    Napi::Object frame = info[1].As<Napi::Object>();
+    int width = frame.Get("width").As<Napi::Number>().Int32Value();
+    int height = frame.Get("height").As<Napi::Number>().Int32Value();
+    int format = frame.Get("format").As<Napi::Number>().Int32Value();
+    Napi::ArrayBuffer data = frame.Get("data").As<Napi::ArrayBuffer>();
+    uint8_t* pData;
+    size_t length;
+    napi_get_arraybuffer_info(data._env, data._value, (void**)&pData, &length);
+    int stride = frame.Get("stride").As<Napi::Number>().Int32Value();
+
+    OHNativeWindow* nativeWindow = nullptr;
+    OH_NativeWindow_CreateNativeWindowFromSurfaceId(surfaceId, &nativeWindow);
+
+    OH_NativeWindow_NativeWindowHandleOpt(nativeWindow, SET_BUFFER_GEOMETRY, width, height);
+    OH_NativeWindow_NativeWindowHandleOpt(nativeWindow, SET_FORMAT, NATIVEBUFFER_PIXEL_FMT_RGBA_8888);
+    uint64_t usage = 0;
+    OH_NativeWindow_NativeWindowHandleOpt(nativeWindow, GET_USAGE, &usage);
+    usage |= (NATIVEBUFFER_USAGE_CPU_READ | NATIVEBUFFER_USAGE_CPU_WRITE);
+    OH_NativeWindow_NativeWindowHandleOpt(nativeWindow, SET_USAGE, usage);
+
+    OHNativeWindowBuffer* nativeWindowBuffer = nullptr;
+    int32_t fenceFd = -1;
+    OH_NativeWindow_NativeWindowRequestBuffer(nativeWindow, &nativeWindowBuffer, &fenceFd);
+    BufferHandle* bufferHandle = OH_NativeWindow_GetBufferHandleFromNative(nativeWindowBuffer);
+    uint8_t* dstBuffer = static_cast<uint8_t*>(
+        mmap(bufferHandle->virAddr, bufferHandle->size, PROT_READ | PROT_WRITE, MAP_SHARED, bufferHandle->fd, 0)
+    );
+
+    if (fenceFd != -1) {
+        struct pollfd pollfds = {0};
+        pollfds.fd = fenceFd;
+        pollfds.events = POLLIN;
+        int ret = -1;
+        do {
+            ret = poll(&pollfds, 1, 3000);
+        } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+    }
+
+    int srcLineSize = stride;
+    int dstLineSize = bufferHandle->stride;
+    for (int i = 0; i < height; ++i) {
+        memcpy(dstBuffer + i * dstLineSize, pData + i * srcLineSize, srcLineSize);
+    }
+
+    Region region{};
+    OH_NativeWindow_NativeWindowFlushBuffer(nativeWindow, nativeWindowBuffer, fenceFd, region);
+
+    munmap(dstBuffer, bufferHandle->size);
+    OH_NativeWindow_DestroyNativeWindow(nativeWindow);
+}
+#endif
+
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(Napi::String::New(env, "create"), Napi::Function::New(env, Create));
     exports.Set(Napi::String::New(env, "destroy"), Napi::Function::New(env, Destroy));
@@ -204,6 +268,9 @@ Napi::Object Init(Napi::Env env, Napi::Object exports) {
     exports.Set(Napi::String::New(env, "stop"), Napi::Function::New(env, Stop));
     exports.Set(Napi::String::New(env, "versionStr"), Napi::Function::New(env, VersionStr));
     exports.Set(Napi::String::New(env, "versionCode"), Napi::Function::New(env, VersionCode));
+#ifdef __OHOS__
+    exports.Set(Napi::String::New(env, "renderYUVOnSurface"), Napi::Function::New(env, render));
+#endif
     return exports;
 }
 
