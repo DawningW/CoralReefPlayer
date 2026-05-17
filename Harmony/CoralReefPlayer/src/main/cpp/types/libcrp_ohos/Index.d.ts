@@ -6,3 +6,4 @@ export function replay(handle: any): void;
 export function stop(handle: any): void;
 export function versionCode(): number;
 export function versionStr(): string;
+export function renderYUVOnSurface(surfaceId: string, frame: any): void;

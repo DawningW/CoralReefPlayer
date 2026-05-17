@@ -65,6 +65,7 @@ else()
     target_link_libraries(crp_ohos
         PUBLIC
             libace_napi.z.so
+            libnative_window.so
             node_addon_api_ohos
             CoralReefPlayer
     )
