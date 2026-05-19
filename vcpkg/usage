@@ -1,0 +1,6 @@
+The package coralreefplayer provides CMake targets:
+
+  find_package(coralreefplayer CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE coralreefplayer::coralreefplayer)
+
+It builds only the CoralReefPlayer library (no CoralReefCam/demo/bindings/tests).
