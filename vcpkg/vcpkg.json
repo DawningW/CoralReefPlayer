@@ -1,0 +1,17 @@
+{
+  "name": "coralreefplayer",
+  "version-string": "1.4",
+  "description": "Local CoralReefPlayer port: builds library only, uses local live555 and vcpkg ffmpeg/cpp-httplib.",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "ffmpeg",
+    "cpp-httplib"
+  ]
+}
