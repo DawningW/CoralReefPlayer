@@ -153,7 +153,7 @@ bool StreamPuller::start(const char* url, const Option* option, Callback callbac
 
 bool StreamPuller::restart()
 {
-    if (exit || protocol == CRP_UNKNOWN)
+    if (protocol == CRP_UNKNOWN)
         return false;
 
     stop();

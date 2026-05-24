@@ -1,6 +1,5 @@
 #include <string>
 #include <cstring>
-#include <semaphore>
 #include <unordered_map>
 #define protected public
 #include <napi.h>
@@ -27,12 +26,18 @@ static void FinalizeCallback(napi_env env, void *finalize_data) {}
 std::unordered_map<crp_handle, Napi::ThreadSafeFunction> g_callbacks;
 
 void js_callback(int event, void* data, void* user_data) {
-#ifdef __OHOS__
-    // HarmonyOS napi_call_threadsafe_function does not wait this call to end
-    // So we use semaphore to wait until this call ends
-    std::binary_semaphore sem(0);
-#endif
     Napi::ThreadSafeFunction& tsfn = g_callbacks[(crp_handle) user_data];
+    if (event == CRP_EV_VIDEO_EXTRADATA || event == CRP_EV_AUDIO_EXTRADATA) {
+        EventData::ExtraData ed = ((EventData*) data)->extra_data;
+        tsfn.BlockingCall([event, ed](Napi::Env env, Napi::Function callback) {
+            auto buffer = NAPI_NEW_BUFFER(env, (uint8_t*) ed.data, ed.size);
+            callback.Call({
+                Napi::Number::New(env, event),
+                buffer
+            });
+        });
+        return;
+    }
     tsfn.BlockingCall([&, event, data](Napi::Env env, Napi::Function callback) {
         if (event == CRP_EV_NEW_FRAME) {
             Frame* frame = (Frame*) data;
@@ -86,26 +91,13 @@ void js_callback(int event, void* data, void* user_data) {
                 Napi::Number::New(env, event),
                 obj
             });
-        } else if (event == CRP_EV_VIDEO_EXTRADATA || event == CRP_EV_AUDIO_EXTRADATA) {
-            EventData* ed = (EventData*) data;
-            auto buffer = NAPI_NEW_BUFFER(env, (uint8_t*) ed->extra_data.data, ed->extra_data.size);
-            callback.Call({
-                Napi::Number::New(env, event),
-                buffer
-            });
         } else {
             callback.Call({
                 Napi::Number::New(env, event),
                 Napi::Number::New(env, (uintptr_t) data)
             });
         }
-#ifdef __OHOS__
-        sem.release();
-#endif
     });
-#ifdef __OHOS__
-    sem.acquire();
-#endif
 }
 
 Napi::Value Create(const Napi::CallbackInfo& info) {
@@ -119,7 +111,10 @@ void Destroy(const Napi::CallbackInfo& info) {
     crp_handle handle = (crp_handle) info[0].As<Napi::External<void>>().Data();
     crp_destroy(handle);
     if (g_callbacks.find(handle) != g_callbacks.end()) {
-        g_callbacks[handle].Release();
+        Napi::ThreadSafeFunction& tsfn = g_callbacks[handle];
+        tsfn.Abort();
+        FunctionReference* callbackRef = static_cast<FunctionReference*>(tsfn.GetContext());
+        delete callbackRef;
         g_callbacks.erase(handle);
     }
 }
@@ -171,25 +166,50 @@ void Play(const Napi::CallbackInfo& info) {
     if (obj.Has("timeout")) {
         option.timeout = obj.Get("timeout").As<Napi::Number>().Int64Value();
     }
-    Napi::Function callback = info[3].As<Napi::Function>();
     if (g_callbacks.find(handle) != g_callbacks.end()) {
-        g_callbacks[handle].Release();
+        return;
     }
+    Napi::Function callback = info[3].As<Napi::Function>();
+    FunctionReference* callbackRef = new FunctionReference();
+    *callbackRef = Napi::Persistent(callback);
     g_callbacks[handle] = Napi::ThreadSafeFunction::New(
-        env, callback, "AsyncCallback", 0, 1, [](Napi::Env) {});
+        env, callback, "AsyncCallback", 0, 1, callbackRef, [](Napi::Env, FunctionReference*) {});
     crp_play(handle, url.c_str(), &option, js_callback, handle);
 }
 
 void Replay(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     crp_handle handle = (crp_handle) info[0].As<Napi::External<void>>().Data();
-    crp_replay(handle);
+    if (g_callbacks.find(handle) != g_callbacks.end()) {
+        Napi::ThreadSafeFunction& tsfn = g_callbacks[handle];
+        FunctionReference* callbackRef = static_cast<FunctionReference*>(tsfn.GetContext());
+        crp_stop(handle);
+        tsfn.Abort();
+        callbackRef->Call({
+            Napi::Number::New(env, CRP_EV_STOP),
+            Napi::Number::New(env, 0)
+        });
+        g_callbacks[handle] = Napi::ThreadSafeFunction::New(
+            env, callbackRef->Value(), "AsyncCallback", 0, 1, callbackRef, [](Napi::Env, FunctionReference*) {});
+        crp_replay(handle);
+    }
 }
 
 void Stop(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     crp_handle handle = (crp_handle) info[0].As<Napi::External<void>>().Data();
     crp_stop(handle);
+    if (g_callbacks.find(handle) != g_callbacks.end()) {
+        Napi::ThreadSafeFunction& tsfn = g_callbacks[handle];
+        tsfn.Abort();
+        FunctionReference* callbackRef = static_cast<FunctionReference*>(tsfn.GetContext());
+        callbackRef->Call({
+            Napi::Number::New(env, CRP_EV_STOP),
+            Napi::Number::New(env, 0)
+        });
+        delete callbackRef;
+        g_callbacks.erase(handle);
+    }
 }
 
 Napi::Value VersionStr(const Napi::CallbackInfo& info) {
