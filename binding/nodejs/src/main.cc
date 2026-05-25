@@ -232,9 +232,7 @@ void render(const Napi::CallbackInfo& info) {
     int height = frame.Get("height").As<Napi::Number>().Int32Value();
     int format = frame.Get("format").As<Napi::Number>().Int32Value();
     Napi::ArrayBuffer data = frame.Get("data").As<Napi::ArrayBuffer>();
-    uint8_t* pData;
-    size_t length;
-    napi_get_arraybuffer_info(data._env, data._value, (void**)&pData, &length);
+    uint8_t* pData = static_cast<uint8_t*>(data.Data());
     int stride = frame.Get("stride").As<Napi::Number>().Int32Value();
 
     OHNativeWindow* nativeWindow = nullptr;

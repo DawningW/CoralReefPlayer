@@ -7,6 +7,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "libcrp_ohos.so": "file:./src/main/cpp/types/libcrp_ohos",
-    "@ohos-rs/node-addon-api": "^0.0.4"
+    "@ohos-rs/node-addon-api": "^0.0.5"
   }
 }
