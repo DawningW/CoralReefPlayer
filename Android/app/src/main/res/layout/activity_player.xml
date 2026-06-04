@@ -6,8 +6,8 @@
     android:background="@android:color/black"
     tools:context=".PlayerActivity">
 
-    <ImageView
-        android:id="@+id/image_player"
+    <cn.oureda.coralreefplayer.PlayerView
+        android:id="@+id/player"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 </FrameLayout>

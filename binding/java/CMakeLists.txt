@@ -22,11 +22,11 @@ if(NOT ANDROID)
     )
 else()
     set(JNI_INCLUDE_DIRS "")
-    set(JNI_LIBRARIES "android")
+    set(JNI_LIBRARIES "android" "mediandk")
 endif()
 
 add_library(crp_native SHARED
-    src/main/jni/cn_oureda_coralreefplayer_NativeMethods.cpp
+    src/main/jni/jni.cpp
 )
 
 target_include_directories(crp_native

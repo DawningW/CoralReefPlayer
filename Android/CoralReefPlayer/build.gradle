@@ -20,7 +20,7 @@ android {
 
     sourceSets {
         main {
-            java.srcDirs = ['../../binding/java/src/main/java']
+            java.srcDirs = ['../../binding/java/src/main/java', 'src/main/java']
         }
     }
 

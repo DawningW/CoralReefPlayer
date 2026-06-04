@@ -1,6 +1,11 @@
 #include <cstring>
+#include <initializer_list>
 #include <unordered_map>
-#include "cn_oureda_coralreefplayer_NativeMethods.h"
+#include <jni.h>
+#ifdef ANDROID
+#include <android/native_window.h>
+#include <android/native_window_jni.h>
+#endif
 #include "coralreefplayer.h"
 
 #ifdef ANDROID
@@ -86,19 +91,11 @@ void java_callback(int event, void *data, void *user_data) {
     }
 }
 
-jlong JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1create(JNIEnv *jenv, jclass jcls) {
-    if (g_jvm == NULL) {
-        jenv->GetJavaVM(&g_jvm);
-    }
-    // See https://developer.android.google.cn/training/articles/perf-jni?hl=zh-cn#faq:-why-didnt-findclass-find-my-class
-    if (g_frame_class == NULL) {
-        jclass cls = jenv->FindClass("cn/oureda/coralreefplayer/Frame");
-        g_frame_class = (jclass)jenv->NewGlobalRef(cls);
-    }
+jlong create(JNIEnv *jenv, jclass jcls) {
     return (jlong) crp_create();
 }
 
-void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+void destroy(JNIEnv *jenv, jclass jcls, jlong jarg1) {
     crp_handle handle = (crp_handle) jarg1;
     crp_destroy(handle);
     if (g_callbacks.find(handle) != g_callbacks.end()) {
@@ -107,7 +104,7 @@ void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1destroy(JNIEnv *j
     }
 }
 
-void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1auth(JNIEnv *jenv, jclass jcls, jlong jarg1, jstring jarg2, jstring jarg3, jboolean jarg4) {
+void auth(JNIEnv *jenv, jclass jcls, jlong jarg1, jstring jarg2, jstring jarg3, jboolean jarg4) {
     crp_handle arg1 = (crp_handle) jarg1;
     const char *arg2 = jenv->GetStringUTFChars(jarg2, 0);
     const char *arg3 = jenv->GetStringUTFChars(jarg3, 0);
@@ -119,7 +116,7 @@ void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1auth(JNIEnv *jenv
     jenv->ReleaseStringUTFChars(jarg3, arg3);
 }
 
-void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1play(JNIEnv *jenv, jclass jcls, jlong jarg1, jstring jarg2, jobject jarg3, jobject jarg4) {
+void play(JNIEnv *jenv, jclass jcls, jlong jarg1, jstring jarg2, jobject jarg3, jobject jarg4) {
     crp_handle arg1 = (crp_handle) jarg1;
     const char *arg2 = jenv->GetStringUTFChars(jarg2, 0);
 
@@ -152,18 +149,98 @@ void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1play(JNIEnv *jenv
     jenv->ReleaseStringUTFChars(jarg2, arg2);
 }
 
-void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1replay(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+void replay(JNIEnv *jenv, jclass jcls, jlong jarg1) {
     crp_replay((crp_handle) jarg1);
 }
 
-void JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1stop(JNIEnv *jenv, jclass jcls, jlong jarg1) {
+void stop(JNIEnv *jenv, jclass jcls, jlong jarg1) {
     crp_stop((crp_handle) jarg1);
 }
 
-jint JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1version_1code(JNIEnv *jenv, jclass jcls) {
+jint version_code(JNIEnv *jenv, jclass jcls) {
     return (jint) crp_version_code();
 }
 
-jstring JNICALL Java_cn_oureda_coralreefplayer_NativeMethods_crp_1version_1str(JNIEnv *jenv, jclass jcls) {
+jstring version_str(JNIEnv *jenv, jclass jcls) {
     return jenv->NewStringUTF(crp_version_str());
+}
+
+#ifdef ANDROID
+void render(JNIEnv *env, jclass cls, jobject surface, jobject frame) {
+    jclass cls2 = g_frame_class;
+    int width = env->GetIntField(frame, env->GetFieldID(cls2, "width", "I"));
+    int height = env->GetIntField(frame, env->GetFieldID(cls2, "height", "I"));
+    int format = env->GetIntField(frame, env->GetFieldID(cls2, "format", "I"));
+    jobjectArray data = static_cast<jobjectArray>(env->GetObjectField(
+            frame, env->GetFieldID(cls2, "data", "[Ljava/nio/ByteBuffer;")));
+    jobject buffer = env->GetObjectArrayElement(data, 0);
+    uint8_t *pData = static_cast<uint8_t *>(env->GetDirectBufferAddress(buffer));
+    jintArray stride = static_cast<jintArray>(env->GetObjectField(
+            frame, env->GetFieldID(cls2, "stride", "[I")));
+    jint *pStride = env->GetIntArrayElements(stride, NULL);
+
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+
+    ANativeWindow_setBuffersGeometry(nativeWindow, width, height, WINDOW_FORMAT_RGBA_8888);
+
+    ANativeWindow_Buffer nativeWindowBuffer;
+    ANativeWindow_lock(nativeWindow, &nativeWindowBuffer, nullptr);
+    uint8_t *dstBuffer = static_cast<uint8_t *>(nativeWindowBuffer.bits);
+
+    int srcLineSize = pStride[0];
+    int dstLineSize = nativeWindowBuffer.stride * 4;
+    for (int i = 0; i < height; ++i) {
+        memcpy(dstBuffer + i * dstLineSize, pData + i * srcLineSize, srcLineSize);
+    }
+
+    ANativeWindow_unlockAndPost(nativeWindow);
+
+    ANativeWindow_release(nativeWindow);
+}
+#endif
+
+static int registerNativeMethods(JNIEnv *env, const char *className, std::initializer_list<JNINativeMethod> methods) {
+    jclass cls = env->FindClass(className);
+    if (cls == NULL) {
+        return JNI_ERR;
+    }
+    if (env->RegisterNatives(cls, methods.begin(), methods.size()) < 0) {
+        return JNI_ERR;
+    }
+    return JNI_OK;
+}
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved) {
+    JNIEnv *jenv = NULL;
+    if (jvm->GetEnv((void **)&jenv, JNI_VERSION_1_4) != JNI_OK) {
+        return JNI_ERR;
+    }
+
+    if (registerNativeMethods(jenv, "cn/oureda/coralreefplayer/NativeMethods", {
+        {"crp_create", "()J", (void *)create},
+        {"crp_destroy", "(J)V", (void *)destroy},
+        {"crp_auth", "(JLjava/lang/String;Ljava/lang/String;Z)V", (void *)auth},
+        {"crp_play", "(JLjava/lang/String;Ljava/lang/Object;Ljava/lang/Object;)V", (void *)play},
+        {"crp_replay", "(J)V", (void *)replay},
+        {"crp_stop", "(J)V", (void *)stop},
+        {"crp_version_code", "()I", (void *)version_code},
+        {"crp_version_str", "()Ljava/lang/String;", (void *)version_str},
+    }) != JNI_OK) {
+        return JNI_ERR;
+    }
+
+#ifdef ANDROID
+    if (registerNativeMethods(jenv, "cn/oureda/coralreefplayer/PlayerView", {
+        {"renderYUVOnSurface", "(Landroid/view/Surface;Lcn/oureda/coralreefplayer/Frame;)V", (void *)render},
+    }) != JNI_OK) {
+        return JNI_ERR;
+    }
+#endif
+
+    g_jvm = jvm;
+    // See https://developer.android.google.cn/training/articles/perf-jni?hl=zh-cn#faq:-why-didnt-findclass-find-my-class
+    jclass cls = jenv->FindClass("cn/oureda/coralreefplayer/Frame");
+    g_frame_class = (jclass)jenv->NewGlobalRef(cls);
+
+    return JNI_VERSION_1_4;
 }

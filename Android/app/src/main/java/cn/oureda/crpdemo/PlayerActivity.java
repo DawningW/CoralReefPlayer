@@ -2,7 +2,6 @@ package cn.oureda.crpdemo;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,19 +17,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import cn.oureda.coralreefplayer.CoralReefPlayer;
 import cn.oureda.coralreefplayer.Frame;
 import cn.oureda.coralreefplayer.Option;
+import cn.oureda.coralreefplayer.PlayerController;
 import cn.oureda.crpdemo.databinding.ActivityPlayerBinding;
 
 public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer.Callback {
     private final static String TAG = "PlayerActivity";
     private ActivityPlayerBinding binding;
-    private CoralReefPlayer player;
+    private PlayerController player;
     private boolean played;
     private WifiManager.MulticastLock lock;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i(TAG, "onCreate");
         binding = ActivityPlayerBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -54,7 +53,8 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         }
 
-        player = new CoralReefPlayer();
+        player = new PlayerController();
+        binding.player.setController(player);
 
         WifiManager manager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         lock = manager.createMulticastLock("crp");
@@ -63,7 +63,6 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     @Override
     protected void onStart() {
         super.onStart();
-        Log.i(TAG, "onStart");
         lock.acquire();
         Intent intent = getIntent();
         String url = intent.getStringExtra("url");
@@ -78,7 +77,6 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     @Override
     protected void onStop() {
         super.onStop();
-        Log.i(TAG, "onStop");
         player.stop();
         lock.release();
     }
@@ -86,7 +84,6 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.i(TAG, "onDestroy");
         player.release();
         player = null;
     }
@@ -116,29 +113,21 @@ public class PlayerActivity extends AppCompatActivity implements CoralReefPlayer
     @Override
     public void onFrame(boolean isAudio, Frame frame) {
         // Log.i(TAG, "onFrame");
-        if (!isAudio) {
-            // 在拉流线程上创建位图, 避免 Player 释放后访问空指针
-            Bitmap bitmap = Bitmap.createBitmap(frame.width, frame.height, Bitmap.Config.ARGB_8888);
-            bitmap.copyPixelsFromBuffer(frame.data[0]);
-
+        if (!isAudio && !played) {
             runOnUiThread(() -> {
-                if (!played) {
-                    int viewWidth = binding.getRoot().getWidth();
-                    int viewHeight = binding.getRoot().getHeight();
-                    float ratio = (float) frame.width / frame.height;
-                    if ((float) viewWidth / viewHeight < ratio) {
-                        // 以宽度为基准
-                        binding.getRoot().getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
-                        binding.getRoot().getLayoutParams().height = (int) (viewWidth / ratio + 0.5f);
-                    } else {
-                        // 以高度为基准
-                        binding.getRoot().getLayoutParams().height = ViewGroup.LayoutParams.MATCH_PARENT;
-                        binding.getRoot().getLayoutParams().width = (int) (viewHeight * ratio + 0.5f);
-                    }
-                    played = true;
+                int viewWidth = binding.getRoot().getWidth();
+                int viewHeight = binding.getRoot().getHeight();
+                float ratio = (float) frame.width / frame.height;
+                if ((float) viewWidth / viewHeight < ratio) {
+                    // 以宽度为基准
+                    binding.getRoot().getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
+                    binding.getRoot().getLayoutParams().height = (int) (viewWidth / ratio + 0.5f);
+                } else {
+                    // 以高度为基准
+                    binding.getRoot().getLayoutParams().height = ViewGroup.LayoutParams.MATCH_PARENT;
+                    binding.getRoot().getLayoutParams().width = (int) (viewHeight * ratio + 0.5f);
                 }
-
-                binding.imagePlayer.setImageBitmap(bitmap);
+                played = true;
             });
         }
     }
