@@ -37,6 +37,7 @@ Option option;
 crp_handle player;
 bool playing;
 uint64_t pts;
+SDL_TimerID timer;
 
 #ifdef __EMSCRIPTEN__
 static std::function<void()> EmscriptenMainLoopFunc;
@@ -146,7 +147,7 @@ void play()
             else if (ev == CRP_EV_ERROR)
             {
                 printf("An error has occurred, will reconnect after 5 seconds\n");
-                SDL_AddTimer(5000, [](Uint32 interval, void* param)
+                timer = SDL_AddTimer(5000, [](Uint32 interval, void* param)
                     {
                         SDL_Event event = {};
                         event.type = SDL_REPLAY_EVENT;
@@ -206,7 +207,14 @@ void loop(SDL_Window* window)
             if (ImGui::MenuItem("Play", "Ctrl+O"))
                 open_play_window = true;
             if (ImGui::MenuItem("Stop", NULL, false, playing))
+            {
+                if (timer != 0)
+                {
+                    SDL_RemoveTimer(timer);
+                    timer = 0;
+                }
                 crp_stop(player);
+            }
             ImGui::Separator();
             if (ImGui::MenuItem("Quit", "Alt+F4"))
             {
