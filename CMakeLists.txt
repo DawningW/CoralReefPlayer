@@ -40,7 +40,7 @@ else()
             add_compile_options("-pthread")
             add_link_options("-pthread" "-sMALLOC=mimalloc")
         endif()
-        add_link_options("-sALLOW_MEMORY_GROWTH=1" "-sFETCH" "-sFETCH_STREAMING" "-lwebsocket.js" "-sPROXY_POSIX_SOCKETS")
+        add_link_options("-sFAKE_DYLIBS" "-sALLOW_MEMORY_GROWTH=1" "-sFETCH" "-sFETCH_STREAMING" "-lwebsocket.js" "-sPROXY_POSIX_SOCKETS")
     endif()
 endif()
 
