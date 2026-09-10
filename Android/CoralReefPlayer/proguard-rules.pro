@@ -39,3 +39,11 @@
 -keep class cn.oureda.coralreefplayer.Frame {
     *;
 }
+
+-keep class cn.oureda.coralreefplayer.PlayerController {
+    *;
+}
+
+-keep class cn.oureda.coralreefplayer.PlayerView {
+    *;
+}
