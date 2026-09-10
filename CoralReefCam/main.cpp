@@ -1,6 +1,9 @@
 #include <string>
+#include <vector>
+#include <filesystem>
 #include <functional>
 #include <stdio.h>
+#include <string.h>
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -17,6 +20,7 @@ extern "C"
 #endif
 #include "SDL.h"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_stdlib.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
@@ -27,6 +31,7 @@ extern "C"
 #endif
 #include "coralreefplayer.h"
 #include "optparse.h"
+#include "Fonts.h"
 
 #define IDLE_FPS 25
 #define SDL_REFRESH_EVENT (SDL_USEREVENT + 1)
@@ -38,6 +43,11 @@ crp_handle player;
 bool playing;
 uint64_t pts;
 SDL_TimerID timer;
+std::vector<SystemFont> system_fonts;
+std::vector<ImFont*> system_fonts_loaded;
+float ui_font_size = 16.0f;
+std::string ui_font_file;
+int ui_font_index = 0;
 
 #ifdef __EMSCRIPTEN__
 static std::function<void()> EmscriptenMainLoopFunc;
@@ -129,6 +139,121 @@ bool BeginOverlay(const char* name, WindowLocation location, bool* p_open = null
     return ImGui::Begin(name, p_open, window_flags);
 }
 
+static std::string GetFontDisplayName(const SystemFont& font)
+{
+    // The current font may be unable to render a non-ASCII name yet, so also
+    // show the file name, which always is ASCII.
+    bool non_ascii = false;
+    for (unsigned char c : font.name)
+        if (c >= 0x80) { non_ascii = true; break; }
+    std::string file = std::filesystem::path(font.file).filename().string();
+    if (non_ascii && !file.empty())
+        return font.name + " (" + file + ")";
+    return font.name;
+}
+
+static ImFont* LoadSystemFont(size_t index)
+{
+    if (system_fonts_loaded[index])
+        return system_fonts_loaded[index];
+
+    const SystemFont& system_font = system_fonts[index];
+    ImFontConfig config;
+    config.FontNo = system_font.index;
+    config.Flags |= ImFontFlags_NoLoadError;
+    std::string name = GetFontDisplayName(system_font);
+    size_t len = std::min(name.size(), sizeof(config.Name) - 1);
+    while (len > 0 && ((unsigned char) name[len] & 0xC0) == 0x80)  // keep whole UTF-8 sequences
+        len--;
+    memcpy(config.Name, name.data(), len);
+    config.Name[len] = '\0';
+    system_fonts_loaded[index] = ImGui::GetIO().Fonts->AddFontFromFileTTF(system_font.file.c_str(), 16.0f, &config);
+    return system_fonts_loaded[index];
+}
+
+static void SelectSystemFont(size_t index)
+{
+    ImFont* font = LoadSystemFont(index);
+    if (font)
+    {
+        ImGui::GetIO().FontDefault = font;
+        ui_font_file = system_fonts[index].file;
+        ui_font_index = system_fonts[index].index;
+        ImGui::MarkIniSettingsDirty();
+    }
+}
+
+// Font/size settings persistence, stored in ImGui's own imgui.ini through a
+// custom settings handler:
+//
+// [UI][Settings]
+// FontSize=25
+// FontFile=C:\Windows\Fonts\msyh.ttc
+// FontIndex=0
+
+static void UiSettingsWriteAll(ImGuiContext* ctx, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+{
+    buf->appendf("[%s][Settings]\n", handler->TypeName);
+    buf->appendf("FontSize=%.0f\n", ui_font_size);
+    if (!ui_font_file.empty())
+    {
+        buf->appendf("FontFile=%s\n", ui_font_file.c_str());
+        buf->appendf("FontIndex=%d\n", ui_font_index);
+    }
+    buf->append("\n");
+}
+
+static void* UiSettingsReadOpen(ImGuiContext* ctx, ImGuiSettingsHandler* handler, const char* name)
+{
+    return strcmp(name, "Settings") == 0 ? (void*) 1 : nullptr;
+}
+
+static void UiSettingsReadLine(ImGuiContext* ctx, ImGuiSettingsHandler* handler, void* entry, const char* line)
+{
+    float size = 0;
+    int index = 0;
+    if (sscanf(line, "FontSize=%f", &size) == 1)
+        ui_font_size = size < 10.0f ? 10.0f : (size > 40.0f ? 40.0f : size);
+    else if (sscanf(line, "FontIndex=%d", &index) == 1)
+        ui_font_index = index;
+    else if (strncmp(line, "FontFile=", 9) == 0)
+        ui_font_file = line + 9;
+}
+
+static void UiSettingsApplyAll(ImGuiContext* ctx, ImGuiSettingsHandler* handler)
+{
+    // Runs during the first NewFrame, before the font size is resolved and the
+    // default font is picked, so both settings apply from the very first frame.
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.FontSizeBase = ui_font_size;
+    style._NextFrameFontSizeBase = ui_font_size;
+    if (!ui_font_file.empty())
+    {
+        for (size_t i = 0; i < system_fonts.size(); i++)
+        {
+            if (system_fonts[i].file == ui_font_file && system_fonts[i].index == ui_font_index)
+            {
+                ImFont* font = LoadSystemFont(i);
+                if (font)
+                    ImGui::GetIO().FontDefault = font;
+                break;
+            }
+        }
+    }
+}
+
+static void RegisterUiSettings()
+{
+    ImGuiSettingsHandler handler;
+    handler.TypeName = "UI";
+    handler.TypeHash = ImHashStr("UI");
+    handler.ReadOpenFn = UiSettingsReadOpen;
+    handler.ReadLineFn = UiSettingsReadLine;
+    handler.ApplyAllFn = UiSettingsApplyAll;
+    handler.WriteAllFn = UiSettingsWriteAll;
+    ImGui::AddSettingsHandler(&handler);
+}
+
 void play()
 {
     if (playing)
@@ -188,6 +313,7 @@ void loop(SDL_Window* window)
     static bool show_implot_demo_window = false;
     static bool show_fps_window = true;
     bool open_play_window = false;
+    bool open_options_window = false;
     bool open_about_window = false;
     ImGuiIO& io = ImGui::GetIO();
     ImVec4 color;
@@ -226,7 +352,8 @@ void loop(SDL_Window* window)
         }
         if (ImGui::BeginMenu("Advance"))
         {
-            if (ImGui::MenuItem("Options")) {}
+            if (ImGui::MenuItem("Options"))
+                open_options_window = true;
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("View"))
@@ -276,6 +403,56 @@ void loop(SDL_Window* window)
         ImGui::SameLine();
         if (ImGui::Button("Cancel", ImVec2(120, 0)))
             ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+
+    if (open_options_window)
+        ImGui::OpenPopup("Options");
+    bool options_window_opened = true;
+    SetNextWindowLoc(Center, ImGuiCond_Appearing);
+    if (ImGui::BeginPopupModal("Options", &options_window_opened, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        if (ImGui::BeginTabBar("OptionsTabBar", ImGuiTabBarFlags_None))
+        {
+            if (ImGui::BeginTabItem("UI"))
+            {
+                ImGuiIO& io = ImGui::GetIO();
+                ImFont* font_embedded = io.Fonts->Fonts[0];
+                ImFont* font_current = io.FontDefault ? io.FontDefault : font_embedded;
+                if (ImGui::BeginCombo("Font", font_current == font_embedded ? "Default" : font_current->GetDebugName()))
+                {
+                    if (ImGui::Selectable("Default", font_current == font_embedded))
+                    {
+                        io.FontDefault = font_embedded;
+                        ui_font_file.clear();
+                        ui_font_index = 0;
+                        ImGui::MarkIniSettingsDirty();
+                    }
+                    for (size_t i = 0; i < system_fonts.size(); i++)
+                    {
+                        std::string label = GetFontDisplayName(system_fonts[i]);
+                        ImGui::PushID((int) i);
+                        if (ImGui::Selectable(label.c_str(), font_current == system_fonts_loaded[i]))
+                            SelectSystemFont(i);
+                        ImGui::PopID();
+                    }
+                    ImGui::EndCombo();
+                }
+                // style.FontSizeBase is restored from the font stack by Begin()/End()
+                // throughout the frame, so a plain write is reverted before it reaches
+                // the next NewFrame. Mirror the upstream demo: on change, also queue
+                // the value to be re-applied at the next NewFrame.
+                if (ImGui::SliderFloat("Size", &ui_font_size, 10.0f, 40.0f, "%.0f px"))
+                {
+                    ImGuiStyle& style = ImGui::GetStyle();
+                    style.FontSizeBase = ui_font_size;
+                    style._NextFrameFontSizeBase = ui_font_size;
+                    ImGui::MarkIniSettingsDirty();
+                }
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
         ImGui::EndPopup();
     }
 
@@ -535,7 +712,9 @@ int main(int argc, char* argv[])
     ImFontConfig font_config;
     font_config.SizePixels = 16.0f;
     io.Fonts->AddFontDefault(&font_config);
-    // io.Fonts->AddFontFromFileTTF("./unifont-15.0.06.ttf", 16.0f, nullptr, io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
+    system_fonts = EnumerateSystemFonts();
+    system_fonts_loaded.assign(system_fonts.size(), nullptr);
+    RegisterUiSettings();
     ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer2_Init(renderer);
 #ifdef __EMSCRIPTEN__

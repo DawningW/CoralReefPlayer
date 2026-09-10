@@ -17,6 +17,12 @@ else()
     find_package(SDL2 2.0.18 REQUIRED)
 endif()
 
+# Font enumeration for the font selector (Fonts.cpp), CoreText is used on Apple
+if(NOT APPLE AND NOT WIN32 AND NOT EMSCRIPTEN)
+    find_path(FONTCONFIG_INCLUDE_DIR fontconfig/fontconfig.h REQUIRED)
+    find_library(FONTCONFIG_LIBRARY fontconfig REQUIRED)
+endif()
+
 find_package(OpenCV 4.4.0 QUIET)
 set(ENABLE_OPENCV ON CACHE BOOL "")
 if(NOT OpenCV_FOUND)
@@ -44,6 +50,7 @@ endif()
 
 add_executable(${PROJECT_NAME}
     main.cpp
+    Fonts.cpp
     $<$<OR:$<BOOL:${WIN32}>,$<BOOL:${CYGWIN}>>:CoralReefCam.rc>
     $<$<BOOL:${APPLE}>:icon.icns>
 )
@@ -51,6 +58,7 @@ add_executable(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         ${PROJECT_SOURCE_DIR}/.
+        ${FONTCONFIG_INCLUDE_DIR}
 )
 
 target_compile_definitions(${PROJECT_NAME}
@@ -75,6 +83,12 @@ target_link_libraries(${PROJECT_NAME}
         implot
         $<$<BOOL:${ENABLE_OPENCV}>:${OpenCV_LIBS}>
 )
+
+if(APPLE)
+    target_link_options(${PROJECT_NAME} PRIVATE -framework CoreText -framework CoreFoundation)
+elseif(NOT WIN32 AND NOT EMSCRIPTEN)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${FONTCONFIG_LIBRARY})
+endif()
 
 add_dependencies(${PROJECT_NAME}
     CoralReefPlayer
